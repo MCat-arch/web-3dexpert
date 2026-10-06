@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+
+/*
+ * Legacy shipped 4,370 lines of style.css PLUS thousands of lines of inline
+ * <style> blocks in the page files themselves -- 841 in detail.php, 794 in
+ * karir.php, 466 in login.php for a single form -- so the same rules existed in
+ * two places and neither was authoritative.
+ *
+ * Here Tailwind utilities live in the markup and this file holds only design
+ * tokens and the few genuinely global rules.
+ */
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    /* The brand amber carried over from the legacy admin and login pages,
+       which used #ff8c00 / #ffa500 gradients. */
+    --color-brand-50: #fff8ed;
+    --color-brand-100: #ffefd4;
+    --color-brand-200: #ffdaa8;
+    --color-brand-300: #ffc071;
+    --color-brand-400: #ffa500;
+    --color-brand-500: #ff8c00;
+    --color-brand-600: #e67200;
+    --color-brand-700: #bf5700;
+    --color-brand-800: #984500;
+    --color-brand-900: #7c3a06;
+}
+
+/* ===================================================================== *
+ * Component state classes
+ *
+ * SecurityHeaders.php sends `script-src 'self'` with no 'unsafe-eval', so the
+ * CSP-safe Alpine build is used and it cannot evaluate expressions -- no
+ * x-show, no :class, no x-transition. Visual state is therefore carried by
+ * these classes, which resources/js/app.js toggles.
+ *
+ * Each default below is the no-JS state, so the server-rendered page is
+ * already correct before (or without) Alpine.
+ * ===================================================================== */
+
+/* Kept for any third-party markup that still uses it. */
+[x-cloak] {
+    display: none !important;
+}
+
+/* --- Hero carousel ------------------------------------------------- */
+/* Slides stack; only .is-active is visible. The first slide ships with
+   .is-active from the server, so no-JS shows slide 1 instead of all five. */
+[data-slide] {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 700ms ease-in-out;
+}
+
+[data-slide].is-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+[data-dot] {
+    width: 0.5rem;
+    background-color: color-mix(in oklab, white 40%, transparent);
+    transition: width 200ms ease, background-color 200ms ease;
+}
+
+[data-dot].is-active {
+    width: 1.5rem;
+    background-color: var(--color-brand-400);
+}
+
+/* --- Portfolio detail gallery -------------------------------------- */
+[data-gallery-item] {
+    display: none;
+}
+
+[data-gallery-item].is-active {
+    display: block;
+}
+
+[data-gallery-thumb] {
+    opacity: 0.6;
+}
+
+[data-gallery-thumb]:hover {
+    opacity: 1;
+}
+
+[data-gallery-thumb].is-active {
+    opacity: 1;
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: -2px;
+}
+
+/* --- Header mobile menu -------------------------------------------- */
+/* grid-template-rows 0fr -> 1fr animates height without measuring it. */
+[data-nav-panel] {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 250ms ease;
+}
+
+[data-nav-panel] > * {
+    overflow: hidden;
+}
+
+[data-nav-panel].is-open {
+    grid-template-rows: 1fr;
+}
+
+[data-nav-toggle] .icon-close,
+[data-nav-toggle].is-open .icon-open {
+    display: none;
+}
+
+[data-nav-toggle].is-open .icon-close {
+    display: block;
+}
+
+/* --- FAQ accordion -------------------------------------------------- */
+/* Native <details name="faq">: exclusive opening and keyboard support come
+   from the browser, so the answers are readable with JS disabled. */
+[data-faq] summary::-webkit-details-marker,
+[data-faq] summary::marker {
+    display: none;
+    content: '';
+}
+
+[data-faq] summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+[data-faq] .faq-chevron {
+    transition: transform 200ms ease;
+}
+
+[data-faq][open] .faq-chevron {
+    transform: rotate(180deg);
+}
+
+/* --- "Selengkapnya" reveal ----------------------------------------- */
+[data-reveal-item].is-hidden {
+    display: none;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    /* The carousel does not auto-advance under reduced motion (see app.js);
+       manual slide changes still need to be instant rather than cross-faded. */
+    [data-slide],
+    [data-nav-panel],
+    [data-dot] {
+        transition: none !important;
+    }
+}
+
+/* Consistent focus ring for keyboard users. Legacy had none, so tabbing
+   through the site gave no visible indication of position. */
+:focus-visible {
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: 2px;
+}

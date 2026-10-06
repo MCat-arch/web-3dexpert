@@ -1,0 +1,218 @@
+# 3D Expert Web — Laravel
+
+Laravel application for the bilingual 3D Expert company-profile site. The public
+surface is limited to the Indonesian and English landing pages (`/` and `/en`),
+plus media delivery. Landing content is managed in the Filament panel at `/admin`;
+there is no public registration or separate public portfolio, service, career, or
+contact page.
+
+---
+
+## ⚠️ Read this first
+
+Use PHP 8.3+ with the PHP extensions required by Composer and configure MySQL or
+MariaDB in `.env`. Media is stored in the database as BLOB data; this increases
+database and backup sizes substantially.
+
+---
+
+## Setup
+
+```bash
+# Install dependencies
+composer install
+npm ci
+
+# Run only if .env does not already exist; configure MySQL/MariaDB, then:
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+
+# Choose either demo data or the legacy database migration:
+php artisan db:seed
+# OR:
+php artisan app:migrate-legacy-data --dry-run   # report first
+php artisan app:migrate-legacy-data
+
+# Import media after choosing either data source.
+php artisan app:import-media-assets
+php artisan app:verify-migration
+
+# Create the first administrator and build assets.
+php artisan app:create-admin
+npm run build
+php artisan serve
+```
+
+Media content is written in 1 MB chunks to avoid PHP memory exhaustion on large
+files. Before importing legacy media, confirm MySQL/MariaDB `max_allowed_packet`
+is at least 2 MB. Keep source files until import and verification succeed.
+
+### Packages
+
+Runtime dependencies include Laravel and Filament. Alpine.js and Tailwind are
+used by the landing-page assets. Translatable attributes use the local
+`HasTranslations` trait; see [Decisions](#decisions).
+
+---
+
+## What this replaces
+
+| Legacy | Lines | Replaced by |
+|---|---|---|
+| `index.php` + `index-en.php` | 1,889 | `HomeController` + `resources/views/home.blade.php` + `lang/{id,en}` |
+| `detail.php` | 1,143 | Portfolio cards in the landing page; legacy detail URLs now redirect to `/#portofolio` |
+| `karir.php` | 1,241 | No public careers page; legacy URL redirects to the landing page |
+| `partials/header.php` + `footer.php` | 655 | `layouts/app.blade.php` + `partials/*` |
+| `upload.php` | 95 | No public upload endpoint; managed media is stored as database BLOBs |
+| `reg.php` | 74 | `php artisan app:create-admin` — **no public registration** |
+| `koneksi.php` | 13 | `config/database.php` + `.env` |
+| `edit.php` + `editkarir.php` | 2,424 | Filament content-management panel at `/admin` |
+
+## Fixes carried in this pass
+
+Numbers reference the findings in `01-codebase-analysis-and-laravel-mapping.md`.
+
+**Security**
+
+| Legacy defect | Fix |
+|---|---|
+| Unrestricted upload → RCE (§3.1-5): `uniqid().'_'.$_FILES['gambar_utama']['name']` into web-served `assets/images/`, no extension or MIME check | Filament uploads validate MIME and extension, then store binary data in the database; `MediaController` serves only image/PDF extensions and verifies MIME. A stored `.php` is inert — `MediaSecurityTest` asserts this |
+| `upload.php` had no auth at all (§3.1-6) | The legacy upload endpoint is removed; content uploads require an authorized Filament session |
+| Open self-registration → superadmin (§3.1-7) | No registration route exists; `role` column + `EnsureUserCanManageContent` |
+| No CSRF anywhere (§3.1-8) | Laravel's `web` group; `@csrf` on every form |
+| Destructive actions over GET (§3.1-9) | No state-changing GET route exists |
+| No session hardening (§3.1-10) | `SESSION_*` flags in `.env`; framework regenerates the id on login |
+| DB credentials in source (§3.1-4, §3.2-13) | `.env`, with `*.sql`/`*.tar.gz`/`error_log`/`Kredensial*` in `.gitignore` |
+| Publicly exposed submission flow | There is no standalone contact form; landing-page contact CTAs use the configured contact channels |
+| No security headers | `SecurityHeaders` middleware: CSP, HSTS, nosniff, frame-ancestors |
+| `die("Koneksi gagal: ".$e->getMessage())` leaked DB internals | `errors/500.blade.php` shows no exception detail |
+
+**Correctness**
+
+| Legacy defect | Fix |
+|---|---|
+| `likes` incremented on every GET, then used to pick the homepage hero (§3.2-15) | Split into `view_count` (atomic, timestamp-free) and `is_featured` (editorial). Tested |
+| Prices as `varchar(50)` holding `'24.0002'` (§3.2-17) | `decimal(15,2)`; the migrator flags what will not parse instead of guessing. `LegacyPriceParsingTest` covers the real dump values |
+| `features` JSON crammed in a `text` column | `service_features` rows, with `is_heading` preserving the `"…:"` convention |
+| `mengapa_section` as two lists, deletes nulling columns into permanent orphans (§3.2-16) | `value_propositions`, one row per item, explicit `group`. Orphans skipped and reported |
+| Magic singleton ids — `$features_id = 1`, `UPDATE … LIMIT 1` with no WHERE (§3.2-19) | `site_settings` key/value + `Settings` accessor |
+| Test data live on public pages (§3.2-18) | `is_published` defaults false; the migrator imports suspicious rows unpublished and names them |
+| YouTube URL parsed per loop iteration | `youtube_id` resolved once on save. `HasYoutubeVideoTest` covers all 7 URL shapes in the dump |
+| Up to 9 PDO connections per page (§3.3-21) | One connection; homepage cached as a unit, invalidated by `ContentObserver` |
+| i18n by file duplication (§3.3-23) | Locale route prefix + translatable columns + `lang/{id,en}` |
+| `echo "<script>alert()…"` for flow control (§3.3-24) | `redirect()->with()` + `<x-alert>`; no `ob_start()` anywhere |
+| Filename routing (§3.3-25) | A `legacy_redirects` 301 map; destinations for removed pages now point to relevant landing anchors |
+| No validation layer (§3.3-26) | Filament forms validate managed content and uploaded media |
+
+**SEO** — `legacy_redirects` + `HandleLegacyRedirects` 301 every old URL (including
+`detail.php?id=N` with tracking params attached), canonical + `hreflang` tags, and
+`LocalBusiness` / `CreativeWork` / `JobPosting` structured data. `LegacyRedirectTest`
+covers this. **This is what stops the cutover from discarding the domain's rankings.**
+
+## Improvements retained on the landing page
+
+- Portfolio and service content remain editable and visible as landing-page sections;
+  separate index/detail routes have been removed.
+- **Accessibility**: skip link, focus-visible rings, ARIA on carousel/gallery/nav,
+  `prefers-reduced-motion` honored. Legacy had none of this.
+
+---
+
+## Decisions
+
+Your seven answers, and what each one did to the code.
+
+| # | Your answer | Implementation |
+|---|---|---|
+| 1 | Keep design reviews separate | `design_reviews` table and `DesignReview` model, own homepage section. Not merged |
+| 2 | `desain_rumah`/`galeri_rumah` exist | Migrated into `portfolios`, **unpublished**, tagged `legacy_source='desain_rumah'`. Its fixed spec columns become `portfolio_specs` rows, matching what `properties`/`property_details` already did |
+| 3 | *My call* | Legacy `likes` was a page-view counter (incremented on GET, no identity, no dedup). Not imported as a number — used only to pick the initial `is_featured` row, so launch day looks unchanged. Then `view_count` + `is_featured` |
+| 4 | All 4 `layanan_section` rows are real | All four migrated. Duplicate titles flagged `needs_review` and left unpublished — the titles are corrupted, not the rows (there are 4 matching PDFs in `assets/pdf/`) |
+| 5 | Full bilingual | Translatable JSON columns throughout; `id` unprefixed, `en` under `/en` |
+| 6 | Hosting undecided | Nothing host-specific. Needs PHP 8.3+, document root at `public/`. See below |
+| 7 | Midtrans | Noted for phase 9. No payment code here |
+
+**Why a local `HasTranslations` trait instead of `spatie/laravel-translatable`:** ~60
+lines, no package API to drift against in an environment where it could not be
+installed and tested, and transparent if you are still learning Eloquent. It is
+deliberately method-compatible (`getTranslation`/`setTranslation`/`getTranslations`),
+so swapping to the package later means deleting the trait. **Switch if you need
+per-locale querying or fallback chains — do not grow that file.**
+
+The Filament panel is installed at `/admin`. Admin accounts are created with
+`php artisan app:create-admin`; editors can manage landing content, while only
+admins/superadmins can change site settings. Public registration is disabled.
+
+---
+
+## What is not here
+
+1. **LMS (phase 9).** Courses, payments, and learning-management workflows remain
+   outside this application.
+2. **Image conversions / CDN (phase 7).** `MediaController` streams original BLOBs;
+   image transformation and CDN delivery remain future work.
+3. **Sitemap.** Only the landing routes are public; sitemap generation remains
+   future work.
+
+### Public route scope
+
+`routes/web.php` uses an optional locale prefix so `/` stays Indonesian and `/en`
+serves English. This has been smoke-tested. The route table should contain the
+landing, media, and Filament routes; removed public paths should return 404:
+
+| URL | Expected |
+|---|---|
+| `/` | Indonesian homepage, `lang="id"` |
+| `/en` | English homepage, `lang="en"` |
+| `/portofolio/some-slug` | 404; legacy `.php` URLs redirect to the landing anchor |
+| `/en/portofolio/some-slug` | 404 |
+
+The feature tests cover the landing locales and removed route paths. They currently
+use Pest syntax, but Pest is not installed and available Pest releases conflict with
+this Laravel 13 / PHPUnit 12 dependency set; `php artisan test` therefore stops before
+executing tests. Route, form-rendering, migration, and BLOB-streaming smoke checks
+have been run separately.
+
+## Before you deploy
+
+- `APP_DEBUG=false`, `APP_ENV=production`
+- `SESSION_SECURE_COOKIE=true` (HTTPS)
+- `php artisan config:cache route:cache view:cache`
+- Document root → `public/`. **Not the project root** — that is what exposed the
+  backup tarball, the SQL dump and the plaintext credentials file on the old site.
+- Backups write **outside** the webroot
+- Remove `LEGACY_DB_*` from `.env` once migration is verified
+- Drop `images.unsplash.com` from the CSP in `SecurityHeaders` once those legacy
+  external images are hosted locally
+
+**Phase 0 of the implementation plan is still outstanding and independent of all of
+this.** `Kredensial Akses.txt` is downloadable from the live site today.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `app:migrate-legacy-data [--dry-run] [--fresh]` | Migrate the legacy DB. Idempotent, transactional, reports everything it could not decide |
+| `app:verify-migration` | Reconcile counts, check integrity, gate launch. Non-zero exit on a blocking problem |
+| `app:create-admin` | Create an admin account (replaces `reg.php`) |
+
+## Layout
+
+```
+app/
+├── Concerns/         HasTranslations, HasYoutubeVideo
+├── Console/Commands/ MigrateLegacyData (the risky one), VerifyMigration, CreateAdmin
+├── Http/
+│   ├── Controllers/  Home, Portfolio, Service, Career, Contact, Media
+│   ├── Middleware/   SetLocale, SecurityHeaders, HandleLegacyRedirects, EnsureUserCanManageContent
+│   └── Requests/     ContactRequest
+├── Models/           14 models
+├── Observers/        ContentObserver (cache invalidation)
+└── Support/          Settings, Locale
+database/migrations/  11 migrations
+lang/{id,en}/         7 files each, key sets verified identical
+resources/views/      22 Blade files
+tests/                9 test files
+docs/                 config patches + migration runbook
+```

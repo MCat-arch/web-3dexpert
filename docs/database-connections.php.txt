@@ -1,0 +1,28 @@
+ADD THIS to the 'connections' array in config/database.php.
+
+It is used ONLY by `php artisan app:migrate-legacy-data`. Remove the LEGACY_DB_*
+keys from .env once the migration is done and verified.
+
+    'legacy' => [
+        'driver' => 'mysql',
+        'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+        'port' => env('LEGACY_DB_PORT', '3306'),
+        'database' => env('LEGACY_DB_DATABASE'),
+        'username' => env('LEGACY_DB_USERNAME'),
+        'password' => env('LEGACY_DB_PASSWORD'),
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+        'prefix' => '',
+        'strict' => false,   // legacy data violates strict mode
+    ],
+
+ALSO ADD to the 'disks' array in config/filesystems.php:
+
+    'media' => [
+        'driver' => 'local',
+        // NOT under public/. This is the whole point: legacy wrote uploads into
+        // the web-served assets/images/ with no extension check on the main
+        // image, so a .php upload became executable server-side.
+        'root' => storage_path('app/media'),
+        'throw' => false,
+    ],
