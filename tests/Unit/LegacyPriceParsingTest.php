@@ -1,6 +1,10 @@
 <?php
 
+namespace Tests\Unit;
+
 use App\Console\Commands\MigrateLegacyData;
+use ReflectionMethod;
+use Tests\TestCase;
 
 /**
  * Legacy stored prices as varchar(50). The production dump contains both
@@ -10,34 +14,48 @@ use App\Console\Commands\MigrateLegacyData;
  * The rule under test: parse what is unambiguous, FLAG what is not. A silently
  * wrong price on a public page is worse than a blank one.
  */
-function parsePrice(?string $raw): array
+class LegacyPriceParsingTest extends TestCase
 {
-    $method = new ReflectionMethod(MigrateLegacyData::class, 'parseLegacyPrice');
+    public function test_it_parses_well_formed_indonesian_thousands_separators(): void
+    {
+        $this->assertSame(['value' => 24000.0, 'flagged' => false], $this->parsePrice('24.000'));
+        $this->assertSame(['value' => 98600.0, 'flagged' => false], $this->parsePrice('98.600'));
+        $this->assertSame(['value' => 1250000.0, 'flagged' => false], $this->parsePrice('1.250.000'));
+    }
 
-    return $method->invoke(new MigrateLegacyData, $raw);
+    public function test_it_flags_the_corrupted_values_found_in_the_production_dump(): void
+    {
+        // These are the actual values in layanan_section, legacy id 1.
+        $this->assertTrue($this->parsePrice('24.0002')['flagged']);
+        $this->assertTrue($this->parsePrice('98.6002')['flagged']);
+    }
+
+    public function test_it_handles_a_plain_integer_string(): void
+    {
+        $this->assertSame(['value' => 24000.0, 'flagged' => false], $this->parsePrice('24000'));
+    }
+
+    public function test_it_returns_null_without_flagging_for_a_blank_value(): void
+    {
+        $this->assertSame(['value' => null, 'flagged' => false], $this->parsePrice(null));
+        $this->assertSame(['value' => null, 'flagged' => false], $this->parsePrice(''));
+    }
+
+    public function test_it_flags_a_value_with_no_digits_at_all(): void
+    {
+        $this->assertSame(['value' => null, 'flagged' => true], $this->parsePrice('hubungi kami'));
+    }
+
+    /**
+     * parseLegacyPrice is private: it is an implementation detail of the
+     * migration command, not an API, but its behaviour on the real dump values
+     * is worth pinning down.
+     *
+     * @return array{value: float|null, flagged: bool}
+     */
+    private function parsePrice(?string $raw): array
+    {
+        return (new ReflectionMethod(MigrateLegacyData::class, 'parseLegacyPrice'))
+            ->invoke(new MigrateLegacyData, $raw);
+    }
 }
-
-it('parses well-formed indonesian thousands separators', function () {
-    expect(parsePrice('24.000'))->toBe(['value' => 24000.0, 'flagged' => false]);
-    expect(parsePrice('98.600'))->toBe(['value' => 98600.0, 'flagged' => false]);
-    expect(parsePrice('1.250.000'))->toBe(['value' => 1250000.0, 'flagged' => false]);
-});
-
-it('flags the corrupted values found in the production dump', function () {
-    // These are the actual values in layanan_section, legacy id 1.
-    expect(parsePrice('24.0002'))->toMatchArray(['flagged' => true]);
-    expect(parsePrice('98.6002'))->toMatchArray(['flagged' => true]);
-});
-
-it('handles a plain integer string', function () {
-    expect(parsePrice('24000'))->toBe(['value' => 24000.0, 'flagged' => false]);
-});
-
-it('returns null without flagging for a blank value', function () {
-    expect(parsePrice(null))->toBe(['value' => null, 'flagged' => false]);
-    expect(parsePrice(''))->toBe(['value' => null, 'flagged' => false]);
-});
-
-it('flags a value with no digits at all', function () {
-    expect(parsePrice('hubungi kami'))->toBe(['value' => null, 'flagged' => true]);
-});

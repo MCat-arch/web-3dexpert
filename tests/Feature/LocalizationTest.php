@@ -1,34 +1,53 @@
 <?php
 
+namespace Tests\Feature;
+
 use App\Models\Testimonial;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-beforeEach(function () {
-    Testimonial::factory()->highlighted()->count(2)->create();
-});
+class LocalizationTest extends TestCase
+{
+    use RefreshDatabase;
 
-it('serves the landing page per locale from one set of views', function () {
-    $this->get('/')->assertOk()->assertSee('lang="id"', false);
-    $this->get('/en')->assertOk()->assertSee('lang="en"', false);
-});
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-it('falls back to the default locale for an unknown prefix', function () {
-    $this->get('/fr')->assertNotFound();
-});
-
-it('emits hreflang tags for every locale', function () {
-    $response = $this->get('/');
-
-    foreach (array_keys(config('site.locales')) as $locale) {
-        $response->assertSee('hreflang="'.$locale.'"', false);
+        Testimonial::factory()->highlighted()->count(2)->create();
     }
 
-    $response->assertSee('hreflang="x-default"', false);
-});
+    public function test_it_serves_the_landing_page_per_locale_from_one_set_of_views(): void
+    {
+        $this->get('/')->assertOk()->assertSee('lang="id"', false);
+        $this->get('/en')->assertOk()->assertSee('lang="en"', false);
+    }
 
-it('emits a canonical url', function () {
-    $this->get('/')->assertSee('rel="canonical"', false);
-});
+    public function test_it_404s_an_unknown_locale_prefix(): void
+    {
+        // Each locale is now its own route group (D20), so '/fr' matches
+        // nothing at all rather than being captured and coerced.
+        $this->get('/fr')->assertNotFound();
+    }
 
-it('does not expose localized standalone pages', function () {
-    $this->get('/en/karir')->assertNotFound();
-});
+    public function test_it_emits_hreflang_tags_for_every_locale(): void
+    {
+        $response = $this->get('/');
+
+        foreach (array_keys(config('site.locales')) as $locale) {
+            $response->assertSee('hreflang="'.$locale.'"', false);
+        }
+
+        $response->assertSee('hreflang="x-default"', false);
+    }
+
+    public function test_it_emits_a_canonical_url(): void
+    {
+        $this->get('/')->assertSee('rel="canonical"', false);
+    }
+
+    public function test_it_does_not_expose_localized_standalone_pages(): void
+    {
+        $this->get('/en/karir')->assertNotFound();
+    }
+}

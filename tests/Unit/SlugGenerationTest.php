@@ -1,46 +1,59 @@
 <?php
 
+namespace Tests\Unit;
+
 use App\Models\Portfolio;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-it('generates a slug from the fallback locale title', function () {
-    $portfolio = Portfolio::factory()->create([
-        'title' => ['id' => 'Desain Rumah Klasik Lantai 2', 'en' => 'Classic Two Storey House'],
-        'slug' => null,
-    ]);
+class SlugGenerationTest extends TestCase
+{
+    use RefreshDatabase;
 
-    expect($portfolio->slug)->toBe('desain-rumah-klasik-lantai-2');
-});
+    public function test_it_generates_a_slug_from_the_fallback_locale_title(): void
+    {
+        $portfolio = Portfolio::factory()->create([
+            'title' => ['id' => 'Desain Rumah Klasik Lantai 2', 'en' => 'Classic Two Storey House'],
+            'slug' => null,
+        ]);
 
-it('appends a suffix rather than colliding', function () {
-    $title = ['id' => 'Rumah Modern', 'en' => 'Modern House'];
+        $this->assertSame('desain-rumah-klasik-lantai-2', $portfolio->slug);
+    }
 
-    $first = Portfolio::factory()->create(['title' => $title, 'slug' => null]);
-    $second = Portfolio::factory()->create(['title' => $title, 'slug' => null]);
-    $third = Portfolio::factory()->create(['title' => $title, 'slug' => null]);
+    public function test_it_appends_a_suffix_rather_than_colliding(): void
+    {
+        $title = ['id' => 'Rumah Modern', 'en' => 'Modern House'];
 
-    expect($first->slug)->toBe('rumah-modern')
-        ->and($second->slug)->toBe('rumah-modern-2')
-        ->and($third->slug)->toBe('rumah-modern-3');
-});
+        $first = Portfolio::factory()->create(['title' => $title, 'slug' => null]);
+        $second = Portfolio::factory()->create(['title' => $title, 'slug' => null]);
+        $third = Portfolio::factory()->create(['title' => $title, 'slug' => null]);
 
-it('does not collide with a soft-deleted slug', function () {
-    // A soft-deleted row still occupies its slug, and the unique index would
-    // reject a duplicate -- so withTrashed() must be part of the check.
-    $deleted = Portfolio::factory()->create([
-        'title' => ['id' => 'Rumah Lama'], 'slug' => null,
-    ]);
-    $deleted->delete();
+        $this->assertSame('rumah-modern', $first->slug);
+        $this->assertSame('rumah-modern-2', $second->slug);
+        $this->assertSame('rumah-modern-3', $third->slug);
+    }
 
-    $fresh = Portfolio::factory()->create(['title' => ['id' => 'Rumah Lama'], 'slug' => null]);
+    public function test_it_does_not_collide_with_a_soft_deleted_slug(): void
+    {
+        // A soft-deleted row still occupies its slug, and the unique index would
+        // reject a duplicate -- so withTrashed() must be part of the check.
+        $deleted = Portfolio::factory()->create([
+            'title' => ['id' => 'Rumah Lama'], 'slug' => null,
+        ]);
+        $deleted->delete();
 
-    expect($fresh->slug)->toBe('rumah-lama-2');
-});
+        $fresh = Portfolio::factory()->create(['title' => ['id' => 'Rumah Lama'], 'slug' => null]);
 
-it('keeps an explicitly provided slug', function () {
-    $portfolio = Portfolio::factory()->create([
-        'title' => ['id' => 'Rumah Modern'],
-        'slug' => 'slug-pilihan-saya',
-    ]);
+        $this->assertSame('rumah-lama-2', $fresh->slug);
+    }
 
-    expect($portfolio->slug)->toBe('slug-pilihan-saya');
-});
+    public function test_it_keeps_an_explicitly_provided_slug(): void
+    {
+        $portfolio = Portfolio::factory()->create([
+            'title' => ['id' => 'Rumah Modern'],
+            'slug' => 'slug-pilihan-saya',
+        ]);
+
+        $this->assertSame('slug-pilihan-saya', $portfolio->slug);
+    }
+}

@@ -1,67 +1,81 @@
 <?php
 
+namespace Tests\Unit;
+
 use App\Models\Portfolio;
+use Tests\TestCase;
 
-it('returns the value for the active locale', function () {
-    $portfolio = new Portfolio;
-    $portfolio->title = ['id' => 'Rumah Modern', 'en' => 'Modern House'];
+class HasTranslationsTest extends TestCase
+{
+    public function test_it_returns_the_value_for_the_active_locale(): void
+    {
+        $portfolio = new Portfolio;
+        $portfolio->title = ['id' => 'Rumah Modern', 'en' => 'Modern House'];
 
-    app()->setLocale('id');
-    expect($portfolio->title)->toBe('Rumah Modern');
+        app()->setLocale('id');
+        $this->assertSame('Rumah Modern', $portfolio->title);
 
-    app()->setLocale('en');
-    expect($portfolio->title)->toBe('Modern House');
-});
+        app()->setLocale('en');
+        $this->assertSame('Modern House', $portfolio->title);
+    }
 
-it('falls back to the fallback locale when a translation is missing', function () {
-    config(['app.fallback_locale' => 'id']);
+    public function test_it_falls_back_to_the_fallback_locale_when_a_translation_is_missing(): void
+    {
+        config(['app.fallback_locale' => 'id']);
 
-    $portfolio = new Portfolio;
-    $portfolio->title = ['id' => 'Rumah Modern'];
+        $portfolio = new Portfolio;
+        $portfolio->title = ['id' => 'Rumah Modern'];
 
-    app()->setLocale('en');
-    expect($portfolio->title)->toBe('Rumah Modern');
-});
+        app()->setLocale('en');
+        $this->assertSame('Rumah Modern', $portfolio->title);
+    }
 
-it('falls back to any non-empty value rather than rendering blank', function () {
-    config(['app.fallback_locale' => 'id']);
+    public function test_it_falls_back_to_any_non_empty_value_rather_than_rendering_blank(): void
+    {
+        config(['app.fallback_locale' => 'id']);
 
-    $portfolio = new Portfolio;
-    // Neither the active nor the fallback locale is present.
-    $portfolio->setTranslations('title', ['de' => 'Modernes Haus']);
+        $portfolio = new Portfolio;
+        // Neither the active nor the fallback locale is present.
+        $portfolio->setTranslations('title', ['de' => 'Modernes Haus']);
 
-    app()->setLocale('en');
-    expect($portfolio->title)->toBe('Modernes Haus');
-});
+        app()->setLocale('en');
+        $this->assertSame('Modernes Haus', $portfolio->title);
+    }
 
-it('treats a bare string as legacy data in the fallback locale', function () {
-    config(['app.fallback_locale' => 'id']);
+    public function test_it_treats_a_bare_string_as_legacy_data_in_the_fallback_locale(): void
+    {
+        config(['app.fallback_locale' => 'id']);
 
-    $portfolio = new Portfolio;
-    // Simulates a pre-translation row read straight from the database.
-    $portfolio->setRawAttributes(['title' => 'Rumah Lama'], true);
+        $portfolio = new Portfolio;
+        // Simulates a pre-translation row read straight from the database.
+        $portfolio->setRawAttributes(['title' => 'Rumah Lama'], true);
 
-    app()->setLocale('en');
-    expect($portfolio->title)->toBe('Rumah Lama');
-});
+        app()->setLocale('en');
+        $this->assertSame('Rumah Lama', $portfolio->title);
+    }
 
-it('sets only the active locale when assigned a plain string', function () {
-    $portfolio = new Portfolio;
-    $portfolio->setTranslations('title', ['id' => 'Rumah Modern', 'en' => 'Modern House']);
+    public function test_it_sets_only_the_active_locale_when_assigned_a_plain_string(): void
+    {
+        $portfolio = new Portfolio;
+        $portfolio->setTranslations('title', ['id' => 'Rumah Modern', 'en' => 'Modern House']);
 
-    app()->setLocale('en');
-    $portfolio->title = 'Renamed House';
+        app()->setLocale('en');
+        $portfolio->title = 'Renamed House';
 
-    expect($portfolio->getTranslations('title'))
-        ->toBe(['id' => 'Rumah Modern', 'en' => 'Renamed House']);
-});
+        $this->assertSame(
+            ['id' => 'Rumah Modern', 'en' => 'Renamed House'],
+            $portfolio->getTranslations('title'),
+        );
+    }
 
-it('resolves translatable attributes in array output', function () {
-    app()->setLocale('id');
+    public function test_it_resolves_translatable_attributes_in_array_output(): void
+    {
+        app()->setLocale('id');
 
-    $portfolio = new Portfolio;
-    $portfolio->title = ['id' => 'Rumah Modern', 'en' => 'Modern House'];
+        $portfolio = new Portfolio;
+        $portfolio->title = ['id' => 'Rumah Modern', 'en' => 'Modern House'];
 
-    // Must not leak the raw JSON blob into API/JSON output.
-    expect($portfolio->toArray()['title'])->toBe('Rumah Modern');
-});
+        // Must not leak the raw JSON blob into API/JSON output.
+        $this->assertSame('Rumah Modern', $portfolio->toArray()['title']);
+    }
+}
