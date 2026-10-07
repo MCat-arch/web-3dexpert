@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\DesignReview;
+use App\Models\Faq;
 use App\Models\HeroSlide;
+use App\Models\MediaAsset;
 use App\Models\Portfolio;
 use App\Models\PortfolioImage;
 use App\Models\PortfolioSpec;
@@ -45,11 +47,28 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useTailwind();
 
+        /*
+         * Every model the homepage payload reads must be here, or editing it
+         * will not invalidate the cache once O5 adds the write.
+         *
+         * Faq and MediaAsset were missing. Faq is read directly by
+         * HomeController::payload(), so an editor changing an FAQ would have
+         * seen a stale page. Harmless today only because nothing is cached yet
+         * -- which is exactly why it is fixed alongside the cache wiring
+         * rather than after it.
+         *
+         * MediaAsset is here for payload correctness, but note it does NOT fix
+         * stale images: replacing an asset's content leaves its path and
+         * therefore its URL unchanged, and MediaController sends
+         * Cache-Control: max-age=2592000, so browsers hold the old file for 30
+         * days regardless of any server-side invalidation. That needs
+         * cache-busting off the existing sha256 column -- tracked in O3.
+         */
         foreach ([
             HeroSlide::class, Service::class, ServiceFeature::class,
             ValueProposition::class, Testimonial::class, DesignReview::class,
             Portfolio::class, PortfolioImage::class, PortfolioSpec::class,
-            SiteSetting::class,
+            SiteSetting::class, Faq::class, MediaAsset::class,
         ] as $model) {
             $model::observe(ContentObserver::class);
         }

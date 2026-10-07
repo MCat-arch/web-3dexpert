@@ -82,7 +82,7 @@ nothing renders. Nothing downstream can be validated until it is fixed (D14).
 
 | Phase | Plan | Depends on | Status |
 |---|---|---|---|
-| P0 | [Infrastructure Prerequisites](P0-infrastructure.md) | T0 | Not started |
+| P0 | [Infrastructure Prerequisites](P0-infrastructure.md) | T0 | **Done** — Redis step partial (K5) |
 | P1 | [Customer Identity & Guard Isolation](P1-customer-identity.md) | P0 | Not started |
 | P2 | [Payment Foundation (Midtrans)](P2-payment-foundation.md) | P1 | Not started |
 | P3 | [Course Catalog, Purchase & Entitlement](P3-course-catalog-entitlement.md) | P2 | Not started |

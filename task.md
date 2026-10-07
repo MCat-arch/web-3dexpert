@@ -346,7 +346,30 @@ Acceptance (all met):
 
 </details>
 
-## Phase P0 - Infrastructure Prerequisites [ ]
+## Phase P0 - Infrastructure Prerequisites [x]
+
+**Done 2026-10-08.** `php artisan test` runs: **79 tests, 71 passed, 0 failed,
+13.5s.** Previously the suite could not execute at all.
+
+| Step | Outcome |
+|---|---|
+| 1. Test suite | ✅ Converted 9 files Pest → PHPUnit. Surfaced 4 real defects the unrunnable suite had hidden |
+| 2. Redis | ⚠️ **Partial.** `predis/predis` installed; drivers stay on `database` because **no Redis server exists**. See `keputusan.md` K5 — this blocks O1 |
+| 3. Queue worker | ✅ Verified end to end with `VerifyQueuePipeline`: dispatched → persisted → executed → 0 failed. Documented in README |
+| 4. Mail | ✅ `log` driver verified; from-address corrected to `noreply@3dexpert.id` |
+| 5. Homepage cache | ✅ **Defect** fixed (shared key constant, `Faq` + `MediaAsset` observers added, README corrected). **Optimization** deferred to O5 — caching Eloquent collections provably corrupts on the `database` store |
+| 6. Factories | ✅ Added `Faq`, `HeroSlide`, `ValueProposition` — the payload models that lacked one |
+
+Also fixed, not in the plan: seven disabled PHP extensions (`composer install` and
+`php artisan test` both failed without them — `keputusan.md` K3), and
+`APP_LOCALE`/`APP_FALLBACK_LOCALE` set to `en` in `.env`, which made slugs
+generate from English titles (K4).
+
+**Known issue:** 8 tests flagged risky — an unclosed output buffer in the
+homepage render path. No assertion affected; localized but not root-caused. K2.
+
+<details>
+<summary>Original P0 checklist</summary>
 
 Nothing below this line is verifiable until the test suite executes. This is not
 polish: payment and entitlement code must not ship on manual inspection.
@@ -365,10 +388,12 @@ polish: payment and entitlement code must not ship on manual inspection.
 
 Acceptance:
 
-- `php artisan test` runs the suite and the result is trustworthy.
-- `php artisan queue:work` processes a dispatched smoke-test job.
-- Cache hit on the homepage is demonstrable, and an editor save invalidates it.
-- `php artisan config:show cache.default queue.default session.driver` all report Redis.
+- [x] `php artisan test` runs the suite and the result is trustworthy — 71 passed, 0 failed.
+- [x] `php artisan queue:work` processes a dispatched smoke-test job.
+- [!] Cache hit on the homepage is demonstrable — **not met, deliberately.** Invalidation is wired and tested; the write waits for Redis because the `database` store corrupts serialized Eloquent collections (verified). Moves to O5.
+- [!] `config:show cache.default queue.default session.driver` all report Redis — **not met.** No Redis server exists (K5). Client installed; three `.env` values away.
+
+</details>
 
 ## Phase P1 - Customer Identity and Guard Isolation [ ]
 

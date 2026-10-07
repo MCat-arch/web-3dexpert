@@ -23,11 +23,46 @@ class HomeController extends Controller
 {
     public const PORTFOLIO_VISIBLE = 16;
 
+    /**
+     * The homepage payload cache key, one per locale.
+     *
+     * ContentObserver invalidates through this method rather than rebuilding
+     * the string itself. The two had drifted before: the observer forgot
+     * 'home.{locale}' while this controller never wrote it, so the
+     * invalidation was dead code and README claimed caching that did not
+     * exist. A shared accessor makes that drift impossible.
+     */
+    public static function cacheKey(string $locale): string
+    {
+        return 'home.'.$locale;
+    }
+
+    /**
+     * NOT CACHED YET -- deliberately, and this is the reason.
+     *
+     * Caching this payload requires serializing Eloquent collections, which is
+     * broken on the current cache store. Verified, not assumed:
+     *
+     *     Cache::store('database')->put('k', ['p' => Portfolio::...->get()]);
+     *     // reading it back, in the same process or a fresh one:
+     *     // Error: incomplete object -- class definition
+     *     // "Illuminate\Database\Eloquent\Collection" was not loaded before
+     *     // unserialize()
+     *
+     * So the options were: cache arrays and rewrite home.blade.php to stop
+     * using model relations and accessors; cache rendered HTML, which P1
+     * breaks the moment the header carries auth state; or wait for Redis,
+     * where the serialization problem does not arise.
+     *
+     * Waiting is correct. A cache that corrupts its own contents is worse than
+     * no cache, and the traffic work (O5) owns this decision with a real
+     * baseline behind it. The key accessor and the observer wiring are in
+     * place, so O5 only has to add the write.
+     *
+     * Blocked on: a running Redis server (keputusan.md K5).
+     */
     public function __invoke(): View
     {
-        // Keep Eloquent collections out of the cache. Serializing them into
-        // the database cache can restore them as incomplete objects when the
-        // model class is not loaded before unserialization.
         return view('home', $this->payload());
     }
 

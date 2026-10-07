@@ -101,7 +101,7 @@ Numbers reference the findings in `01-codebase-analysis-and-laravel-mapping.md`.
 | Magic singleton ids — `$features_id = 1`, `UPDATE … LIMIT 1` with no WHERE (§3.2-19) | `site_settings` key/value + `Settings` accessor |
 | Test data live on public pages (§3.2-18) | `is_published` defaults false; the migrator imports suspicious rows unpublished and names them |
 | YouTube URL parsed per loop iteration | `youtube_id` resolved once on save. `HasYoutubeVideoTest` covers all 7 URL shapes in the dump |
-| Up to 9 PDO connections per page (§3.3-21) | One connection; homepage cached as a unit, invalidated by `ContentObserver` |
+| Up to 9 PDO connections per page (§3.3-21) | One connection. **The homepage payload is not cached yet** — see `HomeController::__invoke`; caching Eloquent collections corrupts them on the `database` store, so it waits for Redis. `ContentObserver` invalidation is wired and tested |
 | i18n by file duplication (§3.3-23) | Locale route prefix + translatable columns + `lang/{id,en}` |
 | `echo "<script>alert()…"` for flow control (§3.3-24) | `redirect()->with()` + `<x-alert>`; no `ob_start()` anywhere |
 | Filename routing (§3.3-25) | A `legacy_redirects` 301 map; destinations for removed pages now point to relevant landing anchors |
@@ -167,14 +167,67 @@ landing, media, and Filament routes; removed public paths should return 404:
 |---|---|
 | `/` | Indonesian homepage, `lang="id"` |
 | `/en` | English homepage, `lang="en"` |
-| `/portofolio/some-slug` | 404; legacy `.php` URLs redirect to the landing anchor |
-| `/en/portofolio/some-slug` | 404 |
+| `/portofolio` | Portfolio index, paginated |
+| `/portofolio/{slug}` | Portfolio detail; legacy `detail.php?id=N` 301s to the matching slug |
+| `/en/portofolio`, `/en/portofolio/{slug}` | Same, in English |
+| `/kontak`, `/layanan`, `/karir` | 404 — no such pages. Contact is a WhatsApp link |
 
-The feature tests cover the landing locales and removed route paths. They currently
-use Pest syntax, but Pest is not installed and available Pest releases conflict with
-this Laravel 13 / PHPUnit 12 dependency set; `php artisan test` therefore stops before
-executing tests. Route, form-rendering, migration, and media-streaming smoke checks
-have been run separately.
+Public routes are registered **once per locale** rather than behind a `{locale?}`
+prefix: an optional route parameter cannot be followed by a required segment, so
+the prefix form served `/en/portofolio` but 404'd `/portofolio`. The default
+locale keeps the canonical route names and other locales are namespaced
+(`en.home`). In views use `$lroute('name')`, never `route('name')`, for anything
+inside those groups — `BladeRouteIntegrityTest` enforces it.
+
+### Tests
+
+`php artisan test` runs. The suite was written in Pest syntax while Pest was not
+installed, so a single file aborted the whole run with "Call to undefined
+function it()" and nothing had ever executed. It is now PHPUnit throughout,
+matching `CLAUDE.md`.
+
+```bash
+php artisan test --compact
+```
+
+### Queue worker
+
+The queue is the first piece of infrastructure P1 onwards depends on: email
+verification, receipts, and status notifications are all queued, so **a worker
+must be running or none of them are delivered**.
+
+```bash
+php artisan queue:work            # development
+php artisan queue:work --once     # one job, for verification
+```
+
+Verify a new environment with `App\Jobs\VerifyQueuePipeline`:
+
+```bash
+php artisan tinker --execute 'App\Jobs\VerifyQueuePipeline::dispatch();'
+php artisan queue:work --once
+```
+
+In production the worker needs supervision (Supervisor, systemd, or the host's
+process manager) so it restarts on failure and after deploys.
+
+### Redis
+
+Cache, session, and queue run on the `database` driver today. **Redis is required
+for the ~500-concurrent-user target** — serving sessions, cache reads, and the job
+queue from MySQL puts all three on one contended resource. The `predis/predis`
+client is installed, so switching is three values in `.env`
+(`CACHE_STORE`, `SESSION_DRIVER`, `QUEUE_CONNECTION`) once a server exists.
+
+It also unblocks homepage payload caching, which cannot work on the `database`
+store (see the Fixes table above).
+
+### Required PHP extensions
+
+Beyond Laravel's defaults this application needs `intl`, `zip` (Filament
+exports), `curl` (Midtrans), `gd` and `exif` (image uploads), plus `pdo_sqlite`
+and `sqlite3` for the test suite. `composer install` fails without `intl` and
+`zip`; `php artisan test` fails without `pdo_sqlite`.
 
 ## Before you deploy
 
