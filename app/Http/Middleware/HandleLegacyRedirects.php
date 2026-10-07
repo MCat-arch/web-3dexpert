@@ -6,6 +6,7 @@ use App\Models\LegacyRedirect;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -65,7 +66,7 @@ class HandleLegacyRedirects
             // old URLs are still being requested, and therefore which ones you
             // failed to map.
             LegacyRedirect::query()->whereKey($id)->update([
-                'hit_count' => \Illuminate\Support\Facades\DB::raw('hit_count + 1'),
+                'hit_count' => DB::raw('hit_count + 1'),
                 'last_hit_at' => now(),
             ]);
 
@@ -75,13 +76,28 @@ class HandleLegacyRedirects
         return $response;
     }
 
+    /**
+     * Rewrites a mapped destination when the page it names does not exist.
+     *
+     * Without this, a 301 would point at a 404 -- which is worse than no
+     * redirect, because search engines follow it and then drop the page.
+     *
+     * Portfolio paths are deliberately NOT rewritten: /portofolio and
+     * /portofolio/{slug} are real routes again, and the migrator already
+     * mapped each detail.php?id=N to its own slug. Collapsing them onto
+     * '/#portofolio' would merge every legacy project URL into one anchor and
+     * throw away exactly the per-page ranking those 301s exist to preserve.
+     *
+     * The remaining entries are still rewritten because those pages genuinely
+     * do not exist: there are no service pages, no contact page (D12 -- contact
+     * is a WhatsApp link), and no careers page until task.md P6. Remove each
+     * line as its real route lands.
+     */
     private function landingDestination(string $destination): string
     {
         $path = '/'.ltrim((string) parse_url($destination, PHP_URL_PATH), '/');
 
         return match (true) {
-            str_starts_with($path, '/portofolio'),
-            str_starts_with($path, '/portfolio') => '/#portofolio',
             str_starts_with($path, '/layanan'),
             str_starts_with($path, '/services') => '/#layanan',
             str_starts_with($path, '/kontak'),

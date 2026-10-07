@@ -41,10 +41,10 @@
                 {{ __('nav.navigation') }}
             </h2>
             <ul class="mt-4 space-y-2 text-sm">
-                <li><a href="{{ route('home') }}" class="text-neutral-400 hover:text-amber-400">{{ __('nav.home') }}</a></li>
-                <li><a href="{{ route('home') }}#portofolio" class="text-neutral-400 hover:text-amber-400">{{ __('nav.portfolio') }}</a></li>
-                <li><a href="{{ route('home') }}#layanan" class="text-neutral-400 hover:text-amber-400">{{ __('nav.services') }}</a></li>
-                <li><a href="{{ route('home') }}#kontak" class="text-neutral-400 hover:text-amber-400">{{ __('nav.contact') }}</a></li>
+                <li><a href="{{ $lroute('home') }}" class="text-neutral-400 hover:text-amber-400">{{ __('nav.home') }}</a></li>
+                <li><a href="{{ $lroute('home') }}#portofolio" class="text-neutral-400 hover:text-amber-400">{{ __('nav.portfolio') }}</a></li>
+                <li><a href="{{ $lroute('home') }}#layanan" class="text-neutral-400 hover:text-amber-400">{{ __('nav.services') }}</a></li>
+                <li><a href="{{ $lroute('home') }}#kontak" class="text-neutral-400 hover:text-amber-400">{{ __('nav.contact') }}</a></li>
             </ul>
         </div>
 

@@ -67,7 +67,11 @@
                     <p class="mt-4 max-w-2xl text-base text-neutral-200 sm:text-lg">{{ $heroSub }}</p>
                 @endif
 
-                {{-- Keep WhatsApp as the primary contact path on the landing page. --}}
+                {{-- Legacy CTA: "Booking Sekarang" -> wa.me, the primary action.
+                     The secondary button previously opened the contact form;
+                     D12 removed the form, so it now scrolls to the services
+                     section rather than duplicating the WhatsApp link beside
+                     itself. --}}
                 <div class="mt-8 flex flex-wrap gap-3">
                     @if ($whatsapp)
                         <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
@@ -76,7 +80,7 @@
                             {{ __('home.book_now') }}
                         </a>
                     @endif
-                    <a href="#kontak"
+                    <a href="#layanan"
                        class="rounded-lg border border-white/25 px-6 py-3 text-sm font-semibold
                               text-white transition hover:bg-white/10">
                         {{ __('home.free_consultation') }}
@@ -122,7 +126,7 @@
                         </a>
 
                         @if ($featured)
-                            <a href="#portofolio"
+                            <a href="{{ $lroute('portfolio.show', ['portfolio' => $featured]) }}"
                                class="rounded-lg border-2 border-amber-400 px-8 py-3 text-sm font-medium
                                       text-white transition hover:bg-amber-400/10">
                                 {{ __('home.best_design') }}
@@ -193,6 +197,11 @@
                         </button>
                     @endif
 
+                    <a href="{{ $lroute('portfolio.index') }}"
+                       class="rounded-lg border border-white/15 px-6 py-3 text-sm font-semibold
+                              text-neutral-200 transition hover:border-amber-500/50 hover:text-amber-400">
+                        {{ __('home.view_all_portfolio') }}
+                    </a>
                 </div>
             </div>
         </section>

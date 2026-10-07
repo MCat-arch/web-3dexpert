@@ -1,6 +1,11 @@
 {{--
-    Public navigation stays within the landing page. Each section link works
-    from either supported locale without introducing additional public pages.
+    Legacy nav (partials/header.php) pointed at homepage anchors:
+      #portofolio, #layanan, #tentang, #informasi, karir.php
+
+    Those anchors only exist on the homepage, so legacy's nav was broken on
+    every other page -- clicking "Portfolio" from karir.php went nowhere.
+    Here each anchor is resolved against the homepage route, so it works from
+    anywhere, and the real index pages are offered alongside.
 
     CSP NOTE: the only Alpine attribute here is x-data="navMenu". The menu's
     open/close state is a class the component toggles (see resources/js/app.js
@@ -8,7 +13,8 @@
     build cannot evaluate expressions like @click="open = !open".
 --}}
 @php
-    $home = route('home');
+    $home = $lroute('home');
+    $whatsapp = $settings('company_whatsapp');
     $sections = [
         ['label' => __('nav.portfolio'),        'href' => $home.'#portofolio'],
         ['label' => __('nav.services_prices'),  'href' => $home.'#layanan'],
@@ -24,7 +30,7 @@
             {{-- Legacy logo.png is 2893x915 (458 KB) rendered 36px tall. The
                  explicit dimensions stop it shifting the layout; replacing the
                  file with a right-sized one is a separate asset task. --}}
-            <img src="{{ route('media.show', ['path' => 'images/logo.png']) }}"
+            <img src="{{ asset('images/logo.png') }}"
                  alt="{{ $settings('company_name', config('app.name')) }}"
                  class="h-9 w-auto" width="113" height="36" fetchpriority="high">
             <span class="text-base font-semibold tracking-tight">
@@ -37,13 +43,23 @@
                 <x-nav-link :href="$section['href']">{{ $section['label'] }}</x-nav-link>
             @endforeach
 
+            {{-- Careers is intentionally absent until the careers page exists
+                 (task.md P6). Legacy karir.php keeps working via
+                 HandleLegacyRedirects, so no inbound link is broken. --}}
+
+            {{-- D12: contact is a WhatsApp link, never a form. --}}
+            @if ($whatsapp)
+                <x-nav-link :href="$whatsapp" target="_blank" rel="noopener noreferrer">
+                    {{ __('nav.contact') }}
+                </x-nav-link>
+            @endif
         </nav>
 
         <div class="flex items-center gap-2">
             <x-language-switcher />
 
             {{-- Legacy .contact-button -> "Konsultasi" -> wa.me --}}
-            @if ($whatsapp = $settings('company_whatsapp'))
+            @if ($whatsapp)
                 <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
                    class="hidden rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold
                           text-neutral-950 transition hover:bg-amber-400 sm:inline-block">
@@ -76,7 +92,13 @@
                 <x-nav-link :href="$section['href']" mobile>{{ $section['label'] }}</x-nav-link>
             @endforeach
 
-            @if ($whatsapp = $settings('company_whatsapp'))
+            @if ($whatsapp)
+                <x-nav-link :href="$whatsapp" target="_blank" rel="noopener noreferrer" mobile>
+                    {{ __('nav.contact') }}
+                </x-nav-link>
+            @endif
+
+            @if ($whatsapp)
                 <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
                    class="mt-2 block rounded-lg bg-amber-500 px-4 py-2 text-center text-sm
                           font-semibold text-neutral-950">

@@ -8,11 +8,11 @@
         <h1 class="mt-4 text-2xl font-bold text-white">{{ __('errors.404_title') }}</h1>
         <p class="mt-3 text-sm text-neutral-400">{{ __('errors.404_description') }}</p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="{{ route('home') }}"
+            <a href="{{ $lroute('home') }}"
                class="rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-amber-400">
                 {{ __('nav.home') }}
             </a>
-            <a href="{{ route('home') }}#portofolio"
+            <a href="{{ $lroute('home') }}#portofolio"
                class="rounded-lg border border-white/15 px-6 py-3 text-sm font-semibold text-neutral-200 transition hover:text-white">
                 {{ __('nav.portfolio') }}
             </a>

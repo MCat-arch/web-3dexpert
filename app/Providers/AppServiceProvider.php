@@ -13,6 +13,7 @@ use App\Models\SiteSetting;
 use App\Models\Testimonial;
 use App\Models\ValueProposition;
 use App\Observers\ContentObserver;
+use App\Support\Locale;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
@@ -60,6 +61,12 @@ class AppServiceProvider extends ServiceProvider
                 'settings' => fn (string $key, mixed $default = null) => Settings::get($key, $default),
                 'availableLocales' => config('site.locales'),
                 'currentLocale' => app()->getLocale(),
+
+                // Public routes are registered once per locale with namespaced
+                // names ('home', 'en.home'), so a bare route('home') in a view
+                // would send English visitors to Indonesian URLs. Use
+                // $lroute() for anything inside those groups.
+                'lroute' => fn (string $name, array $parameters = []) => Locale::route($name, $parameters),
             ]);
         });
     }

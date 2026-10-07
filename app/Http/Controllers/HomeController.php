@@ -36,12 +36,18 @@ class HomeController extends Controller
         return [
             'heroSlides' => HeroSlide::active()->ordered()->get(),
 
+            // 'images' is loaded alongside 'coverImage' because
+            // x-portfolio-card falls back to images->first() for portfolios
+            // with no cover, and preventLazyLoading() is active outside
+            // production -- without it the card throws rather than running an
+            // extra query. O4 revisits this; loading every image to pick one
+            // is wasteful, and this query is also still unbounded.
             'featured' => Portfolio::published()->featured()->ordered()
-                ->with('coverImage')->first(),
+                ->with(['coverImage', 'images'])->first(),
 
             // Excludes the featured one, which is rendered separately above it.
             'portfolios' => Portfolio::published()->ordered()
-                ->with('coverImage')
+                ->with(['coverImage', 'images'])
                 ->where('is_featured', false)
                 ->get(),
 

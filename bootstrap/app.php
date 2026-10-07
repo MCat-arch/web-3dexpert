@@ -57,10 +57,25 @@ return Application::configure(basePath: dirname(__DIR__))
         // Applies to every web request. CSRF protection is already part of the
         // 'web' group by default -- legacy had no CSRF token anywhere, so every
         // admin form and every ?hapus= link was forgeable.
-        $middleware->web(append: [
-            SecurityHeaders::class,
-            HandleLegacyRedirects::class,
-        ]);
+        $middleware->web(append: [SecurityHeaders::class]);
+
+        /*
+         * HandleLegacyRedirects must stay GLOBAL. It works by inspecting the
+         * response for a 404, and the URLs it exists to rescue -- detail.php,
+         * karir.php, index-en.php -- match no route at all. Route-group
+         * middleware never runs for an unmatched request, so moving this into
+         * the 'web' group silently disables every legacy 301 while leaving the
+         * middleware present and apparently wired up.
+         *
+         * That is precisely the failure its own docblock warns about: invisible
+         * until the rankings drop weeks later. It was briefly moved into the
+         * web group and reverted here after detail.php?id=1 was observed
+         * returning a bare 404.
+         *
+         * The cost of running globally is one str_ends_with('.php') check on
+         * non-404 responses.
+         */
+        $middleware->append(HandleLegacyRedirects::class);
 
         $middleware->alias([
             'locale' => SetLocale::class,

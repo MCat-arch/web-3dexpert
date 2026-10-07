@@ -9,7 +9,7 @@
         {{-- Never echo the exception. Legacy koneksi.php did exactly that:
              die("Koneksi gagal: " . $e->getMessage()), leaking DB internals. --}}
         <p class="mt-3 text-sm text-neutral-400">{{ __('errors.500_description') }}</p>
-        <a href="{{ route('home') }}"
+        <a href="{{ $lroute('home') }}"
            class="mt-8 inline-block rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-amber-400">
             {{ __('nav.home') }}
         </a>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LegacyRedirect;
 use App\Models\Portfolio;
 use App\Models\Testimonial;
 
@@ -25,15 +26,44 @@ it('serves the default locale without a prefix', function () {
 
 it('does not expose standalone content or form pages', function () {
     foreach ([
-        '/portofolio',
         '/layanan',
         '/karir',
         '/kontak',
+        // A slug that does not exist still 404s via route model binding.
+        '/portofolio/example',
         '/en/portofolio/example',
         '/en/layanan/example',
     ] as $path) {
         $this->get($path)->assertNotFound();
     }
+});
+
+it('serves the portfolio index in both locales', function () {
+    Portfolio::factory()->create(['is_published' => true]);
+
+    $this->get('/portofolio')->assertOk()->assertSee('lang="id"', false);
+    $this->get('/en/portofolio')->assertOk()->assertSee('lang="en"', false);
+});
+
+it('serves a published portfolio detail page in both locales', function () {
+    $portfolio = Portfolio::factory()->create(['is_published' => true]);
+
+    $this->get('/portofolio/'.$portfolio->slug)->assertOk();
+    $this->get('/en/portofolio/'.$portfolio->slug)->assertOk();
+});
+
+it('does not serve an unpublished portfolio', function () {
+    $portfolio = Portfolio::factory()->create(['is_published' => false]);
+
+    $this->get('/portofolio/'.$portfolio->slug)->assertNotFound();
+});
+
+it('counts a view when a portfolio detail page is served', function () {
+    $portfolio = Portfolio::factory()->create(['is_published' => true, 'view_count' => 0]);
+
+    $this->get('/portofolio/'.$portfolio->slug)->assertOk();
+
+    expect($portfolio->fresh()->view_count)->toBe(1);
 });
 
 it('sends security headers on every response', function () {
@@ -59,6 +89,6 @@ it('does not expose a public registration route', function () {
     ])->assertNotFound();
 
     // reg.php itself is 301'd away by the migrator's redirect map.
-    \App\Models\LegacyRedirect::create(['old_path' => 'reg.php', 'new_path' => '/']);
+    LegacyRedirect::create(['old_path' => 'reg.php', 'new_path' => '/']);
     $this->get('/reg.php')->assertRedirect('/')->assertStatus(301);
 });
