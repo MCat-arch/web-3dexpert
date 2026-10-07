@@ -72,7 +72,7 @@ mean launching into the one load profile they fail under.
 
 | Phase | Plan | Status |
 |---|---|---|
-| **T0** | [Triage: Restore Page Rendering](T0-triage-restore-rendering.md) | **Not started — the site returns HTTP 500 on every page** |
+| **T0** | [Triage: Restore Page Rendering](T0-triage-restore-rendering.md) | **Done** — commit 06d453b |
 
 T0 is not optimization. It is a broken application: four route names are called
 from Blade and never registered, and two of the call sites are in the layout, so

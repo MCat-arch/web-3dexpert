@@ -3,7 +3,7 @@
 Reasoning and understanding captured **before** planning. Decisions here are
 binding on `task.md`; assumptions are flagged and must be confirmed.
 
-Last revised: 2026-10-07 (courses added) · Stack verified: Laravel 13.17 ·
+Last revised: 2026-10-08 (T0 implemented) · Stack verified: Laravel 13.17 ·
 Filament 5.9 · PHP 8.4 · PHPUnit 12
 
 ---
@@ -78,6 +78,7 @@ eliminate. This is why D1 is not a preference.
 | **D17** | **Registration must not be rate-limited by IP alone** | CGNAT and shared venue WiFi would 429 most of a 500-person launch. A correctness bug in my P1 plan, fixed in P1. §9.3 B3 |
 | **D18** | **Measure before optimizing** — O1 establishes a baseline first | `optimasi.md` is explicitly a static audit with no load test. Several of its recommendations depend on real data (portfolio counts, response sizes) |
 | **D19** | **Recommend the launch event be free** | Keeps 500 synchronous Midtrans calls off the launch critical path for no launch-day benefit. §9.1 |
+| **D20** | **Locale routing uses explicit per-locale groups**, not a `{locale?}` prefix | The optional-parameter prefix cannot serve unprefixed sub-paths and would have broken every route in P1, P5, P6, P7. See §11 |
 
 ### 3.1 D3 in detail — the requirement was ownership, not storage
 
@@ -876,3 +877,46 @@ exist, as the report itself notes.
   has no cover. In production it degrades to a silent N+1. O4 updated.
 - **`img-src` still allows `https://images.unsplash.com`**, which README's deploy
   checklist says to remove once legacy external images are local. Already in P9.
+
+---
+
+## 11. D20 — locale routing (implemented in T0)
+
+**The bug.** Public routes sat in one group prefixed `{locale?}`, with
+`SetLocale` reading `$request->route('locale')` and `URL::defaults` re-injecting
+it. Elegant, and it worked — for exactly one route.
+
+An optional route parameter **cannot be followed by a required segment**. So
+`{locale?}/portofolio` compiled with the locale effectively mandatory:
+`/en/portofolio` served, `/portofolio` returned 404. Only `/` escaped, being the
+one route with nothing after the parameter. That is why a latent flaw in the
+core routing design stayed invisible through the entire rebuild — there was
+never a second route to expose it.
+
+Left alone it would have broken **every** route added by P1 (customer auth),
+P5 (events), P6 (careers), and P7 (the progress tracker), each time presenting
+as "the Indonesian version 404s" rather than as a routing bug.
+
+**The fix.** Register the same route definitions once per locale:
+
+- Default locale: no prefix, canonical names (`home`, `portfolio.index`).
+- Other locales: path prefix plus name namespace (`en/portofolio`, `en.portfolio.index`).
+- The locale is passed to the middleware (`locale:en`) instead of captured as a
+  route parameter, so `SetLocale` needs no route lookup and no `URL::defaults`.
+- `Locale::name()` / `Locale::route()` resolve the right variant;
+  `Locale::canonicalName()` strips the namespace for the language switcher.
+- Views use a shared `$lroute()` closure, matching the existing `$settings()`
+  convention rather than introducing a new one.
+
+**Why this shape:** it is explicit, it survives `route:cache` (a
+request-dependent prefix would bake one locale into the cached table, which
+matters because O2 adds route caching), and it removes optional segments from
+the URL structure entirely.
+
+**Cost:** route names are now locale-namespaced, so `route('home')` inside the
+locale groups is a bug — it sends English visitors to Indonesian URLs. Use
+`$lroute()` in views and `Locale::route()` in PHP.
+`BladeRouteIntegrityTest::test_locale_routes_exist_in_every_locale` enforces it.
+
+**Every phase that adds a public route must register it inside `$publicRoutes`
+in `routes/web.php`, not as a standalone route.**

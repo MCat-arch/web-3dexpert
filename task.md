@@ -286,7 +286,35 @@ idempotency is already proven. See `notes.md` §3.3.
 
 ---
 
-## Phase T0 - Triage: Restore Page Rendering [ ]
+## Phase T0 - Triage: Restore Page Rendering [x]
+
+**Done 2026-10-08, commit `06d453b`.** `/`, `/en`, `/portofolio`,
+`/en/portofolio`, and portfolio detail pages all return 200 in both locales.
+`BladeRouteIntegrityTest` guards against recurrence and was verified to fail
+before it passed.
+
+Decisions taken:
+
+- **`careers.index`** — nav item removed until P6 builds `/karir`. Legacy
+  `karir.php` still 301s, so no inbound link broke. **P6 must re-add the nav item.**
+- **Portfolio pages** — reinstated. The detail view already existed and was
+  complete; `legacy_redirects` already mapped each `detail.php?id=N` to its own
+  slug, so four 301s that had been pointing at 404s now resolve.
+- **Locale routing (D20)** — the `{locale?}` prefix was replaced with explicit
+  per-locale groups. See `notes.md` §11.
+
+Found and fixed along the way, none of which was in the original plan:
+
+| Issue | Why it mattered |
+|---|---|
+| `{locale?}` cannot serve unprefixed sub-paths | Would have broken every route added in P1, P5, P6, P7 |
+| `HandleLegacyRedirects` had been moved into the `web` group | Group middleware never runs for unmatched routes, so **every legacy 301 was silently dead** |
+| `landingDestination()` collapsed `/portofolio/*` onto `/#portofolio` | Merged every legacy project URL into one anchor, discarding per-page ranking |
+| `x-portfolio-card` falls back to an un-eager-loaded `images` | `preventLazyLoading()` makes this **throw**, not just cost a query |
+| Structured-data block in the portfolio view was a PHP parse error | Pre-existing; the view had never been reachable |
+
+<details>
+<summary>Original T0 checklist (all complete)</summary>
 
 **The site currently returns HTTP 500 on every page.** Verified by rendering `/`:
 `STATUS: 500`. This is not optimization — it is a broken application, and nothing
@@ -309,12 +337,14 @@ is in the layout, so the failure is site-wide, not homepage-only.
 - [ ] Confirm `welcome.blade.php` is unreferenced, then delete it with its dead `route('login')` / `route('register')` calls. Root uses `HomeController`.
 - [ ] Add a guard test so this class of break cannot recur: assert every `route(...)` name used in Blade resolves.
 
-Acceptance:
+Acceptance (all met):
 
-- `/` and `/en` return 200.
-- `php artisan route:list` contains a registered name for every `route(...)` call in every rendered Blade view.
-- The guard test fails if an unregistered route name is introduced.
-- No `[!]` above remains unresolved.
+- [x] `/` and `/en` return 200.
+- [x] `php artisan route:list` contains a registered name for every `route(...)` call in every rendered Blade view.
+- [x] The guard test fails if an unregistered route name is introduced — verified by deliberately breaking it.
+- [x] No `[!]` remains unresolved.
+
+</details>
 
 ## Phase P0 - Infrastructure Prerequisites [ ]
 
