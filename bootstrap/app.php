@@ -23,6 +23,24 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        /*
+         * Trusted proxies.
+         *
+         * Three things depend on getting this right:
+         *   1. throttle:5,10 on contact.store keys on $request->ip(). Behind an
+         *      untrusted proxy every visitor shares the proxy's IP, so the
+         *      limit becomes collective -- one bot locks the form for everyone.
+         *   2. SecurityHeaders only sends HSTS when $request->secure(), which
+         *      is false behind an untrusted proxy even over HTTPS.
+         *   3. contact_submissions.ip_address records the proxy, not the visitor.
+         *
+         * Default is EMPTY: trust nothing. That is correct for plain cPanel /
+         * LiteSpeed hosting serving Apache directly, which is the current
+         * setup, and it is never unsafe. Set TRUSTED_PROXIES in .env only when
+         * a proxy is actually in front -- '*' is safe ONLY if the origin cannot
+         * be reached directly, because otherwise anyone can forge
+         * X-Forwarded-For and defeat the rate limiter.
+         */
         $proxies = array_values(array_filter(array_map(
             'trim',
             explode(',', (string) env('TRUSTED_PROXIES', ''))
@@ -36,8 +54,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 | Request::HEADER_X_FORWARDED_PROTO,
         );
 
-        $middleware->append(HandleLegacyRedirects::class);
-        $middleware->web(append: [SecurityHeaders::class]);
+        // Applies to every web request. CSRF protection is already part of the
+        // 'web' group by default -- legacy had no CSRF token anywhere, so every
+        // admin form and every ?hapus= link was forgeable.
+        $middleware->web(append: [
+            SecurityHeaders::class,
+            HandleLegacyRedirects::class,
+        ]);
 
         $middleware->alias([
             'locale' => SetLocale::class,
