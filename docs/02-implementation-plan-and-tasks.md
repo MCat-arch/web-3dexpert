@@ -140,7 +140,7 @@ or every discrepancy is explained in writing; the client signs off on staging co
 - [ ] **4.6** Portfolio detail at `/portofolio/{portfolio:slug}` — a gallery lightbox, specs table, related items. **No write operations in the GET handler** (§3.2-15)
 - [ ] **4.7** Services page from `services` + `service_features`, with the PDF as a signed download (§3.2-14)
 - [ ] **4.8** Careers index + detail, porting the client-side filters from `karir.php`'s 313 lines of inline JS into Alpine.js (§3.3-22)
-- [ ] **4.9** Contact / consultation form: `FormRequest` validation, honeypot + rate limiting, queued mail notification (§3.3-26)
+- [ ] **4.9** Link contact and consultation CTAs to the configured WhatsApp contact; do not add a standalone contact form or `contact.create` route
 - [ ] **4.10** SEO per page: title, meta description, canonical, Open Graph, JSON-LD (`Organization`, `LocalBusiness`); `sitemap.xml`; `robots.txt`
 - [ ] **4.11** Move every inline `<style>` and `<script>` block into Vite-compiled assets — that is 2,900+ lines of inline CSS and 800+ of inline JS across the six page files (§3.3-22)
 - [ ] **4.12** Cache the content sections (`Cache::remember`), invalidated by model observers on save (§3.3-28)
@@ -157,7 +157,7 @@ performance ≥ 90.
 Replaces `edit.php` (1,856 lines) and `editkarir.php` (568 lines) entirely.
 
 - [ ] **5.1** Filament panel setup: branding, dark theme to match the existing admin look, navigation groups
-- [ ] **5.2** Dashboard widgets: portfolio count, published jobs, recent contact submissions
+- [ ] **5.2** Dashboard widgets: portfolio count, published jobs
 - [ ] **5.3** `PortfolioResource` — CRUD, image gallery with drag-reorder, repeatable specs, publish toggle
 - [ ] **5.4** `ServiceResource` — features as a repeater, PDF upload, decimal price inputs
 - [ ] **5.5** `TestimonialResource` — YouTube URL with a live preview, rating, highlight toggle. **Port the existing business rule: at least 2 highlighted** (from `edit.php`'s `if ($highlightedCount < 2)`) as a form validation rule
@@ -166,10 +166,9 @@ Replaces `edit.php` (1,856 lines) and `editkarir.php` (568 lines) entirely.
 - [ ] **5.8** `ValuePropositionResource` — grouped by `list1`/`list2`, reorderable
 - [ ] **5.9** Settings page for the singletons (`site_settings`) — replaces the magic `$features_id = 1` (§3.2-19)
 - [ ] **5.10** `UserResource` — role assignment, gated so only a superadmin can reach it (§3.1-7)
-- [ ] **5.11** Contact-submission viewer with CSV export
-- [ ] **5.12** An `en`/`id` toggle on every translatable field, so the client maintains both languages in one form (§3.3-23)
-- [ ] **5.13** Install `spatie/laravel-activitylog` — an audit trail of who changed what. There is none today
-- [ ] **5.14** **Write a short admin handover guide (Indonesian)** with screenshots, and walk the client through it live
+- [ ] **5.11** An `en`/`id` toggle on every translatable field, so the client maintains both languages in one form (§3.3-23)
+- [ ] **5.12** Install `spatie/laravel-activitylog` — an audit trail of who changed what. There is none today
+- [ ] **5.13** **Write a short admin handover guide (Indonesian)** with screenshots, and walk the client through it live
 
 **Acceptance:** the client performs every content edit they currently do in `edit.php` without
 touching code and without your help. Redirect-after-POST with flash messages everywhere — no
@@ -182,7 +181,7 @@ touching code and without your help. Redirect-after-POST with flash messages eve
 - [ ] **6.1** Install Laravel Breeze for public/student auth (needed by phase 9 regardless)
 - [ ] **6.2** Define roles: `superadmin`, `admin`, `editor`, and `student` for later. Define permissions per resource (§3.1-7)
 - [ ] **6.3** Laravel Policies on every model; register them in `AuthServiceProvider`
-- [ ] **6.4** Rate-limit login (`throttle:5,1`) and the contact form (§3.1-10)
+- [ ] **6.4** Rate-limit login (`throttle:5,1`) (§3.1-10)
 - [ ] **6.5** Confirm session config: `SESSION_SECURE_COOKIE=true`, `SESSION_HTTP_ONLY=true`, `SESSION_SAME_SITE=lax`, `SESSION_DRIVER=database` (§3.1-10)
 - [ ] **6.6** Enable email verification and password reset (Breeze provides both)
 - [ ] **6.7** Security headers via middleware: CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, HSTS
