@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MediaAsset;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PDO;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -27,12 +28,25 @@ class MediaController extends Controller
 
         $asset = MediaAsset::query()
             ->where('path', $path)
-            ->first(['path', 'file_name', 'mime_type']);
+            ->first(['path', 'file_name', 'mime_type', 'storage_path']);
         abort_unless($asset, 404);
         abort_unless($asset->mime_type === self::ALLOWED_MIMES[$extension], 404);
 
         return response()->stream(
-            function () use ($path): void {
+            function () use ($asset, $path): void {
+                if (filled($asset->storage_path)) {
+                    $stream = Storage::disk('media')->readStream($asset->storage_path);
+                    abort_unless(is_resource($stream), 404);
+
+                    try {
+                        fpassthru($stream);
+                    } finally {
+                        fclose($stream);
+                    }
+
+                    return;
+                }
+
                 $connection = DB::connection();
                 $pdo = $connection->getPdo();
                 $isMysql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';

@@ -11,60 +11,66 @@ class ImportMediaAssets extends Command
 {
     protected $signature = 'app:import-media-assets';
 
-    protected $description = 'Import local landing-page images and PDFs into the database';
+    protected $description = 'Import local landing-page images and PDFs into private file storage';
 
     public function handle(): int
     {
         $sources = [
-            'private media' => storage_path('app/media'),
-            'legacy public assets' => public_path('legacy-assets'),
-            'public images' => public_path('images'),
+            [
+                'name' => 'managed media',
+                'root' => storage_path('app/media'),
+                'prefix' => '',
+                'excluded' => [],
+            ],
+            [
+                'name' => 'public images',
+                'root' => public_path('images'),
+                'prefix' => 'images/',
+                'excluded' => ['portofolio/project-1.png'],
+            ],
         ];
 
         $imported = 0;
         $skipped = 0;
         $found = 0;
 
-        foreach ($sources as $sourceName => $root) {
+        foreach ($sources as $source) {
+            $sourceName = $source['name'];
+            $root = $source['root'];
+
             if (! is_dir($root)) {
                 $this->warn("Source directory not found ({$sourceName}): {$root}");
 
                 continue;
             }
 
-            foreach ((new Finder())->files()->in($root)->name('/\.(?:jpe?g|png|webp|gif|pdf)$/i') as $file) {
+            foreach ((new Finder)->files()->in($root)->name('/\.(?:jpe?g|png|webp|gif|pdf)$/i') as $file) {
+                $relativePath = trim(str_replace('\\', '/', $file->getRelativePathname()), '/');
+
+                if (in_array($relativePath, $source['excluded'], true)) {
+                    continue;
+                }
+
                 $found++;
-                $path = trim(str_replace('\\', '/', $file->getRelativePathname()), '/');
+                $path = $source['prefix'].$relativePath;
 
                 try {
-                    $asset = MediaAsset::query()->where('path', $path)->first(['id', 'sha256']);
-                    $sha256 = hash_file('sha256', $file->getPathname());
-
-                    if ($sha256 === false) {
-                        throw new RuntimeException("Unable to hash {$file->getPathname()}");
-                    }
-
-                    if ($asset) {
-                        if (! hash_equals($asset->sha256, $sha256)) {
-                            throw new RuntimeException("Existing database media differs at [{$path}].");
-                        }
-
-                        $skipped++;
-
-                        continue;
-                    }
-
-                    MediaAsset::storeFile(
+                    $asset = MediaAsset::storeFile(
                         $path,
                         $file->getPathname(),
                         basename($file->getPathname()),
                     );
-                    $imported++;
-                    $this->line("Imported {$path}");
                 } catch (RuntimeException $exception) {
                     $this->error($exception->getMessage());
 
                     return self::FAILURE;
+                }
+
+                if ($asset->wasRecentlyCreated || $asset->wasChanged('storage_path')) {
+                    $imported++;
+                    $this->line("Imported {$path}");
+                } else {
+                    $skipped++;
                 }
             }
         }

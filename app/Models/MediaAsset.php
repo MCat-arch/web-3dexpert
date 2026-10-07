@@ -3,18 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
-use PDO;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Throwable;
 
 class MediaAsset extends Model
 {
-    private const STORAGE_CHUNK_BYTES = 1_048_576;
-
     protected $fillable = [
-        'path', 'file_name', 'mime_type', 'size', 'sha256', 'content',
+        'path', 'file_name', 'mime_type', 'size', 'sha256', 'storage_path', 'content',
     ];
 
     protected $hidden = ['content'];
@@ -56,7 +53,7 @@ class MediaAsset extends Model
     }
 
     /**
-     * @param resource $stream
+     * @param  resource  $stream
      */
     public static function storeStream(
         string $path,
@@ -71,82 +68,87 @@ class MediaAsset extends Model
         }
 
         self::assertValidPath($path);
-        self::assertPacketCapacity(self::STORAGE_CHUNK_BYTES);
 
-        $existing = self::query()->where('path', $path)->first(['id', 'sha256']);
+        $existing = self::query()->where('path', $path)->first([
+            'id', 'sha256', 'storage_path',
+        ]);
 
         if ($existing) {
             if (! hash_equals($existing->sha256, $sha256)) {
                 throw new RuntimeException("A different media file already uses path [{$path}].");
             }
-
-            return $existing;
         }
 
-        rewind($stream);
-        $now = now()->format('Y-m-d H:i:s');
+        $disk = Storage::disk('media');
+        $fileCreated = false;
 
-        try {
-            $id = DB::transaction(function () use ($path, $fileName, $mimeType, $size, $sha256, $stream, $now): int {
-                $id = DB::table('media_assets')->insertGetId([
-                    'path' => $path,
-                    'file_name' => $fileName,
-                    'mime_type' => $mimeType,
-                    'size' => $size,
-                    'sha256' => $sha256,
-                    'content' => '',
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+        if ($disk->exists($path)) {
+            $storedHash = hash_file('sha256', $disk->path($path));
 
-                $driver = DB::connection()->getDriverName();
-                $appendExpression = match ($driver) {
-                    'mysql' => 'CONCAT(content, ?)',
-                    'sqlite' => 'CAST(content || ? AS BLOB)',
-                    default => throw new RuntimeException("Chunked media storage is not supported for database driver [{$driver}]."),
-                };
+            if (
+                $storedHash === false
+                || (int) $disk->size($path) !== $size
+                || ! hash_equals($sha256, $storedHash)
+            ) {
+                throw new RuntimeException("A different media file already exists at [{$path}].");
+            }
 
-                $statement = DB::connection()->getPdo()->prepare(
-                    "UPDATE media_assets SET content = {$appendExpression} WHERE id = ?"
-                );
-                $bytesWritten = 0;
-                $contentHash = hash_init('sha256');
+            if ($existing?->storage_path === $path) {
+                return $existing;
+            }
+        } else {
+            rewind($stream);
 
-                while (! feof($stream)) {
-                    $chunk = fread($stream, self::STORAGE_CHUNK_BYTES);
-
-                    if ($chunk === false) {
-                        throw new RuntimeException("Unable to read media source: {$path}");
-                    }
-
-                    if ($chunk === '') {
-                        break;
-                    }
-
-                    $bytesWritten += strlen($chunk);
-                    hash_update($contentHash, $chunk);
-                    $statement->bindValue(1, $chunk, PDO::PARAM_LOB);
-                    $statement->bindValue(2, $id, PDO::PARAM_INT);
-                    $statement->execute();
+            try {
+                if (! $disk->writeStream($path, $stream)) {
+                    throw new RuntimeException("Unable to store media source: {$path}");
                 }
 
-                if ($bytesWritten !== $size || ! hash_equals($sha256, hash_final($contentHash))) {
+                $fileCreated = true;
+                $storedHash = hash_file('sha256', $disk->path($path));
+
+                if (
+                    $storedHash === false
+                    || (int) $disk->size($path) !== $size
+                    || ! hash_equals($sha256, $storedHash)
+                ) {
                     throw new RuntimeException("Media source changed while it was being stored: {$path}");
                 }
+            } catch (Throwable $exception) {
+                if ($disk->exists($path)) {
+                    $disk->delete($path);
+                }
 
-                return $id;
-            });
-        } catch (Throwable $exception) {
-            $existing = self::query()->where('path', $path)->first(['id', 'sha256']);
+                throw $exception;
+            }
+        }
 
-            if ($existing && hash_equals($existing->sha256, $sha256)) {
+        try {
+            if ($existing) {
+                $existing->forceFill([
+                    'storage_path' => $path,
+                    'content' => '',
+                ])->save();
+
                 return $existing;
+            }
+
+            return self::query()->create([
+                'path' => $path,
+                'file_name' => $fileName,
+                'mime_type' => $mimeType,
+                'size' => $size,
+                'sha256' => $sha256,
+                'storage_path' => $path,
+                'content' => '',
+            ]);
+        } catch (Throwable $exception) {
+            if ($fileCreated) {
+                $disk->delete($path);
             }
 
             throw $exception;
         }
-
-        return self::query()->whereKey($id)->firstOrFail(['id', 'path', 'file_name', 'mime_type', 'size', 'sha256']);
     }
 
     public static function existsAt(string $path): bool
@@ -164,23 +166,6 @@ class MediaAsset extends Model
             || preg_match('/\A[A-Za-z0-9_.\/ -]+\z/', $path) !== 1
         ) {
             throw new RuntimeException('The media path is invalid.');
-        }
-    }
-
-    private static function assertPacketCapacity(int $size): void
-    {
-        if (DB::connection()->getDriverName() !== 'mysql') {
-            return;
-        }
-
-        $packet = DB::selectOne("SHOW VARIABLES LIKE 'max_allowed_packet'");
-        $limit = (int) ($packet->Value ?? 0);
-
-        if ($limit > 0 && $size > $limit - 1024) {
-            throw new RuntimeException(
-                "A media storage chunk is {$size} bytes, exceeding MySQL max_allowed_packet ({$limit} bytes). "
-                .'Increase max_allowed_packet to at least 2 MB before importing or uploading media.'
-            );
         }
     }
 

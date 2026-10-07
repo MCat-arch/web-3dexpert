@@ -11,8 +11,8 @@ contact page.
 ## ⚠️ Read this first
 
 Use PHP 8.3+ with the PHP extensions required by Composer and configure MySQL or
-MariaDB in `.env`. Media is stored in the database as BLOB data; this increases
-database and backup sizes substantially.
+MariaDB in `.env`. Media files are stored on the private `media` filesystem disk;
+the database stores only their metadata and private storage path.
 
 ---
 
@@ -44,9 +44,11 @@ npm run build
 php artisan serve
 ```
 
-Media content is written in 1 MB chunks to avoid PHP memory exhaustion on large
-files. Before importing legacy media, confirm MySQL/MariaDB `max_allowed_packet`
-is at least 2 MB. Keep source files until import and verification succeed.
+The importer reads managed media from `storage/app/media` and public brand assets
+from `public/images`, storing files on the private media disk. The retired
+`public/legacy-assets` tree is not scanned. Keep the source files until import
+and verification succeed. Existing BLOB rows remain readable; re-importing a
+matching source file moves its content to private file storage.
 
 ### Packages
 
@@ -64,7 +66,7 @@ used by the landing-page assets. Translatable attributes use the local
 | `detail.php` | 1,143 | Portfolio cards in the landing page; legacy detail URLs now redirect to `/#portofolio` |
 | `karir.php` | 1,241 | No public careers page; legacy URL redirects to the landing page |
 | `partials/header.php` + `footer.php` | 655 | `layouts/app.blade.php` + `partials/*` |
-| `upload.php` | 95 | No public upload endpoint; managed media is stored as database BLOBs |
+| `upload.php` | 95 | No public upload endpoint; managed media is stored on a private filesystem disk |
 | `reg.php` | 74 | `php artisan app:create-admin` — **no public registration** |
 | `koneksi.php` | 13 | `config/database.php` + `.env` |
 | `edit.php` + `editkarir.php` | 2,424 | Filament content-management panel at `/admin` |
@@ -84,7 +86,7 @@ Numbers reference the findings in `01-codebase-analysis-and-laravel-mapping.md`.
 | Destructive actions over GET (§3.1-9) | No state-changing GET route exists |
 | No session hardening (§3.1-10) | `SESSION_*` flags in `.env`; framework regenerates the id on login |
 | DB credentials in source (§3.1-4, §3.2-13) | `.env`, with `*.sql`/`*.tar.gz`/`error_log`/`Kredensial*` in `.gitignore` |
-| Publicly exposed submission flow | There is no standalone contact form; landing-page contact CTAs use the configured contact channels |
+| Publicly exposed submission flow | There is no standalone contact form; landing-page contact and consultation CTAs open the configured WhatsApp contact |
 | No security headers | `SecurityHeaders` middleware: CSP, HSTS, nosniff, frame-ancestors |
 | `die("Koneksi gagal: ".$e->getMessage())` leaked DB internals | `errors/500.blade.php` shows no exception detail |
 
@@ -150,7 +152,7 @@ admins/superadmins can change site settings. Public registration is disabled.
 
 1. **LMS (phase 9).** Courses, payments, and learning-management workflows remain
    outside this application.
-2. **Image conversions / CDN (phase 7).** `MediaController` streams original BLOBs;
+2. **Image conversions / CDN (phase 7).** `MediaController` streams original files;
    image transformation and CDN delivery remain future work.
 3. **Sitemap.** Only the landing routes are public; sitemap generation remains
    future work.
@@ -171,7 +173,7 @@ landing, media, and Filament routes; removed public paths should return 404:
 The feature tests cover the landing locales and removed route paths. They currently
 use Pest syntax, but Pest is not installed and available Pest releases conflict with
 this Laravel 13 / PHPUnit 12 dependency set; `php artisan test` therefore stops before
-executing tests. Route, form-rendering, migration, and BLOB-streaming smoke checks
+executing tests. Route, form-rendering, migration, and media-streaming smoke checks
 have been run separately.
 
 ## Before you deploy

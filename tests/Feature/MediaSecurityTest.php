@@ -1,7 +1,25 @@
 <?php
 
-use Illuminate\Http\UploadedFile;
 use App\Models\MediaAsset;
+use Illuminate\Support\Facades\Storage;
+
+it('stores media bytes on the private disk instead of in the database', function () {
+    Storage::fake('media');
+
+    $source = tempnam(sys_get_temp_dir(), 'media-asset-');
+    file_put_contents($source, 'private image bytes');
+
+    try {
+        $asset = MediaAsset::storeFile('portfolio/photo.jpg', $source, 'photo.jpg');
+    } finally {
+        unlink($source);
+    }
+
+    Storage::disk('media')->assertExists('portfolio/photo.jpg');
+    expect($asset->storage_path)->toBe('portfolio/photo.jpg')
+        ->and($asset->content)->toBe('')
+        ->and($asset->size)->toBe(strlen('private image bytes'));
+});
 
 it('serves a stored image with the content type this app chooses', function () {
     MediaAsset::create([
@@ -17,6 +35,26 @@ it('serves a stored image with the content type this app chooses', function () {
         ->assertOk()
         ->assertHeader('Content-Type', 'image/jpeg')
         ->assertHeader('X-Content-Type-Options', 'nosniff')
+        ->assertSee('image');
+});
+
+it('streams media from the private disk', function () {
+    Storage::fake('media');
+    Storage::disk('media')->put('portfolio/photo.jpg', 'image');
+
+    MediaAsset::create([
+        'path' => 'portfolio/photo.jpg',
+        'file_name' => 'photo.jpg',
+        'mime_type' => 'image/jpeg',
+        'size' => 5,
+        'sha256' => hash('sha256', 'image'),
+        'storage_path' => 'portfolio/photo.jpg',
+        'content' => '',
+    ]);
+
+    $this->get(route('media.show', ['path' => 'portfolio/photo.jpg']))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/jpeg')
         ->assertSee('image');
 });
 

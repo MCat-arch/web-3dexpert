@@ -40,17 +40,27 @@ php artisan app:import-media-assets
 php artisan app:verify-migration
 ```
 
-The importer scans `storage/app/media`, `public/legacy-assets`, and `public/images`
-for JPEG, PNG, WebP, GIF, and PDF files. Files under `storage/app/media` should
-retain the `hero/`, `portfolio/`, and `brochures/` subdirectories used by those
-references. The import is repeatable: identical path/content pairs are skipped,
-and conflicting content at an already-used path stops the import. Source files
-are not deleted.
+The importer scans `storage/app/media` and `public/images` for JPEG, PNG, WebP,
+GIF, and PDF files. Files under `storage/app/media` retain their relative
+`hero/`, `portfolio/`, and `brochures/` paths. Public images are stored under an
+`images/` prefix so their paths match seeded content. The unused
+`public/images/portofolio/project-1.png` is excluded. The retired
+`public/legacy-assets` directory is intentionally not scanned: its managed
+media and brand assets have identical copies in the two canonical sources.
 
-Media is stored as database BLOBs and written in 1 MB chunks to keep PHP memory
-usage bounded. Before importing, configure MySQL/MariaDB `max_allowed_packet` to at
-least 2 MB. `app:verify-migration` reports published portfolios whose referenced
-cover file is missing.
+Media bytes are written to the private `media` filesystem disk; the database
+stores metadata and a storage path, not the file contents. Re-importing a file
+with the same path and hash is safe. If a matching legacy BLOB row exists, the
+command copies the file to private storage and clears the old BLOB. Conflicting
+content at an existing path stops the import. Source files are not deleted.
+`app:verify-migration` reports published portfolios whose referenced cover file
+is missing.
+
+Run `php artisan migrate` before importing so the nullable `storage_path` column
+exists. Do not run `migrate:fresh` against a database containing data you need:
+it drops all tables. Back up the database and media files first, and use the
+legacy migration/seeders plus this importer to repopulate an intentionally fresh
+database.
 
 ## What it will flag, and why
 
