@@ -102,6 +102,14 @@ php artisan make:model AuditLog --no-interaction
 Never log secrets: no passwords, no tokens, no Midtrans keys, and no P7
 verification values.
 
+**P5a hand-off (K10):** event seat reconciliation currently corrects drift and
+emits a structured `Log::alert` containing the event ID, stored counter, counted
+registrations, and corrected counter. During P8, add a durable `Audit::record`
+entry for each correction and route a staff alert through the approved notification
+channel. Do not remove the operational log until the durable audit and alert path
+is verified; P5a deliberately did not guess an alert recipient or create a
+temporary audit schema.
+
 Audit writes must not fail the action they describe. Log-and-continue on write
 failure rather than aborting a payment because the audit row did not insert.
 

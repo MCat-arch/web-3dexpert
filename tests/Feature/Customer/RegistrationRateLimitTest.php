@@ -37,7 +37,7 @@ class RegistrationRateLimitTest extends TestCase
         $sharedIp = ['REMOTE_ADDR' => '114.120.5.17'];
 
         // Well past the 3-per-minute figure the original plan specified.
-        for ($i = 1; $i <= 20; $i++) {
+        for ($i = 1; $i <= 50; $i++) {
             $response = $this->withServerVariables($sharedIp)->post('/daftar', [
                 'name' => "Peserta {$i}",
                 'email' => "peserta{$i}@example.test",
@@ -60,7 +60,7 @@ class RegistrationRateLimitTest extends TestCase
             $this->flushSession();
         }
 
-        $this->assertSame(20, Customer::count());
+        $this->assertSame(50, Customer::count());
     }
 
     public function test_repeated_attempts_on_one_email_are_throttled(): void

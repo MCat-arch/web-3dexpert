@@ -7,6 +7,14 @@
 | **Blocked by** | Nothing |
 | **Plan stability** | **Firm** — the escalation path below was verified in the code |
 
+## Delivery status
+
+P1's customer table, separate `customer` guard/broker, auth flows, verification
+gating, Filament isolation, account shell, and rate limits are implemented.
+Customer feature tests pass in the 105-test Customer + Events regression run.
+Manual email delivery through a running production-style queue worker has not
+been exercised in this environment.
+
 ## Objective
 
 Give the public its own authentication surface, structurally unable to reach
@@ -183,7 +191,7 @@ Define named limiters in `AppServiceProvider::boot()` and apply via
 | Route | Limit | Key |
 |---|---|---|
 | login | 5 / minute | email + IP |
-| register | 3 / minute | IP |
+| register | 3 / minute per email; 100 / minute per IP | separate email and IP buckets |
 | password request | 3 / minute | email + IP |
 | verification resend | 3 / minute | customer id |
 
@@ -217,7 +225,9 @@ area; valid link verifies; tampered hash rejected.
 **`CustomerPasswordResetTest`** — link issued and redeemable; a token from the
 `users` broker is **not** valid for a customer.
 
-**`CustomerRateLimitTest`** — login and register return 429 past the limit.
+**`RegistrationRateLimitTest`** — 50 registrations from one IP are not blocked.
+The login and password-reset email+IP limits are covered by their corresponding
+customer auth feature tests.
 
 ---
 
@@ -240,10 +250,12 @@ running), verify, log in, attempt `/admin`, log out.
 
 From `task.md` Phase P1:
 
-- [ ] A customer session cannot reach `/admin` — asserted by test, not inspection.
-- [ ] Unverified customers are blocked from purchasing, enrolling, and applying.
-- [ ] `users` and `customers` share no credential surface.
-- [ ] Rate limits return 429 under test.
+- [x] A customer session cannot reach `/admin` — asserted by test, not inspection.
+- [x] Unverified customers are blocked from the implemented gated flows. P2/P6
+      must enforce verification on their future purchase/application routes.
+- [x] `users` and `customers` share no credential surface.
+- [x] Registration rate limits preserve the shared-IP use case; auth limit
+      behavior is covered by the customer feature tests.
 
 ## Hand-off to later phases
 

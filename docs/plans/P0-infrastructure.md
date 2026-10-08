@@ -7,12 +7,22 @@
 | **Blocked by** | Nothing |
 | **Plan stability** | **Firm** — every item below was verified against the repo |
 
+## Delivery status
+
+The test runner and queue foundations are in place. At the latest full run,
+`php artisan test` reported 176 passed tests (460 assertions) and 8 risky tests
+for unclosed output buffers in homepage/localization/public-page tests, with no
+failures.
+Redis remains partial (K5); the homepage cache and a continuously supervised
+queue worker still require follow-up. P1/P5a implementation exists, but this
+does not count as completion of those P0 follow-ups.
+
 ## Objective
 
-Make the project verifiable and able to carry load before any feature is built.
-Four things are broken or missing today: the test suite cannot execute, cache /
-session / queue all run on MySQL, there is no queue worker or mail transport, and
-the homepage cache is invalidated but never written.
+Make the project verifiable and able to carry load before features are built.
+The original P0 inspection found four gaps: the test suite could not execute,
+cache/session/queue all ran on MySQL, there was no queue worker or configured
+mail transport, and the homepage cache was invalidated but never written.
 
 Nothing in P1–P9 should start before this passes. Payment and entitlement code
 must not ship on manual inspection.
@@ -21,7 +31,7 @@ must not ship on manual inspection.
 
 ## Step 1 — Make the test suite execute
 
-**Verified state:** `composer.json` requires `phpunit/phpunit ^12.5.12`. Pest is
+**Original P0 baseline (superseded):** `composer.json` requires `phpunit/phpunit ^12.5.12`. Pest is
 **not** installed (`composer show pestphp/pest` → not found). But the test files
 use Pest syntax — `tests/Feature/PublicPagesTest.php` opens with `beforeEach(...)`
 and `it('renders the homepage', ...)`. So the suite is unrunnable.
@@ -153,8 +163,10 @@ php artisan tinker --execute 'Cache::put("p0", "ok", 60); echo Cache::get("p0");
 
 ## Step 3 — Queue worker
 
-**Verified state:** `app/Jobs` does not exist. No class implements `ShouldQueue`.
-No worker runs. This is the first queued work in the project.
+**P0 baseline state:** at the time this plan was written, `app/Jobs` did not
+exist and no class implemented `ShouldQueue`. P1/P5a have since added queued
+customer/event notifications and jobs. A supervised production worker is still
+an environment requirement.
 
 **Do:**
 

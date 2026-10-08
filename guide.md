@@ -92,7 +92,7 @@ app/
 │   └── Requests/      FormRequest validation + authorization
 ├── Models/            Eloquent models: relations, casts, scopes
 ├── Observers/         Side effects on model events (cache invalidation)
-├── Policies/          Authorization rules per model      ← EXISTS, currently empty
+├── Policies/          Authorization rules per model
 ├── Support/           Cross-cutting helpers (Settings, Locale, MediaUpload)
 ├── Actions/           Business logic for multi-step flows ← CREATE WHEN NEEDED
 └── Jobs/              Queued work                         ← CREATE WHEN NEEDED
@@ -200,12 +200,15 @@ cleanup afterwards.
 
 ### Current state (verified, and it is not what README claims)
 
-- `HomeController` is **not cached**. It issues ~12 queries per request.
-- `ContentObserver` forgets `home.{locale}` — **a key nothing writes.** The
-  invalidation is wired to a cache that does not exist.
+- The homepage payload is **not cached**. `ContentObserver` still forgets
+  `home.{locale}`, a key nothing writes; this homepage-only gap remains for O5.
+- P5a's event-list cache is separate: it stores plain listing attributes per
+  locale, invalidates on event changes, and reads capacity/seat availability live.
 - `CACHE_STORE`, `QUEUE_CONNECTION`, and `SESSION_DRIVER` are all `database`.
   Redis is configured in `.env` but unused.
-- `app/Jobs` does not exist; there is no `ShouldQueue` anywhere.
+- `app/Jobs` now contains the queue-pipeline smoke job and the event seat
+  reconciliation job. Customer auth and event confirmation notifications
+  implement `ShouldQueue`; the reconciliation job is scheduled nightly.
 
 That combination means every request costs a session read, cache reads, and the
 full content query set — all against MySQL. It will not hold 500 concurrent users.
@@ -266,11 +269,9 @@ notifications (§5 rule 3).
 
 ## 8. Testing
 
-**Known blocker:** the suite under `tests/` is written in Pest syntax, but Pest
-is not installed and available releases conflict with this Laravel 13 / PHPUnit 12
-set. `php artisan test` therefore does not execute them. **Until that is resolved,
-"the tests pass" is not evidence of anything.** Resolving it — porting to PHPUnit
-or landing a compatible Pest — is prerequisite work, not optional polish.
+P0 resolved the former Pest/PHPUnit mismatch by converting the suite to PHPUnit
+12. `php artisan test` now executes the tests. Keep new tests in PHPUnit syntax;
+never treat an empty or undiscovered test run as evidence.
 
 When writing tests:
 

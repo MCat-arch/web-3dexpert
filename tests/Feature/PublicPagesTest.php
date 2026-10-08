@@ -99,11 +99,10 @@ class PublicPagesTest extends TestCase
         $this->assertStringContainsString("frame-ancestors 'none'", $csp);
     }
 
-    public function test_it_does_not_expose_a_public_registration_route(): void
+    public function test_legacy_staff_registration_routes_are_not_exposed(): void
     {
-        // Legacy reg.php let anyone self-register, and because edit.php gated only
-        // on isset($_SESSION['user_id']) with no role column, every registered
-        // account was a superadmin.
+        // The old staff-credential URL stays unavailable. Customer registration
+        // now uses the separate customer guard at /daftar.
         $this->post('/register', [
             'name' => 'Intruder',
             'email' => 'intruder@example.test',

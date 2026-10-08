@@ -16,8 +16,8 @@ use Illuminate\View\View;
  *
  * Legacy included koneksi.php NINE times in each file using include (not
  * include_once), so every page load opened up to nine separate PDO
- * connections. Here there is one connection, one controller, and the whole
- * payload is cached.
+ * connections. Here there is one connection and one controller; the payload
+ * is not cached until the Redis-backed homepage cache is implemented.
  */
 class HomeController extends Controller
 {

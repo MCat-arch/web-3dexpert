@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\DesignReview;
+use App\Models\Event;
+use App\Models\EventRegistration;
 use App\Models\Faq;
 use App\Models\HeroSlide;
 use App\Models\MediaAsset;
@@ -15,12 +17,15 @@ use App\Models\SiteSetting;
 use App\Models\Testimonial;
 use App\Models\ValueProposition;
 use App\Observers\ContentObserver;
+use App\Observers\EventObserver;
+use App\Policies\EventRegistrationPolicy;
 use App\Support\Locale;
 use App\Support\Settings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -52,6 +57,10 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useTailwind();
 
         $this->registerRateLimiters();
+
+        // Customers are authorised by ownership, never by role (D1).
+        Gate::policy(EventRegistration::class, EventRegistrationPolicy::class);
+        Event::observe(EventObserver::class);
 
         /*
          * Every model the homepage payload reads must be here, or editing it
@@ -122,7 +131,7 @@ class AppServiceProvider extends ServiceProvider
             // Per address: stops one person scripting many accounts.
             Limit::perMinute(3)->by('reg-email:'.Str::lower((string) $request->input('email'))),
             // Per IP: high on purpose. Shared NAT is normal, not suspicious.
-            Limit::perMinute(30)->by('reg-ip:'.$request->ip()),
+            Limit::perMinute(100)->by('reg-ip:'.$request->ip()),
         ]);
 
         RateLimiter::for('customer-login', fn (Request $request) => [

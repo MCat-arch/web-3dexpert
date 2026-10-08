@@ -83,11 +83,11 @@ nothing renders. Nothing downstream can be validated until it is fixed (D14).
 | Phase | Plan | Depends on | Status |
 |---|---|---|---|
 | P0 | [Infrastructure Prerequisites](P0-infrastructure.md) | T0 | **Done** — Redis step partial (K5) |
-| P1 | [Customer Identity & Guard Isolation](P1-customer-identity.md) | P0 | Not started |
+| P1 | [Customer Identity & Guard Isolation](P1-customer-identity.md) | P0 | **Done** |
 | P2 | [Payment Foundation (Midtrans)](P2-payment-foundation.md) | P1 | Not started |
 | P3 | [Course Catalog, Purchase & Entitlement](P3-course-catalog-entitlement.md) | P2 | Not started |
 | P4 | [Course Delivery, Progress & Quizzes](P4-course-delivery-progress.md) | P3 | Not started |
-| P5 | [Events: Free & Paid Enrollment](P5-events.md) | P2 | Not started |
+| P5 | [Events: Free & Paid Enrollment](P5-events.md) | P1 for free path; P2 for paid path | **P5a implemented/tested; manual queue delivery unverified; P5b blocked by P2** |
 | P6 | [Career: Applications & Documents](P6-career-applications.md) | P1 | Not started |
 | P7 | [Progress Tracker](P7-progress-tracker.md) | P0 | Not started |
 | P8 | [Admin Consolidation, RBAC & Retention](P8-admin-rbac-retention.md) | P1–P7 | Not started |

@@ -9,11 +9,27 @@
 
 ## Objective
 
-Let verified customers enroll in events, free or paid. Decisions **D4** (both),
+Let verified customers enroll in events, free or paid. The launchable scope is
+**P5a, verified free enrollment**; paid enrollment is **P5b**, blocked by P2.
+Decision **D4** (both),
 **D10** (the expiry trap), assumptions **A2** (capacity, no waitlist),
 **A8**/**A17** (bounded holds).
 
 Independent of P3/P4 — may be built in parallel with them.
+
+## Delivery status
+
+- **P5a — implemented and targeted-tested.** Free enrollment, event listing,
+  customer registrations, Filament management, queue confirmation, safe cache,
+  and nightly seat reconciliation are in place.
+- **P5b — not started; blocked by P2.** Paid events stay visible but direct
+  enrollment is rejected without claiming a seat (K8).
+- P5a uses structured `Log::alert` for corrected counter drift. P8 owns durable
+  audit rows and staff alerts (K10).
+- P5a caches plain event-list attributes only; capacity and `seats_taken` are read
+  live. O5 still owns cache measurement and stampede/load hardening (K9).
+- Sequential tests validate atomic-update logic; they do not prove real
+  parallel-load behavior. That remains O6/P9 work.
 
 ---
 
@@ -40,8 +56,8 @@ php artisan make:migration create_event_registrations_table --no-interaction
 `customer_id` nullOnDelete, snapshot `attendee_name` / `attendee_email` /
 `attendee_phone`, `status` string index
 (`pending` / `confirmed` / `cancelled` / `attended`),
-`ticket_code` string unique, `payment_id` nullable, `registered_at`,
-`confirmed_at` nullable, timestamps.
+`ticket_code` string unique, `registered_at`, `confirmed_at` nullable, timestamps.
+P5b adds a nullable payment association after P2's `payments` table exists.
 
 **Unique (`event_id`, `customer_id`)** — a cancelled row must be reusable on
 retry, so either reuse the existing row or include status in the index strategy.
@@ -64,8 +80,9 @@ php artisan make:model EventRegistration --factory --no-interaction
 `scopeUpcoming()`, `scopeOrdered()` matching the existing convention. Helpers
 `isFree()`, `hasCapacity()`, `registrationIsOpen()`.
 
-**`EventRegistration`** — status constants, `scopeConfirmed()`,
-**implements `App\Contracts\Payable`** (P2 Step 4):
+**`EventRegistration`** — status constants, `scopeConfirmed()`. The P5a free path
+does not implement `App\Contracts\Payable`; P5b adds the payment contract after
+P2 Step 4:
 
 - `payableAmount()` → the event price
 - `payableExpiryProfile()` → **`'event'`** — the short window. This is the single
@@ -118,10 +135,11 @@ update; if you switch, record why here.)
    waitlist), customer verified (A5), no existing active registration.
 2. `DB::transaction()`: claim the seat atomically, create the registration,
    snapshot attendee identity, generate `ticket_code`.
-3. **Free event** → `status = confirmed` immediately, no checkout.
-4. **Paid event** → `status = pending`, call P2's `CreatePayment`, return the
-   Snap token. The **webhook** confirms it, never the browser.
-5. Dispatch notifications **after commit** (`guide.md` §3) — never inside the
+3. **Free event (P5a)** → `status = confirmed` immediately, no checkout.
+4. **Paid event (P5b only)** → `status = pending`, call P2's `CreatePayment`,
+   return the Snap token. The **webhook** confirms it, never the browser. Until
+   then the action rejects paid events before any seat claim (K8).
+5. Dispatch free-registration notifications **after commit** (`guide.md` §3) — never inside the
    transaction.
 
 **Seat release** must decrement `seats_taken` on cancellation, expiry, and
@@ -145,7 +163,9 @@ nobody knows why.
 `app/Jobs/ReconcileEventSeatCounts.php`, scheduled nightly:
 
 - Compare `seats_taken` against the live count of non-cancelled registrations.
-- On mismatch: correct it, **audit-log the correction with both values**, and alert.
+- On mismatch: correct it, **record both values in the operational alert**, and
+  alert. P5a uses structured `Log::alert`; durable audit and staff notifications
+  are added in P8 (K10).
   A drift is evidence of a bug in one of the release paths — fixing the number
   without recording it hides the cause.
 - Run it against upcoming events only; past events do not matter.
@@ -153,7 +173,10 @@ nobody knows why.
 
 ---
 
-## Step 4 — The expiry trap (`notes.md` §3.4)
+## Step 4 — The expiry trap (`notes.md` §3.4, P5b only)
+
+This step is deferred until P2 provides the payment contract and persisted
+`expires_at`. P5a creates no paid pending holds.
 
 Payment methods expire at wildly different times: QRIS and e-wallets in roughly
 15–30 minutes, bank-transfer VA in about **24 hours**.
@@ -207,8 +230,12 @@ same change (`guide.md` §5 rule 1). **Do not cache `seats_taken`** or any
 remaining-capacity number: a stale count either oversells or hides open seats.
 Cache the listing content, read availability live.
 
-**Notifications** (queued): registration confirmation with the ticket code, and
-payment receipt for paid events.
+**Notifications** (queued): P5a registration confirmation with the ticket code.
+The paid-event receipt is P5b work.
+
+P5a caches plain published-event listing attributes per locale and invalidates on
+event save/delete/restore. `capacity` and `seats_taken` stay live. O5 verifies
+stampede protection, measures hit rates, and audits all other caches.
 
 ---
 
@@ -229,46 +256,52 @@ as the job, not a duplicate.
 `tests/Feature/Events/`.
 
 **`EventEnrollmentTest`**
-- `test_verified_customer_enrolls_in_a_free_event`
-- `test_duplicate_enrollment_is_rejected`
-- `test_enrollment_outside_the_window_is_rejected`
-- `test_unpublished_event_cannot_be_enrolled`
-- `test_unverified_customer_is_rejected`
-- `test_full_event_is_rejected_with_no_waitlist`
-- `test_unlimited_capacity_event_never_rejects`
+- `test_a_verified_customer_can_enroll_in_a_free_event`
+- `test_a_duplicate_enrollment_is_rejected_and_does_not_take_a_second_seat`
+- `test_enrollment_outside_the_registration_window_is_rejected`
+- `test_an_unpublished_event_detail_page_is_not_found`
+- `test_an_unpublished_event_cannot_be_enrolled_in_directly`
+- `test_an_unverified_customer_cannot_enroll`
+- `test_a_full_event_rejects_enrollment`
+- `test_an_event_with_unlimited_capacity_never_rejects`
+- `test_paid_events_remain_visible_but_cannot_be_enrolled_until_p5b`
+- `test_event_list_cache_excludes_seat_availability_and_reads_it_live`
+- `test_saving_an_event_invalidates_the_cached_public_listing`
+- `test_deleting_and_restoring_an_event_invalidates_both_locale_listings`
+- `test_event_listing_query_count_does_not_grow_with_the_number_of_events`
+- `test_the_confirmation_notification_is_queued_and_sent`
 
-**`EventCapacityTest`** — the honest version:
-- `test_claim_fails_when_capacity_is_reached` — capacity 1, two sequential
+**P5a capacity tests** — the honest version:
+- `test_the_last_seat_goes_to_exactly_one_person` — capacity 1, two sequential
   attempts, exactly one succeeds.
 - `test_seats_taken_never_exceeds_capacity_across_many_claims`
-- `test_cancellation_releases_a_seat`
-- `test_expired_hold_releases_a_seat`
-- `test_release_job_is_idempotent`
+- `test_the_claim_affects_no_rows_once_the_event_is_full`
+- `test_cancelling_returns_the_seat`
+- `test_cancelling_twice_releases_only_one_seat`
+- `test_a_cancelled_registration_can_be_reused_on_re_enrollment`
+- Expiry/release-job tests belong to P5b and must not be counted as P5a coverage.
 
 > **Be honest about what this proves.** PHPUnit runs sequentially, so these tests
 > verify the *logic* is atomic — that a conditional update affects zero rows when
 > full. They do **not** prove behaviour under genuine parallel load. Real
-> concurrency verification belongs to P9's load test, and the acceptance criterion
-> is only met once that runs. Do not report concurrency as proven on the strength
-> of these tests alone.
+> concurrency verification belongs to O6/P9's load test, and the acceptance
+> criterion is only met once that runs. Do not report concurrency as proven on the
+> strength of these tests alone.
 
-**`PaidEventHoldTest`**
+**P5b `PaidEventHoldTest`**
 - `test_paid_enrollment_holds_a_seat_until_payment_expiry`
 - `test_hold_window_comes_from_the_payment_record_not_a_constant`
 - `test_bank_transfer_does_not_get_a_24_hour_hold_on_an_event` — the D10
   regression guard.
 - `test_settlement_after_release_does_not_double_book`
 
-**`ConcurrentEnrollmentTest`** (M2)
-- `test_duplicate_concurrent_enrollment_returns_idempotent_response_not_500`
-- `test_duplicate_concurrent_enrollment_does_not_leak_a_seat` — assert
-  `seats_taken` incremented exactly once. A double-click must not permanently
-  consume two seats for one attendee.
+**Genuine parallel enrollment tests** remain outstanding for O6/P9. Sequential
+tests do not prove simultaneous duplicate submissions or final-seat contention.
 
-**`SeatReconciliationTest`** (M3)
-- `test_drifted_counter_is_corrected`
-- `test_correction_is_audit_logged_with_both_values`
-- `test_reconciliation_is_a_noop_when_the_counter_is_correct`
+**P5a `SeatReconciliationTest`** (M3)
+- `test_drifted_counter_is_corrected_and_alerted_with_both_values`
+- `test_a_correct_counter_is_left_unchanged_without_an_alert`
+- `test_past_events_are_not_reconciled`
 
 ---
 
@@ -282,9 +315,23 @@ php artisan test
 vendor/bin/pint --dirty --format agent
 ```
 
-Manual, queue worker running: free enrollment end to end; paid enrollment via
-sandbox bank transfer, confirming the hold expires on the **short** window, not 24
-hours.
+P5a manual validation: free enrollment end to end with a queue worker.
+P5b manual validation, after P2: paid enrollment via sandbox bank transfer,
+confirming the hold expires on the **short** window, not 24 hours.
+
+### P5a validation record
+
+| Check | Result |
+|---|---|
+| Customer, event, and public-page regressions | 115 tests, 340 assertions; no failures. Four homepage output-buffer tests are reported as risky. |
+| Full `php artisan test` | 176 passed (460 assertions), 8 output-buffer risky tests, no failures. |
+| Changed PHP formatting | `vendor/bin/pint --test` passed on the changed event/auth PHP files. |
+| Event-list query bound | Two event-table queries on cache miss; one live availability query on cache hit, asserted. |
+| Event routes | `php artisan route:list --path=acara` lists all 8 Indonesian/English event, enrollment, and customer-events routes. |
+| Reconciliation schedule | `php artisan schedule:list` shows `ReconcileEventSeatCounts` daily at midnight. |
+| Forward migrations | All migrations pass on isolated SQLite memory database. |
+| Migration rollback | Blocked by the pre-existing role-column/index rollback defect; see K11 in `keputusan.md`. |
+| Queue delivery with a running worker | Not manually exercised in this environment; automated notification-dispatch tests pass. |
 
 ---
 
@@ -292,8 +339,8 @@ hours.
 
 From `task.md` Phase P5:
 
-- [ ] A verified customer enrolls in a free event and receives a queued confirmation.
-- [ ] Capacity is never exceeded under concurrent load — **logic asserted here,
-      load verified in P9.**
-- [ ] An unpaid hold expires and the seat returns to inventory.
-- [ ] Event list renders with no N+1.
+- [x] A verified customer enrolls in a free event and receives a queued confirmation (P5a).
+- [ ] Capacity is never exceeded under genuine concurrent load — sequential
+      atomic-claim tests cover logic; load is verified in O6/P9.
+- [ ] An unpaid paid-event hold expires and the seat returns to inventory (P5b).
+- [x] Event list renders without N+1 growth; availability remains live (P5a).

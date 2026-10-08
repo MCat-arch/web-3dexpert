@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Depends on** | O1, P0 (which introduced the homepage cache) |
+| **Depends on** | O1, P0 (which introduced the homepage cache key/invalidation hooks; the cache write remains deferred) |
 | **Blocks** | — |
 | **Plan stability** | **Firm** on rules; TTLs need O1's hit-rate data |
 
@@ -12,16 +12,19 @@ Make caching deliberate and consistent, and make sure no cache leaks data across
 trust boundaries or hides live availability.
 
 `optimasi.md` §4 asks for exactly one thing here: **pick one behaviour and make the
-implementation, the comment, and the invalidation agree.** P0 chose it; this phase
-verifies it and extends the pattern safely.
+implementation, the comment, and the invalidation agree.** P0 deferred the homepage
+cache write until Redis is available (K5); P5a added the event-list cache. This
+phase closes the homepage gap, verifies the event cache, and extends the pattern
+safely.
 
 ---
 
 ## Step 1 — Verify the homepage cache contract
 
-P0 fixed the orphaned `home.{locale}` key — `ContentObserver:31` was forgetting a
-key `HomeController` never wrote, while README claimed the payload was "cached as a
-unit".
+P0 added a shared accessor for the orphaned `home.{locale}` key, but the homepage
+payload is still not written to cache: `HomeController` waits for Redis (K5), and
+`ContentObserver` currently forgets a key nothing writes. README correctly says the
+homepage is not cached; the controller class comment must agree as well.
 
 - [ ] Confirm the key is written and forgotten through **one shared constant**, not
       two string literals (`guide.md` §5 rule 5). This is the defect that caused the
@@ -68,10 +71,15 @@ Each with its invalidating observer **in the same change** (`guide.md` §5 rule 
 | Cache | Invalidated by |
 |---|---|
 | Published course catalog | `Course`, `CourseSection`, `CourseLesson` saves |
-| Published event list | `Event` saves |
+| Published event list | `Event` saves — **P5a implemented**: locale-specific plain-data cache, observer invalidation, live availability query |
 | Published vacancy list | `JobVacancy` saves |
 | Per-enrollment course progress | `CompleteLesson` |
 
+- [x] Add the P5a event-list cache and invalidation without caching capacity or
+      `seats_taken`; verify its query count and cache invalidation in event tests.
+- [ ] In O5, assess event-cache stampede behavior, hit rate, TTL and memory choices
+      alongside the other shared caches; P5a coverage does not complete these
+      hardening/measurement tasks.
 - [ ] Define each key as a constant on the model that owns it, referenced by its
       invalidator.
 - [ ] Per-enrollment progress is keyed per enrollment, so it carries no

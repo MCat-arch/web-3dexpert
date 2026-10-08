@@ -395,24 +395,24 @@ Acceptance:
 
 </details>
 
-## Phase P1 - Customer Identity and Guard Isolation [ ]
+## Phase P1 - Customer Identity and Guard Isolation [x]
 
 Decision D1. The Filament escalation path in `notes.md` §2.1 must be proven
 closed **before** any public account can be created.
 
-- [ ] Create the `customers` table: name, email (unique), `email_verified_at`, password, phone, `is_active`, remember token, timestamps, soft deletes.
-- [ ] Create a dedicated customer password-reset token table and broker. Do not share `password_reset_tokens` between two providers.
-- [ ] Add the `customer` guard and `customers` provider to `config/auth.php`.
-- [ ] Create the `Customer` model: `$fillable` explicit, `password` hashed cast, `Notifiable`. It must **not** implement `FilamentUser`.
-- [ ] Pin the Filament panel explicitly to the `web` guard in its panel provider.
-- [ ] Build register, login, logout, email-verification, and password-reset flows for the `customer` guard.
-- [ ] Require verified email before purchase, enrollment, or application (assumption A5).
-- [ ] Rate-limit login and password-reset keyed on **email + IP**.
-- [ ] **Registration must NOT be throttled by IP alone (D17).** Indonesian carrier CGNAT and shared venue WiFi put hundreds of users behind one address — a 3/min IP limit would 429 most of a 500-person launch. Use a high IP ceiling plus a per-email limit, and rely on email uniqueness + the verification requirement for abuse control. A challenge (Turnstile) is preferable to a tight IP counter.
-- [ ] Write `RegistrationRateLimitTest::test_many_registrations_from_one_ip_are_not_blocked` — simulate 50 registrations from a single IP and assert none receive 429. This is the regression guard for D17.
-- [ ] Add `customer` auth middleware and a "my account" shell page.
-- [ ] Write `CustomerGuardIsolationTest`: an authenticated customer receives 403/redirect at `/admin`, and a `User` cannot authenticate against the `customer` guard.
-- [ ] Write tests for register, login, verification gating, and password reset.
+- [x] Create the `customers` table: name, email (unique), `email_verified_at`, password, phone, `is_active`, remember token, timestamps, soft deletes.
+- [x] Create a dedicated customer password-reset token table and broker. Do not share `password_reset_tokens` between two providers.
+- [x] Add the `customer` guard and `customers` provider to `config/auth.php`.
+- [x] Create the `Customer` model: `$fillable` explicit, `password` hashed cast, `Notifiable`. It must **not** implement `FilamentUser`.
+- [x] Pin the Filament panel explicitly to the `web` guard in its panel provider.
+- [x] Build register, login, logout, email-verification, and password-reset flows for the `customer` guard.
+- [x] Require verified email before the implemented enrollment/account routes; P2/P6 must enforce A5 on their future purchase/application routes.
+- [x] Rate-limit login and password-reset keyed on **email + IP**.
+- [x] **Registration must NOT be throttled by IP alone (D17).** Indonesian carrier CGNAT and shared venue WiFi put hundreds of users behind one address — a 3/min IP limit would 429 most of a 500-person launch. Use a high IP ceiling plus a per-email limit, and rely on email uniqueness + the verification requirement for abuse control. A challenge (Turnstile) is preferable to a tight IP counter.
+- [x] Write `RegistrationRateLimitTest::test_many_registrations_from_one_ip_are_not_blocked` — simulate 50 registrations from a single IP and assert none receive 429. This is the regression guard for D17.
+- [x] Add `customer` auth middleware and a "my account" shell page.
+- [x] Write `CustomerGuardIsolationTest`: an authenticated customer receives 403/redirect at `/admin`, and a `User` cannot authenticate against the `customer` guard.
+- [x] Write tests for register, login, verification gating, and password reset.
 
 Acceptance:
 
@@ -518,36 +518,41 @@ Acceptance:
 - The player page reads content through the P3 gate and no other path.
 - Quiz results are recorded without gating progress.
 
-## Phase P5 - Events: Free and Paid Enrollment [ ]
+## Phase P5 - Events: Free and Paid Enrollment [-]
 
-Decision D4. Paid path reuses P2.
+Decision D4. **P5a is the verified free path; P5b reuses P2 for payments.**
+Paid events remain listed but cannot be enrolled in until P5b (K8).
 
-- [ ] Create `events`: translatable title/description, slug, cover media, `starts_at`, `ends_at`, `location_type` (online/offline/hybrid), venue, online URL, `capacity` (nullable = unlimited), `price` `decimal(15,2)` default 0, registration window, `is_published`, timestamps, soft deletes.
-- [ ] Create `event_registrations`: event, customer (`nullOnDelete`), snapshotted attendee identity, status (`pending`/`confirmed`/`cancelled`/`attended`), unique `ticket_code`, source payment, timestamps.
-- [ ] Add a unique index on (event_id, customer_id) for non-cancelled rows.
-- [ ] Add `scopePublished()` / `scopeUpcoming()` / `scopeOrdered()`.
-- [ ] Build `EnrollInEvent` action: seat claim inside `DB::transaction()` with a row lock on the event, or a conditional atomic counter update. A `count() < capacity` check is not acceptable.
-- [ ] Catch `UniqueConstraintViolationException` on the `(event_id, customer_id)` index and return an idempotent "already registered" response — **releasing the seat just claimed**, or a double-click permanently consumes two seats for one attendee.
-- [ ] Add `ReconcileEventSeatCounts`, scheduled nightly: compare `seats_taken` against the live non-cancelled registration count, correct drift, and **audit-log both values**. The counter is decremented from five paths; one missed decrement makes an event sell out early, silently and permanently.
-- [ ] Reject enrollment outside the registration window, when unpublished, or when full (assumption A2 — no waitlist).
-- [ ] Free events confirm directly and skip checkout.
-- [ ] Paid events hold a seat until the **payment record's `expires_at`** — never a global constant. Release it by scheduled job when unpaid (assumptions A8, A17).
-- [ ] Set a short uniform `custom_expiry` for event payments (recommend 1 hour) so a bank-transfer buyer cannot hold a capacity-limited seat for 24 hours. See `notes.md` §3.4.
-- [ ] Build the public event list and detail pages, bilingual, with cache and invalidating observer.
-- [ ] Build the customer's "my events" view.
-- [ ] Queue registration-confirmation and payment-receipt notifications; dispatch after commit, never inside the transaction.
-- [ ] Add `EventRegistrationPolicy`.
-- [ ] Add Filament resources for Events and Event Registrations, including an attendance action.
-- [ ] Write `EventEnrollmentTest`: happy path, duplicate rejected, closed window rejected, unverified customer rejected.
-- [ ] Write `EventCapacityConcurrencyTest`: concurrent claims on the final seat never oversell.
-- [ ] Write `PaidEventHoldTest`: an unpaid hold expires and returns the seat to inventory.
+### P5a - Free event path [x]
 
-Acceptance:
+- [x] Create the event and registration schemas, factories, scopes, snapshots, and unique (`event_id`, `customer_id`) index. Reuse a cancelled row on retry because MySQL has no portable partial unique index.
+- [x] Build `EnrollInEvent` with a conditional atomic capacity update inside a transaction; a `count() < capacity` check is not acceptable.
+- [x] Catch unique-index races as an idempotent refusal and release the newly claimed seat.
+- [x] Reject enrollment outside the registration window, for unpublished/full events, for unverified customers, and for paid events until P5b.
+- [x] Confirm free registrations directly, and queue confirmation after commit.
+- [x] Build bilingual list/detail and "my events" pages. Cache plain listing data with event-save invalidation; read `capacity` and `seats_taken` live (K9).
+- [x] Add customer ownership policy, cancellation action, and Filament event/registration resources with attendance and cancellation actions.
+- [x] Add nightly `ReconcileEventSeatCounts`; structured `Log::alert` records counter-before, counted registrations, and counter-after. P8 adds durable audit history and staff notifications (K10).
+- [x] Cover enrollment, capacity logic, cancellation/reuse, ownership, bilingual routes, cache invalidation/live availability, reconciliation, and Filament create/list/edit smoke behavior in feature tests.
+- [x] Verify the event listing has a bounded two-query cache-miss path; one query on cache hits reads live availability.
 
-- A verified customer enrolls in a free event and receives a queued confirmation.
-- Capacity is never exceeded under concurrent load — asserted by test.
-- An unpaid hold expires and the seat returns to inventory.
-- Event list renders with no N+1.
+**P5a acceptance**
+
+- [x] A verified customer enrolls in a free event and receives a queued confirmation.
+- [x] Atomic capacity logic rejects claims after capacity is reached; genuine parallel-load proof remains in O6/P9 (sequential PHPUnit tests do not prove parallelism).
+- [x] Event listing renders without N+1 growth and does not cache availability.
+
+### P5b - Paid event path [ ] (blocked by P2)
+
+- [ ] Implement `Payable`/`CreatePayment` integration and confirm paid enrollment only from verified payment events.
+- [ ] Apply short uniform event payment expiry and derive the hold deadline from the payment's `expires_at`.
+- [ ] Release expired unpaid holds idempotently; decide/test late settlement behavior and staff refund handling.
+- [ ] Add paid-path tests for holds, expiry, settlement, and receipt notification.
+
+**P5b acceptance**
+
+- [ ] An unpaid hold expires and the seat returns to inventory.
+- [ ] No customer is confirmed until the verified payment event arrives.
 
 ## Phase P6 - Career: Applications and Documents [ ]
 
@@ -632,6 +637,9 @@ Acceptance:
 
 - [ ] Run `vendor/bin/pint --dirty --format agent` clean across all new code.
 - [ ] Verify every migration rolls back cleanly, then re-applies.
+  - [!] Forward migrations pass on temporary SQLite, but rollback is currently
+    blocked at the pre-existing role migration (`keputusan.md` K11); do not mark
+    this acceptance item complete until rollback and reapply both pass.
 - [ ] Confirm `lang/id` and `lang/en` key sets are identical.
 - [ ] Audit every new page for N+1 using Boost `database-query` or `DB::listen`; record the query count per page in `notes.md`.
 - [ ] Update the CSP in `SecurityHeaders` for the Midtrans Snap script and the `youtube-nocookie.com` frame source. Add each deliberately, with a written reason.
@@ -644,7 +652,7 @@ Acceptance:
 - [ ] Check layouts at 375px, 768px, 1280px, and 1920px.
 - [ ] Check the browser console for errors on every new page.
 - [ ] Confirm no `[!]` item remains unresolved.
-- [ ] Update `README.md`: describe public customer accounts and the LMS, remove the "no public registration" statement that P1 invalidates, and move the LMS and Midtrans items out of "What is not here".
+- [x] Update `README.md` for delivered P1 customer accounts and P5a free events; keep the not-yet-delivered LMS, Midtrans, and P5b paid path marked as future work.
 
 Final acceptance:
 

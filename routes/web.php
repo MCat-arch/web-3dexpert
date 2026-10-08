@@ -6,6 +6,10 @@ use App\Http\Controllers\Customer\Auth\LoginController;
 use App\Http\Controllers\Customer\Auth\LogoutController;
 use App\Http\Controllers\Customer\Auth\PasswordResetController;
 use App\Http\Controllers\Customer\Auth\RegisterController;
+use App\Http\Controllers\Event\EnrollmentController;
+use App\Http\Controllers\Event\EventDetailController;
+use App\Http\Controllers\Event\EventListController;
+use App\Http\Controllers\Event\MyEventsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortfolioController;
@@ -61,6 +65,10 @@ $publicRoutes = function (): void {
     Route::get('portofolio/{portfolio}', [PortfolioController::class, 'show'])
         ->name('portfolio.show');
 
+    // Events (P5a). Browsing is public; enrolling needs a verified customer.
+    Route::get('acara', EventListController::class)->name('events.index');
+    Route::get('acara/{event}', EventDetailController::class)->name('events.show');
+
     /*
      * Public accounts (P1). The `customer` guard, never `web` -- see D1.
      *
@@ -107,9 +115,19 @@ $publicRoutes = function (): void {
             ->middleware('throttle:customer-verification-resend')
             ->name('customer.verification.resend');
 
-        // Verified-only area. P5a's enrollment lands behind this same gate.
+        // Verified-only area (A20: this gate is where that decision lands).
         Route::middleware('verified.customer')->group(function () {
             Route::get('akun', AccountController::class)->name('customer.account');
+
+            Route::get('akun/acara', MyEventsController::class)->name('customer.events');
+
+            // POST: enrolling claims a seat, so it must not be reachable by a
+            // link, a prefetch, or an <img src> (guide.md 10.4).
+            Route::post('acara/{event}/daftar', [EnrollmentController::class, 'store'])
+                ->name('events.enroll');
+
+            Route::delete('pendaftaran/{registration}', [EnrollmentController::class, 'destroy'])
+                ->name('events.registration.cancel');
         });
     });
 };

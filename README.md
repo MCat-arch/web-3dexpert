@@ -2,9 +2,10 @@
 
 Laravel application for the bilingual 3D Expert company-profile site. The public
 surface includes Indonesian and English landing pages (`/` and `/en`), paginated
-portfolio indexes and portfolio detail pages in both locales, plus media delivery.
-Landing content is managed in the Filament panel at `/admin`; there is no public
-registration or separate service, career, or contact page.
+portfolio indexes and detail pages, customer accounts, free event enrollment, and
+media delivery. Paid events are visible, but enrollment waits for P5b. Landing and
+event content is managed in Filament at `/admin`; there is no separate service,
+career, or contact page.
 
 ---
 
@@ -67,7 +68,7 @@ used by the landing-page assets. Translatable attributes use the local
 | `karir.php` | 1,241 | No public careers page; legacy URL redirects to the landing page |
 | `partials/header.php` + `footer.php` | 655 | `layouts/app.blade.php` + `partials/*` |
 | `upload.php` | 95 | No public upload endpoint; managed media is stored on a private filesystem disk |
-| `reg.php` | 74 | `php artisan app:create-admin` — **no public registration** |
+| `reg.php` | 74 | Dedicated `customers` table and `customer` guard for event accounts; staff accounts remain CLI-created |
 | `koneksi.php` | 13 | `config/database.php` + `.env` |
 | `edit.php` + `editkarir.php` | 2,424 | Filament content-management panel at `/admin` |
 
@@ -133,7 +134,7 @@ Your seven answers, and what each one did to the code.
 | 4 | All 4 `layanan_section` rows are real | All four migrated. Duplicate titles flagged `needs_review` and left unpublished — the titles are corrupted, not the rows (there are 4 matching PDFs in `assets/pdf/`) |
 | 5 | Full bilingual | Translatable JSON columns throughout; `id` unprefixed, `en` under `/en` |
 | 6 | Hosting undecided | Nothing host-specific. Needs PHP 8.3+, document root at `public/`. See below |
-| 7 | Midtrans | Noted for phase 9. No payment code here |
+| 7 | Midtrans | P2 payment foundation; P5b will use it for paid event enrollment. No payment code is implemented yet |
 
 **Why a local `HasTranslations` trait instead of `spatie/laravel-translatable`:** ~60
 lines, no package API to drift against in an environment where it could not be
@@ -144,14 +145,18 @@ per-locale querying or fallback chains — do not grow that file.**
 
 The Filament panel is installed at `/admin`. Admin accounts are created with
 `php artisan app:create-admin`; editors can manage landing content, while only
-admins/superadmins can change site settings. Public registration is disabled.
+admins/superadmins can change site settings. Public accounts use a separate
+`customers` table and `customer` guard, so they cannot authenticate to Filament.
+Verified customers can enroll in free events; paid-event enrollment is deferred
+to P5b.
 
 ---
 
 ## What is not here
 
-1. **LMS (phase 9).** Courses, payments, and learning-management workflows remain
-   outside this application.
+1. **LMS and payments.** Courses, payments, and learning-management workflows
+   remain future work. The paid event path (P5b) is also deferred; paid events
+   remain visible but cannot create unpaid registrations.
 2. **Image conversions / CDN (phase 7).** `MediaController` streams original files;
    image transformation and CDN delivery remain future work.
 3. **Sitemap.** Landing and portfolio routes are public; sitemap generation
@@ -171,6 +176,9 @@ index/detail, media, and Filament routes. Unsupported public paths should return
 | `/portofolio` | Portfolio index, paginated |
 | `/portofolio/{slug}` | Portfolio detail; legacy `detail.php?id=N` 301s to the matching slug |
 | `/en/portofolio`, `/en/portofolio/{slug}` | Same, in English |
+| `/acara`, `/acara/{slug}` and `/en/acara`, `/en/acara/{slug}` | Bilingual event catalog and detail pages; paid events are listed but not enrollable until P5b |
+| `/akun/acara`, `/en/akun/acara` | Signed-in customer's registrations |
+| `/daftar`, `/masuk` and `/en/daftar`, `/en/masuk` | Customer registration and sign-in; separate from staff accounts |
 | `/kontak`, `/layanan`, `/karir` | 404 — no such pages. Contact is a WhatsApp link |
 
 Public routes are registered **once per locale** rather than behind a `{locale?}`
@@ -193,9 +201,9 @@ php artisan test --compact
 
 ### Queue worker
 
-The queue is the first piece of infrastructure P1 onwards depends on: email
-verification, receipts, and status notifications are all queued, so **a worker
-must be running or none of them are delivered**.
+P1 customer verification and P5a event confirmations are queued; later payment
+receipts and status notifications will use the same queue. **A worker must be
+running or queued notifications are not delivered**.
 
 ```bash
 php artisan queue:work            # development
@@ -263,12 +271,12 @@ app/
 │   ├── Controllers/  Home, Portfolio, Service, Career, Contact, Media
 │   ├── Middleware/   SetLocale, SecurityHeaders, HandleLegacyRedirects, EnsureUserCanManageContent
 │   └── Requests/     ContactRequest
-├── Models/           14 models
+├── Models/           Eloquent models for the site and current features
 ├── Observers/        ContentObserver (cache invalidation)
 └── Support/          Settings, Locale
-database/migrations/  11 migrations
-lang/{id,en}/         7 files each, key sets verified identical
-resources/views/      22 Blade files
-tests/                9 test files
+database/migrations/  Schema managed through Laravel migrations
+lang/{id,en}/         Indonesian and English translations
+resources/views/      Blade views and components
+tests/                PHPUnit unit and feature tests
 docs/                 config patches + migration runbook
 ```

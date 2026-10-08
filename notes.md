@@ -3,7 +3,7 @@
 Reasoning and understanding captured **before** planning. Decisions here are
 binding on `task.md`; assumptions are flagged and must be confirmed.
 
-Last revised: 2026-10-08 (T0 implemented) · Stack verified: Laravel 13.17 ·
+Last revised: 2026-10-08 (P5a implementation) · Stack verified: Laravel 13.17 ·
 Filament 5.9 · PHP 8.4 · PHPUnit 12
 
 ---
@@ -39,9 +39,12 @@ early as their dependencies allow.
   `spatie/laravel-translatable`.
 - Filament 5.9 panel at `/admin` on the `web` guard, backed by `User`.
 - `users.role` with `superadmin` / `admin` / `editor`.
-- No courses, events, projects, or payments tables.
-- **No public auth scaffolding whatsoever.** Greenfield.
-- Cache/session/queue all on the `database` driver. No jobs, no queued work.
+- No courses, projects, or payments tables. P5a has added event and event
+  registration tables.
+- P1 added public customer authentication on a separate guard; it does not
+  share staff credentials.
+- Cache/session/queue remain on the `database` driver. Queue jobs and queued
+  customer/event notifications now exist.
 
 ### 2.1 Security landmine found during analysis
 
@@ -390,8 +393,10 @@ a count query inside a view loop.
   registration window, `is_published`, soft deletes.
 - `event_registrations` — event, customer (`nullOnDelete`), snapshotted attendee
   identity, status (`pending` / `confirmed` / `cancelled` / `attended`), unique
-  `ticket_code`, source payment. Unique on (event_id, customer_id) for
-  non-cancelled rows.
+  `ticket_code`, registration/confirmation/cancellation/attendance timestamps.
+  P5a has no payment foreign key; P5b adds the payment association. A unique
+  (event_id, customer_id) index is maintained by reusing a cancelled row on
+  re-enrollment.
 
 **Capacity is a concurrency problem, not a validation problem.** A naive
 `count() < capacity` check oversells under load, and 500 concurrent users is the
@@ -399,10 +404,11 @@ stated target. Seat claiming happens inside a transaction with a row lock on the
 event, or via a conditional atomic counter update. This gets an explicit
 concurrency test.
 
-Paid registrations hold a seat until the **payment record's own expiry**, not a
-global constant — because that expiry varies by payment method (§3.4). Events set
-a short uniform `custom_expiry` so a bank-transfer buyer cannot hold a seat for
-24 hours. Expired unpaid holds release their seat by scheduled job.
+P5a implements the free path. Paid events remain visible but cannot be enrolled
+until P5b supplies checkout; this avoids unpaid pending registrations. P5b will
+hold a seat until the **payment record's own expiry**, not a global constant —
+because that expiry varies by payment method (§3.4). It will set a short uniform
+`custom_expiry` so a bank-transfer buyer cannot hold a seat for 24 hours.
 
 ### 4.5 Career
 
@@ -477,9 +483,11 @@ Nothing that varies by entitlement is ever cached under a shared key — a cache
 lesson payload leaking a `youtube_id` to a non-purchaser is the same failure as
 §3.2, arriving by a different route.
 
-**Queues** — first real use in this codebase. Queued: all email, Midtrans webhook
-processing, document post-processing, expired-hold release, retention purge.
-Requires a worker process that does not exist today.
+**Queues** — P1 customer verification and P5a free-event confirmation use queued
+notifications. Midtrans webhook processing, document post-processing,
+expired-hold release, and retention purge remain future queued workloads. These
+jobs require a supervised worker in the target environment; no persistent worker
+was running during this validation.
 
 **Rate limiting** — progress lookup, login, registration, password reset,
 application submission, checkout initiation.
@@ -665,8 +673,8 @@ existing accounts.
 
 **B3. IP-based rate limiting would break the launch — a correctness bug in my own P1 plan.**
 
-P1 specifies registration at **3 per minute per IP**. That is wrong for this
-launch:
+The original P1 plan specified registration at **3 per minute per IP**. That is
+wrong for this launch:
 
 - Indonesian mobile carriers use **CGNAT** heavily — hundreds of subscribers share
   one egress IP.
@@ -681,13 +689,17 @@ configured."
 substantially, add a per-email-address limit, and rely on **email uniqueness plus
 the existing verification requirement** for abuse control. If stronger protection is
 wanted, use a challenge (Turnstile/reCAPTCHA) rather than an IP counter. Login
-throttling stays keyed on email **and** IP, which is already correct.
+throttling stays keyed on email **and** IP, which is already correct. The delivered
+P1 configuration uses separate limits of 3/minute per email and 100/minute per IP;
+the 50-signup same-IP regression test enforces the launch floor. Revisit that ceiling
+with measured traffic during O1/P9.
 
 **B4. Cache stampede on the homepage.**
 
-P0 adds a homepage cache invalidated eagerly by `ContentObserver`. Under burst
-load that is a liability: if an editor saves any content mid-launch, the key is
-forgotten and **all 500 in-flight requests miss simultaneously**, each running the
+P0 deferred the homepage cache write until Redis is available (K5), so there is no
+homepage cache stampede today. If O5 adds the write, it will be invalidated eagerly
+by `ContentObserver`; under burst load, an editor save could then make **all 500
+in-flight requests miss simultaneously**, each running the
 full ~12-query payload.
 
 **Fix:** regenerate under a single-flight guard — `Cache::flexible()`
@@ -920,3 +932,31 @@ locale groups is a bug — it sends English visitors to Indonesian URLs. Use
 
 **Every phase that adds a public route must register it inside `$publicRoutes`
 in `routes/web.php`, not as a standalone route.**
+
+## 12. P5a — free event enrollment
+
+P5a depends on P1, not P2. A verified customer enrolls through
+`EnrollInEvent`: the database conditionally increments `seats_taken`, then the
+registration is created and confirmed in the same transaction. The confirmation
+notification is dispatched after commit and queued. Cancellation uses the
+shared `CancelEventRegistration` action and returns one seat idempotently.
+
+The event-list cache stores plain attribute arrays per locale and never stores
+`capacity` or `seats_taken`. A single live query supplies availability for the
+current page. Expected event-table queries: **2 on a cache miss** (catalog
+snapshot plus live availability) and **1 on a cache hit** (live availability).
+`EventObserver` invalidates both locale keys after save, delete, or restore. O5
+still owns hit-rate measurement and stampede/load hardening (K9).
+
+Paid events remain visible with their price and an unavailable message, and the
+enrollment action rejects direct paid submissions without taking a seat (K8).
+P5b remains blocked on P2.
+
+The nightly `ReconcileEventSeatCounts` job locks each upcoming event, compares
+the counter with non-cancelled registrations, and corrects drift. Until P8 adds
+the durable `Audit` facility and staff notification channel, corrections emit a
+structured `Log::alert` with both values (K10). This operational log is not a
+claim of durable audit history.
+
+The PHPUnit capacity tests prove sequential atomic-claim logic, not real
+parallelism. Genuine concurrent-load verification remains in O6/P9.

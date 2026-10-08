@@ -220,3 +220,83 @@ publik, bukan sesudahnya.
 **Yang perlu user tinjau.** Jika yang dimaksud memang enrollment tanpa akun
 (mis. hanya nama + nomor WhatsApp), bilang saja — itu fitur yang jauh lebih
 kecil, tapi bertentangan dengan brief awal dan dengan D1.
+
+---
+
+## K8 — Perilaku acara berbayar selama P5a
+
+**Masalah.** P5a hanya mengirim jalur pendaftaran gratis; P5b belum menyediakan
+checkout. Sebelum keputusan ini, `EnrollInEvent` masih bisa membuat pendaftaran
+`pending` tanpa pembayaran.
+
+**Pilihan.** Tetap tampilkan acara berbayar dengan tombol nonaktif, sembunyikan
+dari katalog, atau izinkan pendaftaran tanpa checkout.
+
+**Keputusan: tampilkan acara berbayar, tetapi nonaktifkan pendaftaran sampai
+P5b.** Pendaftaran server-side juga harus ditolak dan tidak boleh membuat row
+atau mengambil kursi.
+
+**Sumber.** Dikonfirmasi user pada sesi perencanaan 2026-10-08.
+
+## K9 — Batas cache katalog acara P5a dan O5
+
+**Masalah.** Instruksi P5 meminta cache katalog dengan invalidasi, sementara
+urutan wave menempatkan strategi cache penuh di O5 setelah P5a.
+
+**Keputusan: P5a menambahkan cache aman beserta invalidasinya; O5 tetap
+bertanggung jawab atas pengukuran dan hardening beban/stampede.** Cache P5a tidak
+boleh menyimpan kuota atau `seats_taken`; ketersediaan dibaca langsung.
+
+**Sumber.** Dikonfirmasi user pada sesi perencanaan 2026-10-08.
+
+## K10 — Audit dan alert rekonsiliasi kursi sebelum P8
+
+**Masalah.** P5 mewajibkan rekonsiliasi kursi mencatat nilai sebelum/sesudah dan
+memberi alert. Belum ada audit-log atau sistem alert staf di kode; P8-lah yang
+merencanakan `audit_logs` dan `App\Support\Audit`. Membuat tabel audit kedua
+sekarang berisiko menduplikasi desain P8, sedangkan log aplikasi saja tidak
+menjamin notifikasi staf.
+
+**Pilihan yang dipertimbangkan:**
+1. P5a memakai structured `Log::alert` dengan `event_id`, nilai aktual, dan nilai
+   hasil hitung; P8 kelak menambahkan audit trail durable dan alert staf.
+2. Tarik generic `audit_logs` + helper `Audit` ke P5a dan revisi P8 agar
+   menggunakannya; tentukan juga kanal alert staf.
+
+**Keputusan: P5a memakai `Log::alert` terstruktur sekarang** dengan `event_id`,
+counter tersimpan, jumlah pendaftaran yang dihitung, dan counter hasil koreksi.
+P8 tetap menambahkan audit trail durable serta notifikasi staf; P5a tidak
+menciptakan tabel audit sementara atau menebak alamat penerima.
+
+**Sumber.** Dikonfirmasi user pada sesi perencanaan 2026-10-08.
+
+## K11 — Rollback migrasi SQLite terhalang migrasi role lama
+
+**Temuan.** Migrasi maju seluruhnya berhasil pada SQLite sementara. Saat
+`migrate:rollback`, migrasi lama `2026_01_01_000011_add_role_to_users_table`
+gagal ketika menghapus kolom `role`, karena indeks `users_role_index` masih ada.
+Kegagalan ini mendahului P5a dan bukan berasal dari dua migrasi event.
+
+**Keputusan untuk P5a:** jangan ubah migrasi role yang tidak terkait sebagai
+bagian dari P5a. Catat sebagai pekerjaan P9: perbaiki urutan teardown indeks /
+kolom dengan aman dan ulangi rollback/reapply seluruh migrasi pada database
+terisolasi. Jangan mengklaim rollback semua migrasi telah lolos sampai itu
+berhasil. Validasi rollback terhadap database produksi yang didukung juga perlu
+dicatat terpisah dari kompatibilitas SQLite.
+
+**Status.** Terbuka untuk P9; P5a forward-migration berhasil, validasi rollback
+berhenti pada migrasi role lama.
+
+## K12 — Batas tinggi untuk pendaftaran dari IP bersama
+
+**Temuan.** Regresi D17 mensyaratkan 50 pendaftaran sah dari satu alamat IP tanpa
+HTTP 429. Batas lama 30/menit memblokir pendaftaran ke-31, walaupun setiap orang
+menggunakan email berbeda.
+
+**Keputusan implementasi P1:** pisahkan bucket 3/menit per email dan 100/menit per
+IP. Nilai IP memberi ruang di atas regresi 50 pengguna; bukan target kapasitas
+yang sudah dibuktikan. Pertahankan pengujian 50 pendaftaran dan tinjau ulang batas
+ini berdasarkan pengukuran O1/P9. Kontrol abuse utama tetap email unik dan
+verifikasi, bukan pembatasan ketat IP.
+
+**Status.** Diterapkan dan lulus `RegistrationRateLimitTest`.

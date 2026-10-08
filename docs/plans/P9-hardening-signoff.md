@@ -27,6 +27,10 @@ php artisan migrate:rollback --step=50       # and back, cleanly
 php artisan migrate
 ```
 
+SQLite rollback currently stops in the legacy role migration because its index
+is not dropped before the column (K11 in `keputusan.md`). Do not mark rollback
+validation complete until this is corrected and both rollback and reapply pass.
+
 Rolling back must not error on foreign keys. Every `nullOnDelete` relation added
 in P3/P5/P6 is a candidate for a bad `down()`.
 
@@ -197,13 +201,13 @@ pages, and the account dashboard panels.
 
 ## Step 7 — Documentation truth pass
 
-`README.md` currently contains claims that P0–P8 invalidated. Fix all of them:
+Reconcile `README.md` with the phases actually delivered before sign-off:
 
-- [ ] Remove **"no public registration"** — P1 added it.
-- [ ] Move **LMS** and **Midtrans** out of "What is not here" — P2–P4 built them.
-- [ ] Correct or confirm the **homepage caching** claim per what P0 actually did.
-- [ ] Update the **Decisions** table: #7 (Midtrans) is no longer "phase 9".
-- [ ] Describe the **queue worker** as a deployment requirement.
+- [x] Describe P1 customer accounts, guard isolation, and P5a free-event enrollment; do not claim paid event checkout is available.
+- [ ] Keep LMS and Midtrans listed as future work until P2–P4 actually deliver them.
+- [ ] Correct or confirm the homepage caching claim per what P0 actually did; distinguish it from the P5a event-list cache.
+- [x] Update the Decisions table: #7 (Midtrans) belongs to P2; P5b depends on it.
+- [x] Describe the queue worker as a deployment requirement.
 - [ ] Document **Redis** as required infrastructure, not optional.
 - [ ] Update the **Layout** tree with `Actions/`, `Jobs/`, `Policies/`,
       `Contracts/`, and the new models. **It is already wrong today**, independent
