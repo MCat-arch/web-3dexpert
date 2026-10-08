@@ -100,10 +100,16 @@ class HandleLegacyRedirects
         return match (true) {
             str_starts_with($path, '/layanan'),
             str_starts_with($path, '/services') => '/#layanan',
+
+            // Contact genuinely has no page: D12 routes it to WhatsApp.
             str_starts_with($path, '/kontak'),
-            str_starts_with($path, '/contact'),
-            str_starts_with($path, '/karir'),
-            str_starts_with($path, '/careers') => '/#kontak',
+            str_starts_with($path, '/contact') => '/#kontak',
+
+            // '/karir' is NOT rewritten any more -- P6 made it a real page, so
+            // karir.php can 301 to the actual careers index instead of being
+            // collapsed onto a homepage anchor. Same correction as the
+            // portfolio branch in T0: a rewrite that outlived its reason was
+            // quietly discarding the destination's SEO value.
             default => $destination,
         };
     }

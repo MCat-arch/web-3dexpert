@@ -42,7 +42,7 @@
                             </span>
                         </div>
 
-                        @can('cancel', $registration)
+                        @if ($customerCan('cancel', $registration))
                             <form method="POST"
                                   action="{{ $lroute('events.registration.cancel', ['registration' => $registration->id]) }}"
                                   class="mt-4">
@@ -52,7 +52,7 @@
                                     {{ __('events.cancel') }}
                                 </button>
                             </form>
-                        @endcan
+                        @endif
                     </li>
                 @endforeach
             </ul>

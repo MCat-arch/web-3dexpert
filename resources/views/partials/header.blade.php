@@ -43,9 +43,11 @@
                 <x-nav-link :href="$section['href']">{{ $section['label'] }}</x-nav-link>
             @endforeach
 
-            {{-- Careers is intentionally absent until the careers page exists
-                 (task.md P6). Legacy karir.php keeps working via
-                 HandleLegacyRedirects, so no inbound link is broken. --}}
+            {{-- Re-added by P6, which made /karir a real page. T0 had removed
+                 it because the route did not exist yet. --}}
+            <x-nav-link :href="$lroute('careers.index')">
+                {{ __('nav.careers') }}
+            </x-nav-link>
 
             {{-- D12: contact is a WhatsApp link, never a form. --}}
             @if ($whatsapp)
@@ -103,6 +105,10 @@
             @foreach ($sections as $section)
                 <x-nav-link :href="$section['href']" mobile>{{ $section['label'] }}</x-nav-link>
             @endforeach
+
+            <x-nav-link :href="$lroute('careers.index')" mobile>
+                {{ __('nav.careers') }}
+            </x-nav-link>
 
             @if ($whatsapp)
                 <x-nav-link :href="$whatsapp" target="_blank" rel="noopener noreferrer" mobile>

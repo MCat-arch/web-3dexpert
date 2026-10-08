@@ -54,6 +54,30 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Applicant CVs and portfolios (P6, decision D3).
+         *
+         * Separate from 'media' because the two have different lifetimes and
+         * different audiences: media is public marketing content served to
+         * everyone, these are personal data served only to hiring staff and
+         * purged on a retention schedule (D11).
+         *
+         * Under storage_path, so outside the document root. The legacy site's
+         * RCE came from uploads landing somewhere the web server would execute;
+         * nothing here is reachable without passing through
+         * ApplicationDocumentController and its authorisation check.
+         *
+         * Swapping this to S3 later is a config change, not a rewrite -- which
+         * is why job_application_documents records its disk per row.
+         */
+        'applications' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/applications'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

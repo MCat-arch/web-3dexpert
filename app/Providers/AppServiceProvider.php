@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Faq;
 use App\Models\HeroSlide;
+use App\Models\JobApplication;
 use App\Models\MediaAsset;
 use App\Models\Portfolio;
 use App\Models\PortfolioImage;
@@ -19,6 +20,7 @@ use App\Models\ValueProposition;
 use App\Observers\ContentObserver;
 use App\Observers\EventObserver;
 use App\Policies\EventRegistrationPolicy;
+use App\Policies\JobApplicationPolicy;
 use App\Support\Locale;
 use App\Support\Settings;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -60,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Customers are authorised by ownership, never by role (D1).
         Gate::policy(EventRegistration::class, EventRegistrationPolicy::class);
+        Gate::policy(JobApplication::class, JobApplicationPolicy::class);
         Event::observe(EventObserver::class);
 
         /*
@@ -101,6 +104,25 @@ class AppServiceProvider extends ServiceProvider
                 // would send English visitors to Indonesian URLs. Use
                 // $lroute() for anything inside those groups.
                 'lroute' => fn (string $name, array $parameters = []) => Locale::route($name, $parameters),
+
+                /*
+                 * Authorisation for the CUSTOMER guard in Blade.
+                 *
+                 * Do not use @can on a public page. Blade's @can resolves the
+                 * DEFAULT guard, and that is only `customer` on routes behind
+                 * auth:customer -- because Laravel's Authenticate middleware
+                 * calls shouldUse() when it succeeds. On a public route the
+                 * default stays `web`, so @can sees no user and every ability
+                 * silently returns false.
+                 *
+                 * That is not hypothetical: it shipped. The cancel button on
+                 * the public event detail page never rendered for the owner,
+                 * and the test that should have caught it passed because
+                 * actingAs($c, 'customer') ALSO calls shouldUse() -- masking
+                 * the difference between the test and a real browser.
+                 */
+                'customerCan' => fn (string $ability, mixed $model) => Gate::forUser(auth('customer')->user())
+                    ->allows($ability, $model),
             ]);
         });
     }
@@ -148,6 +170,21 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('customer-verification-resend', fn (Request $request) => [
             Limit::perMinute(3)->by('verify:'.($request->user('customer')?->getKey() ?? $request->ip())),
+        ]);
+
+        /*
+         * Job applications. Keyed on the customer, not the IP.
+         *
+         * Each submission writes PDFs to disk, so this is the most expensive
+         * public POST in the application -- but the limit is per account
+         * because a shared office or campus network is a realistic place for
+         * several people to apply from, and the D17 reasoning applies here
+         * too. The unique index already prevents duplicate applications; this
+         * only stops one account hammering the upload path.
+         */
+        RateLimiter::for('customer-apply', fn (Request $request) => [
+            Limit::perMinute(5)->by('apply:'.($request->user('customer')?->getKey() ?? $request->ip())),
+            Limit::perHour(20)->by('apply-hour:'.($request->user('customer')?->getKey() ?? $request->ip())),
         ]);
     }
 }

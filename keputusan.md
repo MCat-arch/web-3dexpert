@@ -300,3 +300,79 @@ ini berdasarkan pengukuran O1/P9. Kontrol abuse utama tetap email unik dan
 verifikasi, bukan pembatasan ketat IP.
 
 **Status.** Diterapkan dan lulus `RegistrationRateLimitTest`.
+
+---
+
+## K8 — `@can` di Blade tidak mengenali guard `customer` (bug P5a yang sudah terkirim)
+
+**Masalah.** Tombol "Batalkan Pendaftaran" di halaman detail acara **tidak pernah
+muncul** untuk pemiliknya. Ditemukan saat mengerjakan P6.
+
+Penyebabnya: `@can` di Blade memakai **guard default**. Guard default baru menjadi
+`customer` pada route yang berada di belakang `auth:customer`, karena middleware
+`Authenticate` memanggil `shouldUse()` saat berhasil. Di route **publik**
+(`acara/{event}`, `karir/{vacancy}`) guard default tetap `web`, jadi `@can` tidak
+melihat user sama sekali dan semua ability mengembalikan `false` tanpa error.
+
+**Yang membuat bug ini lolos review lebih penting dari bug-nya:** test yang
+seharusnya menangkap ini **lulus**. `actingAs($customer, 'customer')` **juga**
+memanggil `shouldUse()`, sehingga guard default menjadi `customer` untuk seluruh
+request — menutupi perbedaan antara test dan browser sungguhan.
+
+Dibuktikan dengan `auth('customer')->login()` (tanpa `actingAs`):
+`/akun/acara` → tombol muncul; `/acara/{slug}` → tombol hilang.
+
+**Keputusan: tambahkan closure `$customerCan` lewat view composer, dan pakai itu
+di semua view pelanggan — bukan `@can`.**
+
+**Alasan.**
+- Eksplisit: `Gate::forUser(auth('customer')->user())` tidak bergantung pada
+  guard default yang bisa berubah.
+- Konsisten dengan pola `$lroute` dan `$settings` yang sudah ada.
+- Satu mekanisme untuk route publik maupun privat, jadi memindahkan route tidak
+  bisa mematikan tombol secara diam-diam lagi.
+
+Regression guard: `CustomerBladeAuthorizationTest`, yang **sengaja tidak memakai
+`actingAs`** karena itu yang menyembunyikan bug-nya.
+
+**Pelajaran yang sama muncul dua kali lagi:** `actingAs($staff)` tanpa argumen
+guard di test P6 juga salah — request `auth:customer` sebelumnya sudah mengubah
+guard default menjadi `customer`, sehingga staff ikut login di guard yang salah
+dan middleware menolak dengan 403. **Selalu sebutkan guard secara eksplisit.**
+
+**Yang perlu user tinjau.** Tidak ada; sudah diperbaiki dan ditest. Tapi jika
+nanti menambah view pelanggan, pakai `$customerCan(...)`, jangan `@can(...)`.
+
+---
+
+## K9 — `UploadedFile::fake()` tidak bisa menguji validasi MIME berbasis isi file
+
+**Masalah.** Test "file PHP diganti nama jadi .pdf harus ditolak" **gagal** —
+file tersebut diterima. Terlihat seperti lubang keamanan serius (RCE legacy
+kembali).
+
+**Ternyata bukan.** `Illuminate\Http\Testing\File::getMimeType()` mengembalikan
+`MimeType::from($this->name)` — tipe diambil dari **nama file**, bukan isinya.
+Jadi fake bernama `cv.pdf` selalu melaporkan `application/pdf` apa pun isinya,
+dan aturan `mimetypes:application/pdf` meloloskannya.
+
+Diukur langsung:
+
+| | `getMimeType()` |
+|---|---|
+| `UploadedFile::fake()->createWithContent('cv.pdf', '<?php ...')` | `application/pdf` |
+| `new UploadedFile($realTmpFile, 'cv.pdf', null, null, true)` | `text/x-php` |
+| `mime_content_type()` atas file yang sama | `text/x-php` |
+
+Jadi perlindungannya **berfungsi di produksi**; yang salah adalah alat ujinya.
+
+**Keputusan: test RCE memakai `UploadedFile` sungguhan, bukan fake.**
+
+**Alasan.** Ditulis dengan fake, test itu **lulus tanpa menguji apa pun** — dan
+itu justru cara sebuah test suite upload memberi rasa aman yang palsu. Ditambah
+satu test (`test_the_fake_upload_helper_cannot_detect_disguised_content`) yang
+mematok perilaku fake tersebut, supaya kalau Laravel nanti mengubahnya, catatan
+ini ikut gagal dan bisa dihapus.
+
+**Yang perlu user tinjau.** Tidak ada. Tapi setiap test validasi upload yang
+bergantung pada isi file harus memakai file sungguhan.

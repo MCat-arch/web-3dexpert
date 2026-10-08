@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\JobVacancy;
 use App\Models\LegacyRedirect;
 use App\Models\Portfolio;
 use App\Models\Testimonial;
@@ -42,7 +43,8 @@ class PublicPagesTest extends TestCase
     {
         foreach ([
             '/layanan',
-            '/karir',
+            // '/karir' is a real page as of P6 -- see
+            // test_it_serves_the_careers_index_in_both_locales below.
             '/kontak',
             // A slug that does not exist still 404s via route model binding.
             '/portofolio/example',
@@ -83,6 +85,15 @@ class PublicPagesTest extends TestCase
         $this->get('/portofolio/'.$portfolio->slug)->assertOk();
 
         $this->assertSame(1, (int) $portfolio->fresh()->view_count);
+    }
+
+    public function test_it_serves_the_careers_index_in_both_locales(): void
+    {
+        // P6 made /karir a real page. It used to be in the 404 list above.
+        JobVacancy::factory()->create(['is_published' => true, 'closes_at' => null]);
+
+        $this->get('/karir')->assertOk()->assertSee('lang="id"', false);
+        $this->get('/en/karir')->assertOk()->assertSee('lang="en"', false);
     }
 
     public function test_it_sends_security_headers_on_every_response(): void

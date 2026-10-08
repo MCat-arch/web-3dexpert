@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\ApplicationDocumentController;
+use App\Http\Controllers\Career\JobApplicationController;
+use App\Http\Controllers\Career\MyApplicationsController;
+use App\Http\Controllers\Career\VacancyDetailController;
+use App\Http\Controllers\Career\VacancyListController;
 use App\Http\Controllers\Customer\AccountController;
 use App\Http\Controllers\Customer\Auth\EmailVerificationController;
 use App\Http\Controllers\Customer\Auth\LoginController;
@@ -38,6 +43,18 @@ Route::get('media/{path}', [MediaController::class, 'show'])
     ->name('media.show');
 
 /*
+ * Applicant document download (P6). STAFF ONLY.
+ *
+ * Not locale-prefixed -- it returns bytes, not language -- and deliberately
+ * outside the customer route groups: the 'applications' disk sits under
+ * storage_path with no public URL, so this is the single path to a CV, and it
+ * authorises through JobApplicationPolicy::viewDocuments before streaming.
+ */
+Route::get('dokumen-lamaran/{document}', ApplicationDocumentController::class)
+    ->middleware(['auth', 'can-manage-content'])
+    ->name('applications.document');
+
+/*
  * One definition, registered once per locale.
  *
  * This was previously a single group prefixed '{locale?}', which looked tidier
@@ -68,6 +85,10 @@ $publicRoutes = function (): void {
     // Events (P5a). Browsing is public; enrolling needs a verified customer.
     Route::get('acara', EventListController::class)->name('events.index');
     Route::get('acara/{event}', EventDetailController::class)->name('events.show');
+
+    // Careers (P6). Browsing is public; applying needs a verified customer.
+    Route::get('karir', VacancyListController::class)->name('careers.index');
+    Route::get('karir/{vacancy}', VacancyDetailController::class)->name('careers.show');
 
     /*
      * Public accounts (P1). The `customer` guard, never `web` -- see D1.
@@ -128,6 +149,20 @@ $publicRoutes = function (): void {
 
             Route::delete('pendaftaran/{registration}', [EnrollmentController::class, 'destroy'])
                 ->name('events.registration.cancel');
+
+            // Careers (P6).
+            Route::get('akun/lamaran', MyApplicationsController::class)
+                ->name('customer.applications');
+
+            Route::get('karir/{vacancy}/lamar', [JobApplicationController::class, 'create'])
+                ->name('careers.apply');
+
+            Route::post('karir/{vacancy}/lamar', [JobApplicationController::class, 'store'])
+                ->middleware('throttle:customer-apply')
+                ->name('careers.apply.store');
+
+            Route::delete('lamaran/{application}', [JobApplicationController::class, 'withdraw'])
+                ->name('careers.withdraw');
         });
     });
 };

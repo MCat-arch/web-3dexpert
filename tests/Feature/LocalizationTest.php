@@ -48,6 +48,9 @@ class LocalizationTest extends TestCase
 
     public function test_it_does_not_expose_localized_standalone_pages(): void
     {
-        $this->get('/en/karir')->assertNotFound();
+        // '/en/karir' is a real page as of P6. '/en/layanan' is not: there are
+        // no service pages, and D12 means there is no contact page either.
+        $this->get('/en/layanan')->assertNotFound();
+        $this->get('/en/kontak')->assertNotFound();
     }
 }

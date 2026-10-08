@@ -53,7 +53,7 @@
                     <span class="font-mono text-neutral-200">{{ $registration->ticket_code }}</span>
                 </p>
 
-                @can('cancel', $registration)
+                @if ($customerCan('cancel', $registration))
                     <form method="POST"
                           action="{{ $lroute('events.registration.cancel', ['registration' => $registration->id]) }}"
                           class="mt-4">
@@ -63,7 +63,7 @@
                             {{ __('events.cancel') }}
                         </button>
                     </form>
-                @endcan
+                @endif
 
             @elseif ($event->starts_at->isPast())
                 <p class="text-sm text-neutral-500">{{ __('events.past') }}</p>

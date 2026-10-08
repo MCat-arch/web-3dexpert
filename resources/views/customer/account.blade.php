@@ -28,10 +28,25 @@
             </div>
         @endif
 
-        {{-- Panels are added here by later phases: my events (P5), my
-             applications (P6), my courses (P4). --}}
-        <div class="mt-10 rounded-xl border border-dashed border-white/15 px-6 py-16 text-center">
-            <p class="text-sm text-neutral-400">{{ __('customer.account_empty') }}</p>
+        {{-- One card per customer-facing area. P4 adds "my courses" here. --}}
+        <div class="mt-10 grid gap-4 sm:grid-cols-2">
+            <a href="{{ $lroute('customer.events') }}"
+               class="group rounded-xl border border-white/10 bg-neutral-900 p-5 transition
+                      hover:border-amber-500/40">
+                <h2 class="text-base font-semibold text-white group-hover:text-amber-400">
+                    {{ __('events.mine_title') }}
+                </h2>
+                <p class="mt-1.5 text-sm text-neutral-400">{{ __('events.title') }}</p>
+            </a>
+
+            <a href="{{ $lroute('customer.applications') }}"
+               class="group rounded-xl border border-white/10 bg-neutral-900 p-5 transition
+                      hover:border-amber-500/40">
+                <h2 class="text-base font-semibold text-white group-hover:text-amber-400">
+                    {{ __('careers.mine_title') }}
+                </h2>
+                <p class="mt-1.5 text-sm text-neutral-400">{{ __('careers.title') }}</p>
+            </a>
         </div>
     </section>
 @endsection
