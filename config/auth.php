@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Customer;
 use App\Models\User;
 
 return [
@@ -38,9 +39,25 @@ return [
     */
 
     'guards' => [
+        /*
+         * Staff + Filament. Do NOT add public accounts to this guard: it
+         * resolves App\Models\User, whose canAccessPanel() is true for role
+         * 'editor' -- the column default. See decision D1 in notes.md.
+         */
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        /*
+         * Public visitors: courses, events, job applications, own projects.
+         * Resolves App\Models\Customer, which deliberately does not implement
+         * Filament\Models\Contracts\FilamentUser -- so there is no code path
+         * from this guard to the admin panel at all.
+         */
+        'customer' => [
+            'driver' => 'session',
+            'provider' => 'customers',
         ],
     ],
 
@@ -65,6 +82,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'customers' => [
+            'driver' => 'eloquent',
+            'model' => Customer::class,
         ],
 
         // 'users' => [
@@ -93,6 +115,16 @@ return [
     */
 
     'passwords' => [
+        'customers' => [
+            'provider' => 'customers',
+            // Its OWN table. The framework's password_reset_tokens is keyed by
+            // email alone with no provider column, so sharing it would let a
+            // token issued for one provider be redeemed against the other.
+            'table' => 'customer_password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),

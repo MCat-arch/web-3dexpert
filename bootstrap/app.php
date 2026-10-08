@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Middleware\EnsureCustomerEmailIsVerified;
 use App\Http\Middleware\EnsureUserCanManageContent;
 use App\Http\Middleware\HandleLegacyRedirects;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Support\Locale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -80,7 +82,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'locale' => SetLocale::class,
             'can-manage-content' => EnsureUserCanManageContent::class,
+            // Reads the `customer` guard explicitly; Laravel's built-in
+            // EnsureEmailIsVerified reads the default guard (`web`) and would
+            // see no user on a customer route.
+            'verified.customer' => EnsureCustomerEmailIsVerified::class,
         ]);
+
+        // Unauthenticated customers go to the customer login page, not the
+        // Filament one. Without this, 'auth:customer' falls back to a route
+        // named 'login', which does not exist on the public side.
+        $middleware->redirectGuestsTo(fn () => Locale::route('customer.login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

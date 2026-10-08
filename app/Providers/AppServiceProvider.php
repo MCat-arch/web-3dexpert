@@ -17,11 +17,15 @@ use App\Models\ValueProposition;
 use App\Observers\ContentObserver;
 use App\Support\Locale;
 use App\Support\Settings;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -46,6 +50,8 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Paginator::useTailwind();
+
+        $this->registerRateLimiters();
 
         /*
          * Every model the homepage payload reads must be here, or editing it
@@ -88,5 +94,51 @@ class AppServiceProvider extends ServiceProvider
                 'lroute' => fn (string $name, array $parameters = []) => Locale::route($name, $parameters),
             ]);
         });
+    }
+
+    /**
+     * Rate limiters for the public auth surface.
+     *
+     * The important one is 'customer-register', and it is deliberately NOT
+     * keyed on IP alone (decision D17).
+     *
+     * Indonesian mobile carriers use CGNAT heavily, so hundreds of unrelated
+     * subscribers share one egress address -- and a launch event on venue WiFi
+     * puts everyone behind a single NAT. A tight per-IP limit would 429 most of
+     * a 500-person launch, and the logs would show the application working
+     * exactly as configured. That failure is indistinguishable from a
+     * successful launch going wrong, which is why it gets a regression test.
+     *
+     * Abuse control for registration comes from the unique email constraint
+     * plus the verification requirement, not from an IP counter. The IP limit
+     * that remains is a generous ceiling against scripted floods only.
+     *
+     * Login is different: keyed on email AND IP, so one attacker cannot lock a
+     * real user out by hammering their address from elsewhere.
+     */
+    private function registerRateLimiters(): void
+    {
+        RateLimiter::for('customer-register', fn (Request $request) => [
+            // Per address: stops one person scripting many accounts.
+            Limit::perMinute(3)->by('reg-email:'.Str::lower((string) $request->input('email'))),
+            // Per IP: high on purpose. Shared NAT is normal, not suspicious.
+            Limit::perMinute(30)->by('reg-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('customer-login', fn (Request $request) => [
+            Limit::perMinute(5)->by(
+                'login:'.Str::lower((string) $request->input('email')).'|'.$request->ip()
+            ),
+            Limit::perMinute(30)->by('login-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('customer-password-reset', fn (Request $request) => [
+            Limit::perMinute(3)->by('pwd:'.Str::lower((string) $request->input('email'))),
+            Limit::perMinute(20)->by('pwd-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('customer-verification-resend', fn (Request $request) => [
+            Limit::perMinute(3)->by('verify:'.($request->user('customer')?->getKey() ?? $request->ip())),
+        ]);
     }
 }

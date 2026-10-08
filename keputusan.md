@@ -182,3 +182,41 @@ karena halaman itu benar-benar tidak ada (D12 untuk kontak, P6 untuk karir).
 
 **Yang perlu user tinjau.** Tidak ada. Sudah terverifikasi:
 `detail.php?id=1` → 301 → slug asli → 200.
+
+---
+
+## K7 — P1 tidak ada dalam urutan, padahal P5a tidak bisa jalan tanpanya
+
+**Masalah.** User memberi urutan `P5a → O1 → O2 → O3 → O5 → O6 → O7`, lalu
+berkata "now do p5a". **P1 (Customer Identity) tidak disebut.**
+
+Tapi P5a tidak mungkin dibangun tanpa P1:
+
+- Brief user: *"event (the user will have to create account and sign up for
+  enroll to event)"* — enrollment butuh akun.
+- `event_registrations.customer_id` mengacu ke tabel `customers` yang dibuat P1.
+- Kriteria penerimaan P5a: *"A verified customer enrolls in a free event"* —
+  butuh guard `customer` dan verifikasi email.
+- Profil launch: register → verify → browse → enroll. Dua langkah pertama **adalah** P1.
+
+Saat ini tidak ada tabel `customers`, tidak ada guard `customer`, tidak ada
+scaffolding auth publik sama sekali.
+
+**Pilihan.**
+1. Kerjakan P5a tanpa auth — enrollment anonim. Bertentangan dengan brief.
+2. Kerjakan P1 dulu, lalu P5a. Sesuai urutan Wave 1 yang sudah disepakati.
+3. Tanya user — tidak boleh.
+
+**Keputusan: kerjakan P1 lebih dulu, lalu lanjut P5a.**
+
+**Alasan.** Sama seperti K1 (O4), ini kelihatannya kelalaian penulisan, bukan
+keputusan. Urutan Wave 1 yang disepakati di `docs/plans/README.md` adalah
+`T0 → P0 → P1 → P5a`, dan P1 tercantum eksplisit sebagai dependensi di header
+rencana P5a. Membangun enrollment anonim lalu membongkarnya untuk menambahkan
+akun jauh lebih mahal daripada mengerjakan P1 sekarang — dan P1 juga menutup
+jalur eskalasi `/admin` (D1), yang harus beres **sebelum** ada pendaftaran
+publik, bukan sesudahnya.
+
+**Yang perlu user tinjau.** Jika yang dimaksud memang enrollment tanpa akun
+(mis. hanya nama + nomor WhatsApp), bilang saja — itu fitur yang jauh lebih
+kecil, tapi bertentangan dengan brief awal dan dengan D1.

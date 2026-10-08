@@ -53,6 +53,18 @@
                     {{ __('nav.contact') }}
                 </x-nav-link>
             @endif
+
+            {{-- Public accounts (P1). Reads the `customer` guard explicitly:
+                 auth() would read `web` and show staff state to visitors. --}}
+            @auth('customer')
+                <x-nav-link :href="$lroute('customer.account')">
+                    {{ __('customer.account_title') }}
+                </x-nav-link>
+            @else
+                <x-nav-link :href="$lroute('customer.login')">
+                    {{ __('customer.login_title') }}
+                </x-nav-link>
+            @endauth
         </nav>
 
         <div class="flex items-center gap-2">
@@ -97,6 +109,16 @@
                     {{ __('nav.contact') }}
                 </x-nav-link>
             @endif
+
+            @auth('customer')
+                <x-nav-link :href="$lroute('customer.account')" mobile>
+                    {{ __('customer.account_title') }}
+                </x-nav-link>
+            @else
+                <x-nav-link :href="$lroute('customer.login')" mobile>
+                    {{ __('customer.login_title') }}
+                </x-nav-link>
+            @endauth
 
             @if ($whatsapp)
                 <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"

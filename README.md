@@ -1,10 +1,10 @@
 # 3D Expert Web — Laravel
 
 Laravel application for the bilingual 3D Expert company-profile site. The public
-surface is limited to the Indonesian and English landing pages (`/` and `/en`),
-plus media delivery. Landing content is managed in the Filament panel at `/admin`;
-there is no public registration or separate public portfolio, service, career, or
-contact page.
+surface includes Indonesian and English landing pages (`/` and `/en`), paginated
+portfolio indexes and portfolio detail pages in both locales, plus media delivery.
+Landing content is managed in the Filament panel at `/admin`; there is no public
+registration or separate service, career, or contact page.
 
 ---
 
@@ -63,7 +63,7 @@ used by the landing-page assets. Translatable attributes use the local
 | Legacy | Lines | Replaced by |
 |---|---|---|
 | `index.php` + `index-en.php` | 1,889 | `HomeController` + `resources/views/home.blade.php` + `lang/{id,en}` |
-| `detail.php` | 1,143 | Portfolio cards in the landing page; legacy detail URLs now redirect to `/#portofolio` |
+| `detail.php` | 1,143 | `PortfolioController` + `resources/views/portfolio/*`; legacy detail URLs redirect to the matching public portfolio slug |
 | `karir.php` | 1,241 | No public careers page; legacy URL redirects to the landing page |
 | `partials/header.php` + `footer.php` | 655 | `layouts/app.blade.php` + `partials/*` |
 | `upload.php` | 95 | No public upload endpoint; managed media is stored on a private filesystem disk |
@@ -114,8 +114,8 @@ covers this. **This is what stops the cutover from discarding the domain's ranki
 
 ## Improvements retained on the landing page
 
-- Portfolio and service content remain editable and visible as landing-page sections;
-  separate index/detail routes have been removed.
+- Portfolio index and detail pages are public in both locales; portfolio and
+  service content also remain editable and visible as landing-page sections.
 - **Accessibility**: skip link, focus-visible rings, ARIA on carousel/gallery/nav,
   `prefers-reduced-motion` honored. Legacy had none of this.
 
@@ -154,14 +154,15 @@ admins/superadmins can change site settings. Public registration is disabled.
    outside this application.
 2. **Image conversions / CDN (phase 7).** `MediaController` streams original files;
    image transformation and CDN delivery remain future work.
-3. **Sitemap.** Only the landing routes are public; sitemap generation remains
-   future work.
+3. **Sitemap.** Landing and portfolio routes are public; sitemap generation
+   remains future work.
 
 ### Public route scope
 
-`routes/web.php` uses an optional locale prefix so `/` stays Indonesian and `/en`
-serves English. This has been smoke-tested. The route table should contain the
-landing, media, and Filament routes; removed public paths should return 404:
+`routes/web.php` registers public routes explicitly for each locale: `/` stays
+Indonesian and `/en` serves English. The route table includes landing, portfolio
+index/detail, media, and Filament routes. Unsupported public paths should return
+404:
 
 | URL | Expected |
 |---|---|

@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Customer\AccountController;
+use App\Http\Controllers\Customer\Auth\EmailVerificationController;
+use App\Http\Controllers\Customer\Auth\LoginController;
+use App\Http\Controllers\Customer\Auth\LogoutController;
+use App\Http\Controllers\Customer\Auth\PasswordResetController;
+use App\Http\Controllers\Customer\Auth\RegisterController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortfolioController;
@@ -54,6 +60,58 @@ $publicRoutes = function (): void {
 
     Route::get('portofolio/{portfolio}', [PortfolioController::class, 'show'])
         ->name('portfolio.show');
+
+    /*
+     * Public accounts (P1). The `customer` guard, never `web` -- see D1.
+     *
+     * Throttles are named limiters defined in AppServiceProvider.
+     * customer-register is deliberately not IP-only: CGNAT and shared venue
+     * WiFi would otherwise 429 most of a 500-person launch (D17).
+     */
+    Route::middleware('guest:customer')->group(function () {
+        Route::get('daftar', [RegisterController::class, 'create'])->name('customer.register');
+        Route::post('daftar', [RegisterController::class, 'store'])
+            ->middleware('throttle:customer-register');
+
+        Route::get('masuk', [LoginController::class, 'create'])->name('customer.login');
+        Route::post('masuk', [LoginController::class, 'store'])
+            ->middleware('throttle:customer-login');
+
+        Route::get('lupa-sandi', [PasswordResetController::class, 'request'])
+            ->name('customer.password.request');
+        Route::post('lupa-sandi', [PasswordResetController::class, 'email'])
+            ->middleware('throttle:customer-password-reset')
+            ->name('customer.password.email');
+
+        Route::get('atur-sandi/{token}', [PasswordResetController::class, 'reset'])
+            ->name('customer.password.reset');
+        Route::post('atur-sandi', [PasswordResetController::class, 'update'])
+            ->middleware('throttle:customer-password-reset')
+            ->name('customer.password.update');
+    });
+
+    Route::middleware('auth:customer')->group(function () {
+        Route::post('keluar', LogoutController::class)->name('customer.logout');
+
+        Route::get('verifikasi-email', [EmailVerificationController::class, 'notice'])
+            ->name('customer.verification.notice');
+
+        // 'signed' proves the link is ours and unexpired; the controller also
+        // checks it was issued for this account, so a valid link cannot be
+        // replayed against a different signed-in customer.
+        Route::get('verifikasi-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+            ->middleware('signed')
+            ->name('customer.verification.verify');
+
+        Route::post('verifikasi-email/kirim-ulang', [EmailVerificationController::class, 'resend'])
+            ->middleware('throttle:customer-verification-resend')
+            ->name('customer.verification.resend');
+
+        // Verified-only area. P5a's enrollment lands behind this same gate.
+        Route::middleware('verified.customer')->group(function () {
+            Route::get('akun', AccountController::class)->name('customer.account');
+        });
+    });
 };
 
 $defaultLocale = config('site.default_locale');
