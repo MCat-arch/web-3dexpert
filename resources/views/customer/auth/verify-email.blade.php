@@ -8,19 +8,27 @@
         :subtitle="__('customer.verify_notice')"
         :action="$lroute('customer.verification.resend')">
 
-        <button type="submit"
-                class="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950
-                       transition hover:bg-amber-400">
+        <button type="submit" class="btn btn-primary btn-block">
             {{ __('customer.verify_resend') }}
         </button>
     </x-customer-auth-card>
 
-    {{-- Logout is a separate POST form: it must not be nested inside the
-         resend form, and it must not be a GET link (guide.md 10.4). --}}
-    <div class="mx-auto max-w-md px-4 pb-12 text-center">
-        <form method="POST" action="{{ $lroute('customer.logout') }}">
+    {{-- Logout is a separate POST form: must not be nested inside the
+         resend form, and must not be a GET link (guide.md 10.4). --}}
+    <div class="auth-logout-wrap" style="margin-top: 16px; text-align: center;">
+        <div style="display: flex; justify-content: center; gap: 20px; font-size: 0.875rem;">
+            <a href="{{ $lroute('customer.login') }}" class="font-semibold text-amber-400 hover:text-amber-300">
+                {{ __('customer.login_title') }}
+            </a>
+            <span style="color: var(--text-muted);">|</span>
+            <a href="{{ $lroute('customer.register') }}" class="font-semibold text-amber-400 hover:text-amber-300">
+                {{ __('customer.register_title') }}
+            </a>
+        </div>
+
+        <form method="POST" action="{{ $lroute('customer.logout') }}" style="margin-top: 12px;">
             @csrf
-            <button type="submit" class="text-sm text-neutral-400 hover:text-white">
+            <button type="submit" class="auth-logout-btn" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.875rem;">
                 {{ __('customer.logout') }}
             </button>
         </form>

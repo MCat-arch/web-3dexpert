@@ -3,69 +3,67 @@
 @section('title', __('careers.mine_title') . ' | ' . $settings('company_name', config('app.name')))
 
 @section('content')
-    <section class="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-        <h1 class="text-2xl font-bold tracking-tight text-white">{{ __('careers.mine_title') }}</h1>
+    <div class="page-banner">
+        <div class="container">
+            <h1 class="page-banner-title">{{ __('careers.mine_title') }}</h1>
+        </div>
+    </div>
 
+    <div class="container" style="max-width: 860px; padding-bottom: 70px;">
         @if (session('status'))
-            <div role="status" class="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+            <div class="alert alert-success" role="status">
                 {{ session('status') }}
             </div>
         @endif
 
         @if ($applications->isEmpty())
-            <div class="mt-8">
-                <x-empty-state :title="__('careers.mine_empty')" />
-            </div>
+            <x-empty-state :title="__('careers.mine_empty')" />
         @else
-            <ul class="mt-8 space-y-4">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
                 @foreach ($applications as $application)
-                    <li class="rounded-xl border border-white/10 bg-neutral-900 p-5">
-                        <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="card-light" style="padding: 24px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
                             <div>
-                                <h2 class="text-base font-semibold text-white">
+                                <h2 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 6px;">
                                     <a href="{{ $lroute('careers.show', ['vacancy' => $application->vacancy->slug]) }}"
-                                       class="hover:text-amber-400">
+                                        style="color: inherit; text-decoration: none;">
                                         {{ $application->vacancy->title }}
                                     </a>
                                 </h2>
-                                <p class="mt-1 text-sm text-neutral-400">
-                                    {{ $application->vacancy->department }} &middot;
-                                    {{ $application->vacancy->location }}
+                                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 6px;">
+                                    {{ $application->vacancy->department }} &middot; {{ $application->vacancy->location }}
                                 </p>
-                                <p class="mt-2 text-xs text-neutral-500">
-                                    {{ __('careers.submitted_at') }}:
-                                    {{ $application->submitted_at->translatedFormat('j F Y') }}
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                                    {{ __('careers.submitted_at') }}: {{ $application->submitted_at->translatedFormat('j F Y') }}
                                 </p>
                             </div>
 
-                            {{-- Status only. internal_notes is $hidden on the
-                                 model and staff-only in the policy: a
-                                 candidate must never see staff commentary
-                                 about themselves. --}}
-                            <span @class([
-                                'rounded-full px-2.5 py-1 text-xs font-semibold',
-                                'bg-emerald-500/15 text-emerald-400' => $application->status === 'offered',
-                                'bg-amber-500/15 text-amber-400' => in_array($application->status, ['submitted', 'screening', 'interview'], true),
-                                'bg-white/10 text-neutral-400' => in_array($application->status, ['rejected', 'withdrawn'], true),
-                            ])>
+                            @php
+                                $statusClass = match ($application->status) {
+                                    'offered' => 'badge-success',
+                                    'submitted', 'screening', 'interview' => 'badge-amber',
+                                    default => 'badge-dark',
+                                };
+                            @endphp
+                            <span class="badge {{ $statusClass }}">
                                 {{ __('careers.status_' . $application->status) }}
                             </span>
                         </div>
 
                         @if ($customerCan('withdraw', $application))
-                            <form method="POST"
-                                  action="{{ $lroute('careers.withdraw', ['application' => $application->id]) }}"
-                                  class="mt-4">
+                            <form method="POST" action="{{ $lroute('careers.withdraw', ['application' => $application->id]) }}"
+                                style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-light);">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-sm text-neutral-400 underline hover:text-white">
+                                <button type="submit" class="btn btn-secondary btn-sm" style="color: var(--danger);">
                                     {{ __('careers.withdraw') }}
                                 </button>
                             </form>
                         @endif
-                    </li>
+                    </div>
                 @endforeach
-            </ul>
+            </div>
         @endif
-    </section>
+    </div>
 @endsection

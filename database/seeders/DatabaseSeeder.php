@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(LandingContentSeeder::class);
         $this->seedSettings();
         $this->seedHeroSlides();
         $this->seedServices();
@@ -34,6 +35,7 @@ class DatabaseSeeder extends Seeder
         $this->seedTestimonials();
         $this->seedPortfolios();
         $this->seedJobs();
+        $this->call(CourseSeeder::class);
 
         $this->command->warn('No admin user was created. Run: php artisan app:create-admin');
     }
@@ -58,31 +60,47 @@ class DatabaseSeeder extends Seeder
             'en' => 'We understand your needs first, so design revisions stay minimal.',
         ]);
 
-        Settings::set('company_name', '3D Experts');
+        Settings::set('company_name', '3D Expert');
         Settings::set('company_address', [
-            'id' => 'Surabaya, Jawa Timur, Indonesia',
-            'en' => 'Surabaya, East Java, Indonesia',
+            'id' => "Head Office PT Luxora Aura Semesta\nJl. Bendul Merisi Selatan 7 no 57 Surabaya",
+            'en' => "Head Office PT Luxora Aura Semesta\nJl. Bendul Merisi Selatan 7 no 57 Surabaya",
         ]);
-        Settings::set('company_email', 'info@example.test');
-        Settings::set('company_whatsapp', 'https://wa.me/6281234567890');
+        Settings::set('company_maps_url', 'https://goo.gl/maps/68pDytiKfG1dLDMB8');
+        Settings::set('company_email', 'info@3dexpert.id');
+        Settings::set('company_phone', '+6282338389488');
+        Settings::set('company_whatsapp', 'https://wa.me/6282338389488');
+        Settings::set('location_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0');
+        Settings::set('why_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0');
+        Settings::set('process_link_url', 'https://wa.me/6282338389488');
 
         Settings::set('seo_title', [
-            'id' => '3D Experts — Jasa Desain Arsitektur & Interior',
-            'en' => '3D Experts — Architecture & Interior Design Services',
+            'id' => '3D Expert — Jasa Desain Arsitektur & Interior',
+            'en' => '3D Expert — Architecture & Interior Design Services',
         ]);
         Settings::set('seo_description', [
-            'id' => 'Jasa desain rumah, interior, eksterior, dan gambar kerja perizinan.',
-            'en' => 'House, interior and exterior design plus permit drawing services.',
+            'id' => 'Jasa desain rumah, interior, eksterior, dan gambar kerja perizinan siap bangun.',
+            'en' => 'House, interior and exterior design plus permit drawing services ready to build.',
         ]);
     }
 
     private function seedHeroSlides(): void
     {
-        foreach (range(1, 3) as $i) {
+        if (HeroSlide::count() > 0) {
+            return;
+        }
+
+        $heroImages = [
+            'hero/hero_1_1748948347.png',
+            'hero/hero_2_1748948347.jpg',
+            'hero/hero_3_1748948347.jpg',
+        ];
+
+        foreach ($heroImages as $i => $path) {
             HeroSlide::create([
-                'image_path' => "hero/demo-{$i}.jpg",
-                'alt_text' => ['id' => "Contoh hero {$i}", 'en' => "Demo hero {$i}"],
-                'sort_order' => $i,
+                'image_path' => $path,
+                'alt_text' => ['id' => "3D Expert Hero " . ($i + 1), 'en' => "3D Expert Hero " . ($i + 1)],
+                'sort_order' => $i + 1,
+                'is_active' => true,
             ]);
         }
     }

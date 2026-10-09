@@ -124,6 +124,11 @@ class Event extends Model
         return $this->isUnlimited() ? null : max(0, $this->capacity - $this->seats_taken);
     }
 
+    public function getSeatsRemainingAttribute(): ?int
+    {
+        return $this->seatsLeft();
+    }
+
     public function registrationIsOpen(): bool
     {
         if (! $this->is_published) {

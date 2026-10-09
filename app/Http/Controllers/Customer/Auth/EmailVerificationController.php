@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Support\Locale;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
@@ -34,12 +35,16 @@ class EmailVerificationController extends Controller
 
     public function verify(Request $request): RedirectResponse
     {
-        $customer = $request->user('customer');
+        $customer = Customer::find($request->route('id'));
+
+        if (! $customer) {
+            abort(404);
+        }
 
         // The signed URL proves the link came from us and has not expired;
-        // this check proves it was issued for THIS account, so a valid link
-        // cannot be replayed against a different signed-in customer.
-        if (! hash_equals((string) $request->route('id'), (string) $customer->getKey())) {
+        // this check proves it was issued for THIS account.
+        $currentCustomer = $request->user('customer');
+        if ($currentCustomer && (int) $currentCustomer->getKey() !== (int) $customer->getKey()) {
             abort(403);
         }
 
@@ -47,15 +52,15 @@ class EmailVerificationController extends Controller
             abort(403);
         }
 
-        if ($customer->hasVerifiedEmail()) {
-            return redirect()
-                ->to(Locale::route('customer.account'))
-                ->with('status', __('customer.verify_done'));
+        if (! $customer->hasVerifiedEmail()) {
+            $customer->markEmailAsVerified();
+            event(new Verified($customer));
         }
 
-        $customer->markEmailAsVerified();
-
-        event(new Verified($customer));
+        // Auto-login customer if not already logged in
+        if (! $currentCustomer) {
+            auth('customer')->login($customer);
+        }
 
         return redirect()
             ->to(Locale::route('customer.account'))

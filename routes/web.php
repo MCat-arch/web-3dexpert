@@ -15,9 +15,16 @@ use App\Http\Controllers\Event\EnrollmentController;
 use App\Http\Controllers\Event\EventDetailController;
 use App\Http\Controllers\Event\EventListController;
 use App\Http\Controllers\Event\MyEventsController;
+use App\Http\Controllers\Course\CourseCatalogController;
+use App\Http\Controllers\Course\CourseCheckoutController;
+use App\Http\Controllers\Course\CourseDetailController;
+use App\Http\Controllers\Course\CoursePaymentController;
+use App\Http\Controllers\Course\CoursePlayerController;
+use App\Http\Controllers\Customer\MyCoursesController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\Project\ProjectLookupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -90,6 +97,30 @@ $publicRoutes = function (): void {
     Route::get('karir', VacancyListController::class)->name('careers.index');
     Route::get('karir/{vacancy}', VacancyDetailController::class)->name('careers.show');
 
+    // Courses (P3/P4). Browsing is public; purchasing & learning is gated.
+    Route::get('kursus', CourseCatalogController::class)->name('courses.index');
+    Route::get('kursus/{course:slug}', CourseDetailController::class)->name('courses.show');
+    Route::get('kursus/{course:slug}/belajar/{lesson?}', [CoursePlayerController::class, 'show'])->name('courses.player.show');
+
+    // Payment instruction & simulated checkout
+    Route::get('pembayaran/{order_id}', [CoursePaymentController::class, 'show'])->name('courses.payment.show');
+    Route::post('pembayaran/{order_id}/simulasi', [CoursePaymentController::class, 'simulate'])->name('courses.payment.simulate');
+
+    /*
+     * Progress tracker (P7). No account required (A6).
+     *
+     * POST for the lookup, not GET: the submitted phone number or email is
+     * personal data and must not land in browser history, server access logs,
+     * or a Referer header. Rate limited per code AND per IP -- see the
+     * 'project-lookup' limiter.
+     */
+    Route::get('lacak-proyek', [ProjectLookupController::class, 'show'])
+        ->name('tracker.show');
+
+    Route::post('lacak-proyek', [ProjectLookupController::class, 'find'])
+        ->middleware('throttle:project-lookup')
+        ->name('tracker.find');
+
     /*
      * Public accounts (P1). The `customer` guard, never `web` -- see D1.
      *
@@ -119,18 +150,16 @@ $publicRoutes = function (): void {
             ->name('customer.password.update');
     });
 
+    // Email verification link (signed) can be opened by both guests and authenticated users.
+    Route::get('verifikasi-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware('signed')
+        ->name('customer.verification.verify');
+
     Route::middleware('auth:customer')->group(function () {
         Route::post('keluar', LogoutController::class)->name('customer.logout');
 
         Route::get('verifikasi-email', [EmailVerificationController::class, 'notice'])
             ->name('customer.verification.notice');
-
-        // 'signed' proves the link is ours and unexpired; the controller also
-        // checks it was issued for this account, so a valid link cannot be
-        // replayed against a different signed-in customer.
-        Route::get('verifikasi-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-            ->middleware('signed')
-            ->name('customer.verification.verify');
 
         Route::post('verifikasi-email/kirim-ulang', [EmailVerificationController::class, 'resend'])
             ->middleware('throttle:customer-verification-resend')
@@ -163,6 +192,15 @@ $publicRoutes = function (): void {
 
             Route::delete('lamaran/{application}', [JobApplicationController::class, 'withdraw'])
                 ->name('careers.withdraw');
+
+            // Courses (P3/P4).
+            Route::get('kursus/{course:slug}/checkout', [CourseCheckoutController::class, 'show'])
+                ->name('courses.checkout.show');
+            Route::post('kursus/{course:slug}/checkout', [CourseCheckoutController::class, 'store'])
+                ->middleware('throttle:customer-apply')
+                ->name('courses.checkout.store');
+            Route::get('akun/kursus', MyCoursesController::class)
+                ->name('customer.courses');
         });
     });
 };
@@ -170,7 +208,7 @@ $publicRoutes = function (): void {
 $defaultLocale = config('site.default_locale');
 
 // Default locale: no prefix, canonical route names.
-Route::middleware('locale:'.$defaultLocale)->group($publicRoutes);
+Route::middleware('locale:' . $defaultLocale)->group($publicRoutes);
 
 // Every other locale: prefixed path, prefixed route names.
 foreach (array_keys(config('site.locales')) as $locale) {
@@ -179,7 +217,7 @@ foreach (array_keys(config('site.locales')) as $locale) {
     }
 
     Route::prefix($locale)
-        ->middleware('locale:'.$locale)
-        ->name($locale.'.')
+        ->middleware('locale:' . $locale)
+        ->name($locale . '.')
         ->group($publicRoutes);
 }

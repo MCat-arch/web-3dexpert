@@ -1,13 +1,15 @@
-@props(['href'])
+@props(['href' => null])
+@php
+    $targetUrl = $href ?? $settings('company_whatsapp', 'https://wa.me/6282338389488');
+@endphp
 
-<a href="{{ $href }}"
-   target="_blank"
-   rel="noopener noreferrer"
-   aria-label="WhatsApp"
-   class="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 shadow-lg shadow-black/30 transition hover:bg-emerald-400 focus-visible:outline-emerald-300">
-    <img src="{{ route('media.show', ['path' => 'images/icons/ICS.png']) }}"
-         alt=""
-         width="28"
-         height="28"
-         class="h-7 w-7 object-contain">
-</a>
+@if ($targetUrl)
+    <a href="{{ $targetUrl }}"
+       target="_blank"
+       rel="noopener noreferrer"
+       aria-label="WhatsApp"
+       class="floating-whatsapp">
+        <img src="{{ asset('images/icons/ICS.png') }}" alt="WhatsApp" width="36" height="36" style="object-fit: contain;">
+    </a>
+@endif
+

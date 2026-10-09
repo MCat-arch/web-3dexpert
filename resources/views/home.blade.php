@@ -1,17 +1,20 @@
 {{--
-    Replaces index.php (928 lines) AND index-en.php (961 lines). One file.
-
-    SECTION ORDER is the parity contract from task.md. Do not reorder:
-      1 Header (layouts.app)   8 Location
-      2 Hero                   9 Mengapa Memilih Kami
-      3 Features              10 Services
-      4 Portfolio             11 Order flow
-      5 Testimonials          12 FAQ
-      6 Benefits              13 Floating WhatsApp
-      7 Review desain         14 Footer (layouts.app)
-
-    Design is modernised (Tailwind, dark theme, click-to-load video); content is
-    the legacy content. Anything that differs from legacy is commented inline.
+    3D Expert Web Homepage (Semantic Plain CSS per docs/design.md)
+    PARITY CONTRACT: 14 sections in strict order:
+      1 Header (layouts.app)
+      2 Hero
+      3 Features
+      4 Portfolio
+      5 Testimonials
+      6 Benefits
+      7 Review desain
+      8 Location
+      9 Mengapa Memilih Kami
+      10 Services
+      11 Order flow
+      12 FAQ
+      13 Floating WhatsApp
+      14 Footer (layouts.app)
 --}}
 @extends('layouts.app')
 
@@ -20,29 +23,21 @@
 
 @section('content')
     @php
-        $whatsapp = $settings('company_whatsapp');
-        $locationVideoId = \App\Models\DesignReview::extractYoutubeId($settings('location_video_url'));
-        $whyVideoId = \App\Models\DesignReview::extractYoutubeId($settings('why_video_url'));
+        $whatsapp = $settings('company_whatsapp', 'https://wa.me/6282338389488');
+        $locationVideoId = \App\Models\DesignReview::extractYoutubeId($settings('location_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0'));
+        $whyVideoId = \App\Models\DesignReview::extractYoutubeId($settings('why_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0'));
         $visiblePortfolios = $portfolios->take(\App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE);
         $hasMorePortfolios = $portfolios->count() > \App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE;
     @endphp
 
-    {{-- ========== 2. HERO (legacy hero_banner + the hardcoded h1/p/CTA) ========== --}}
+    {{-- ========== 2. HERO ========== --}}
     @if ($heroSlides->isNotEmpty())
         <section id="hero-banner"
                  x-data="carousel" data-interval="4000"
-                 class="relative flex min-h-[80vh] items-end overflow-hidden bg-neutral-900 sm:min-h-[90vh]"
+                 class="hero-section"
                  aria-roledescription="carousel" aria-label="{{ __('home.hero') }}">
-            {{-- Legacy set the background image from JavaScript, so the browser's
-                 preload scanner could not find the LCP image at all. It is a real
-                 <img> here, and slide 1 is eager + high priority.
-
-                 Slide 1 ships with .is-active from the server. Everything after
-                 it is transparent via CSS ([data-slide] in app.css), so only one
-                 hero image downloads up front and a JS failure degrades to
-                 "slide 1 only" rather than five images stacked. --}}
             @foreach ($heroSlides as $i => $slide)
-                <div data-slide @class(['absolute inset-0', 'is-active' => $i === 0])
+                <div data-slide class="hero-slide {{ $i === 0 ? 'is-active' : '' }}"
                      role="group" aria-hidden="{{ $i === 0 ? 'false' : 'true' }}"
                      aria-label="{{ $i + 1 }} / {{ $heroSlides->count() }}">
                     @if ($slide->url)
@@ -50,49 +45,36 @@
                              loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
                              fetchpriority="{{ $i === 0 ? 'high' : 'auto' }}"
                              decoding="async"
-                             class="h-full w-full object-cover">
+                             class="hero-slide-bg">
                     @endif
-                    <div class="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/55 to-neutral-950/15"></div>
+                    <div class="hero-slide-overlay"></div>
                 </div>
             @endforeach
 
-            <div class="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-28 sm:px-6 sm:pb-20">
-                @if ($heroHeading = $settings('hero_heading'))
-                    <h1 class="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-                        {{ $heroHeading }}
-                    </h1>
-                @endif
+            <div class="container hero-content">
+                <h1 class="hero-title">
+                    {{ $settings('hero_heading', 'Wujudkan Rumah Mewah dengan Sentuhan Profesional') }}
+                </h1>
 
-                @if ($heroSub = $settings('hero_subheading'))
-                    <p class="mt-4 max-w-2xl text-base text-neutral-200 sm:text-lg">{{ $heroSub }}</p>
-                @endif
+                <p class="hero-subtitle">
+                    {{ $settings('hero_subheading', 'Perpaduan sempurna antara estetika, fungsi, dan eksklusivitas.') }}
+                </p>
 
-                {{-- Legacy CTA: "Booking Sekarang" -> wa.me, the primary action.
-                     The secondary button previously opened the contact form;
-                     D12 removed the form, so it now scrolls to the services
-                     section rather than duplicating the WhatsApp link beside
-                     itself. --}}
-                <div class="mt-8 flex flex-wrap gap-3">
-                    @if ($whatsapp)
-                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                           class="rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-neutral-950
-                                  transition hover:bg-amber-400">
-                            {{ __('home.book_now') }}
-                        </a>
-                    @endif
-                    <a href="#layanan"
-                       class="rounded-lg border border-white/25 px-6 py-3 text-sm font-semibold
-                              text-white transition hover:bg-white/10">
+                <div class="hero-cta-group">
+                    <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-white">
+                        {{ __('home.book_now') }}
+                    </a>
+                    <a href="#layanan" class="btn btn-outline">
                         {{ __('home.free_consultation') }}
                     </a>
                 </div>
             </div>
 
             @if ($heroSlides->count() > 1)
-                <div class="absolute bottom-5 right-4 flex gap-2 sm:right-6">
+                <div class="hero-dots-container">
                     @foreach ($heroSlides as $i => $slide)
                         <button type="button" data-dot
-                                @class(['h-2 rounded-full', 'is-active' => $i === 0])
+                                class="hero-dot {{ $i === 0 ? 'is-active' : '' }}"
                                 aria-current="{{ $i === 0 ? 'true' : 'false' }}"
                                 aria-label="{{ __('home.go_to_slide', ['number' => $i + 1]) }}"></button>
                     @endforeach
@@ -101,136 +83,117 @@
         </section>
     @endif
 
-    {{-- ========== 3. FEATURES (legacy features_section) ========== --}}
-    {{-- Legacy: heading + subheading on the left, Projects/Clients counters on
-         the right, and two buttons -- "Semua Desain" (#portofolio) and
-         "Desain Terbaik" (detail.php of the top-liked property, which is the
-         featured portfolio here). --}}
+    {{-- ========== 3. FEATURES (Background: --ink-950) ========== --}}
     @if ($settings('home_heading') || $settings('stat_projects') || $settings('stat_clients'))
-        <section class="border-b border-white/10 bg-neutral-900/60">
-            <div class="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-                <div>
-                    @if ($heading = $settings('home_heading'))
-                        <h2 class="text-2xl font-bold tracking-tight text-white sm:text-4xl">{{ $heading }}</h2>
-                    @endif
+        <section class="section section-dark" style="border-bottom: 1px solid var(--line-dark);">
+            <div class="container">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; align-items: center;">
+                    <div>
+                        @if ($heading = $settings('home_heading'))
+                            <h2 class="section-title" style="text-align: left;">{{ $heading }}</h2>
+                        @endif
 
-                    @if ($sub = $settings('home_subheading'))
-                        <p class="mt-4 max-w-xl text-base leading-relaxed text-neutral-400">{{ $sub }}</p>
-                    @endif
+                        @if ($sub = $settings('home_subheading'))
+                            <p class="section-subtitle" style="text-align: left; margin-bottom: 24px;">{{ $sub }}</p>
+                        @endif
 
-                    <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="#portofolio"
-                           class="rounded-lg bg-white px-8 py-3 text-sm font-medium text-neutral-950
-                                  transition hover:bg-neutral-200">
-                            {{ __('home.all_designs') }}
-                        </a>
-
-                        @if ($featured)
-                            <a href="{{ $lroute('portfolio.show', ['portfolio' => $featured]) }}"
-                               class="rounded-lg border-2 border-amber-400 px-8 py-3 text-sm font-medium
-                                      text-white transition hover:bg-amber-400/10">
-                                {{ __('home.best_design') }}
+                        <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+                            <a href="#portofolio" class="btn btn-white">
+                                {{ __('home.all_designs') }}
                             </a>
+
+                            @if ($featured)
+                                <a href="{{ $lroute('portfolio.show', ['portfolio' => $featured]) }}" class="btn btn-outline">
+                                    {{ __('home.best_design') }}
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="stats-grid" style="margin-top: 0;">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{ number_format((int) $settings('stat_projects', 0), 0, ',', '.') }}+
+                            </div>
+                            <div class="stat-label">{{ __('home.stat_projects') }}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{ number_format((int) $settings('stat_clients', 0), 0, ',', '.') }}+
+                            </div>
+                            <div class="stat-label">{{ __('home.stat_clients') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    @endif
+
+    {{-- ========== 4. PORTFOLIO (Background: --ink-950) ========== --}}
+    @if ($featured || $portfolios->isNotEmpty())
+        <section id="portofolio" class="section section-dark" style="scroll-margin-top: 80px;">
+            <div class="container">
+                <x-section-heading
+                    :eyebrow="__('home.portfolio_eyebrow')"
+                    :title="__('home.portfolio_title')" />
+
+                <div x-data="revealMore">
+                    <div class="portfolio-bento-grid">
+                        @if ($featured)
+                            <x-portfolio-card :portfolio="$featured" featured />
+                        @endif
+
+                        @foreach ($visiblePortfolios as $portfolio)
+                            <x-portfolio-card :portfolio="$portfolio" />
+                        @endforeach
+
+                        @if ($hasMorePortfolios)
+                            @foreach ($portfolios->slice(\App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE) as $portfolio)
+                                <div data-reveal-item class="is-hidden" style="display: contents;">
+                                    <x-portfolio-card :portfolio="$portfolio" />
+                                </div>
+                            @endforeach
                         @endif
                     </div>
-                </div>
 
-                <dl class="grid grid-cols-2 gap-4">
-                    <div class="rounded-xl border border-white/10 bg-neutral-950/40 p-6 text-center">
-                        <dd class="text-3xl font-bold text-amber-400 sm:text-4xl">
-                            {{ number_format((int) $settings('stat_projects', 0), 0, ',', '.') }}+
-                        </dd>
-                        <dt class="mt-1 text-sm text-neutral-400">{{ __('home.stat_projects') }}</dt>
+                    <div style="margin-top: 40px; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
+                        @if ($hasMorePortfolios)
+                            <button type="button" data-reveal-button hidden class="btn btn-outline">
+                                {{ __('home.load_more') }}
+                            </button>
+                        @endif
+
+                        <a href="{{ $lroute('portfolio.index') }}" class="btn btn-outline">
+                            {{ __('home.view_all_portfolio') }}
+                        </a>
                     </div>
-                    <div class="rounded-xl border border-white/10 bg-neutral-950/40 p-6 text-center">
-                        <dd class="text-3xl font-bold text-amber-400 sm:text-4xl">
-                            {{ number_format((int) $settings('stat_clients', 0), 0, ',', '.') }}+
-                        </dd>
-                        <dt class="mt-1 text-sm text-neutral-400">{{ __('home.stat_clients') }}</dt>
-                    </div>
-                </dl>
-            </div>
-        </section>
-    @endif
-
-    {{-- ========== 4. PORTFOLIO (legacy "Gallery" / #portofolio) ========== --}}
-    @if ($featured || $portfolios->isNotEmpty())
-        <section id="portofolio" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 sm:px-6">
-            <x-section-heading
-                :eyebrow="__('home.portfolio_eyebrow')"
-                :title="__('home.portfolio_title')" />
-
-            {{-- Legacy showed 16 items then revealed the rest with a
-                 "Selengkapnya" button that only un-hid already-downloaded
-                 markup. Same visible limit, but the extra items are rendered
-                 hidden and revealed by Alpine instead of inline JS. --}}
-            <div x-data="revealMore" class="mt-12">
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    @if ($featured)
-                        <x-portfolio-card :portfolio="$featured" featured />
-                    @endif
-
-                    @foreach ($visiblePortfolios as $portfolio)
-                        <x-portfolio-card :portfolio="$portfolio" />
-                    @endforeach
-
-                    {{-- Rendered but hidden by CSS, revealed by the component on
-                         click. A <template x-if> would need an expression the
-                         CSP-safe Alpine build cannot evaluate. --}}
-                    @if ($hasMorePortfolios)
-                        @foreach ($portfolios->slice(\App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE) as $portfolio)
-                            <div data-reveal-item class="is-hidden contents">
-                                <x-portfolio-card :portfolio="$portfolio" />
-                            </div>
-                        @endforeach
-                    @endif
-                </div>
-
-                <div class="mt-10 flex flex-wrap justify-center gap-3">
-                    {{-- hidden until the component confirms it can work, so a
-                         no-JS visitor is not shown a dead control. --}}
-                    @if ($hasMorePortfolios)
-                        <button type="button" data-reveal-button hidden
-                                class="rounded-lg border border-white/15 px-6 py-3 text-sm font-semibold
-                                       text-neutral-200 transition hover:border-amber-500/50 hover:text-amber-400">
-                            {{ __('home.load_more') }}
-                        </button>
-                    @endif
-
-                    <a href="{{ $lroute('portfolio.index') }}"
-                       class="rounded-lg border border-white/15 px-6 py-3 text-sm font-semibold
-                              text-neutral-200 transition hover:border-amber-500/50 hover:text-amber-400">
-                        {{ __('home.view_all_portfolio') }}
-                    </a>
                 </div>
             </div>
         </section>
     @endif
 
-    {{-- ========== 5. TESTIMONIALS (legacy testimonial_section) ========== --}}
+    {{-- ========== 5. TESTIMONIALS (Background: --ink-950) ========== --}}
     @if ($highlightedTestimonials->isNotEmpty() || $testimonials->isNotEmpty())
-        <section class="border-y border-white/10 bg-neutral-900/50">
-            <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+        <section class="section section-dark" style="border-top: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark);">
+            <div class="container">
                 <x-section-heading
                     :eyebrow="__('home.testimonials_eyebrow')"
                     :title="__('home.testimonials_title')" />
 
-                {{-- 2 highlighted across the top, exactly as legacy did. --}}
                 @if ($highlightedTestimonials->isNotEmpty())
-                    <div class="mt-12 grid gap-6 md:grid-cols-2">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
                         @foreach ($highlightedTestimonials as $testimonial)
                             <x-video-facade :video="$testimonial" />
                         @endforeach
                     </div>
                 @endif
 
-                {{-- The rest in rows of 4 -- legacy array_chunk($others, 4). --}}
                 @if ($testimonials->isNotEmpty())
-                    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="grid grid-cols-4">
                         @foreach ($testimonials as $testimonial)
                             <x-video-facade :video="$testimonial">
                                 @if ($testimonial->rating)
-                                    <div class="mt-2">
+                                    <div style="margin-top: 8px;">
                                         <x-star-rating :rating="$testimonial->rating" />
                                     </div>
                                 @endif
@@ -242,39 +205,38 @@
         </section>
     @endif
 
-    {{-- ========== 6. BENEFITS -- "What Do You Get?" 24-tile grid ========== --}}
+    {{-- ========== 6. BENEFITS (Background: --card white, --text) ========== --}}
     @if ($deliverables->isNotEmpty())
-        <section class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-            <x-section-heading :title="__('home.deliverables_title')" />
+        <section class="section section-card">
+            <div class="container">
+                <x-section-heading :title="__('home.deliverables_title')" />
 
-            <div class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                @foreach ($deliverables as $item)
-                    <x-benefit-tile :item="$item" />
-                @endforeach
-            </div>
-
-            {{-- Legacy: .booking-button-container -> "Booking Sekarang". --}}
-            @if ($whatsapp)
-                <div class="mt-12 text-center">
-                    <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                       class="inline-block rounded-lg bg-amber-500 px-8 py-3 text-sm font-semibold
-                              text-neutral-950 transition hover:bg-amber-400">
-                        {{ __('home.book_now') }}
-                    </a>
+                <div class="benefits-grid">
+                    @foreach ($deliverables as $item)
+                        <x-benefit-tile :item="$item" />
+                    @endforeach
                 </div>
-            @endif
+
+                @if ($whatsapp)
+                    <div style="margin-top: 48px; text-align: center;">
+                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+                            {{ __('home.book_now') }}
+                        </a>
+                    </div>
+                @endif
+            </div>
         </section>
     @endif
 
-    {{-- ========== 7. REVIEW DESAIN (legacy review_design) ========== --}}
+    {{-- ========== 7. REVIEW DESAIN (Background: --ink-950) ========== --}}
     @if ($designReviews->isNotEmpty())
-        <section class="border-y border-white/10 bg-neutral-900/50">
-            <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+        <section class="section section-dark" style="border-top: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark);">
+            <div class="container">
                 <x-section-heading
                     :eyebrow="__('home.reviews_eyebrow')"
                     :title="__('home.reviews_title')" />
 
-                <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div class="grid grid-cols-3">
                     @foreach ($designReviews as $review)
                         <x-video-facade :video="$review" />
                     @endforeach
@@ -283,193 +245,110 @@
         </section>
     @endif
 
-    {{-- ========== 8. LOCATION (legacy location_section + office details) ========== --}}
-    {{-- One office only, per your decision. Legacy's markup had two slider dots
-         and script.js hardcoded three offices, two of them placeholder data
-         ("Jl. Example Street", maps.app.goo.gl/example1) -- that slider is gone. --}}
+    {{-- ========== 8. LOCATION (Gradien: --ink-900 to --ink-500) ========== --}}
     @if ($settings('location_office_label') || $settings('company_address') || $locationVideoId)
-        <section class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-            <x-section-heading :title="__('home.location_title')" />
+        <section class="section location-section">
+            <div class="container">
+                <x-section-heading :title="__('home.location_title')" />
 
-            <div class="mt-10 grid gap-8 lg:grid-cols-2 lg:items-center">
-                <div>
-                    @if ($officeLabel = $settings('location_office_label'))
-                        <p class="flex items-start gap-2 text-sm font-semibold uppercase tracking-wider text-amber-500">
-                            <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor"
-                                 stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            <span>{{ $officeLabel }}</span>
-                        </p>
-                    @endif
+                <div class="location-card">
+                    <div>
+                        @if ($officeLabel = $settings('location_office_label'))
+                            <p style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 12px;">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span>{{ $officeLabel }}</span>
+                            </p>
+                        @endif
 
-                    @if ($address = $settings('company_address'))
-                        <p class="mt-4 whitespace-pre-line text-base leading-relaxed text-neutral-300">{{ $address }}</p>
-                    @endif
+                        @if ($address = $settings('company_address'))
+                            <p style="white-space: pre-line; font-size: 1.05rem; line-height: 1.7; color: var(--on-dark-2); margin-bottom: 24px;">{{ $address }}</p>
+                        @endif
 
-                    {{-- An anchor, not an iframe. Legacy's value is a goo.gl/maps
-                         share link, and Google refuses to be framed from a
-                         non-/maps/embed URL -- framing it rendered an empty box. --}}
-                    @if ($mapsUrl = $settings('company_maps_url'))
-                        <a href="{{ $mapsUrl }}" target="_blank" rel="noopener noreferrer"
-                           class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-amber-400
-                                  transition hover:text-amber-300">
-                            <span>{{ __('home.view_on_maps') }}</span>
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"
-                                 viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                        </a>
+                        @if ($mapsUrl = $settings('company_maps_url'))
+                            <a href="{{ $mapsUrl }}" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-outline btn-sm">
+                                <span>{{ __('home.view_on_maps') }}</span>
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                            </a>
+                        @endif
+                    </div>
+
+                    @if ($locationVideoId)
+                        <div>
+                            <x-video-facade :id="$locationVideoId" :title="__('home.location_title')" />
+                        </div>
                     @endif
                 </div>
-
-                @if ($locationVideoId)
-                    <x-video-facade :id="$locationVideoId" :title="__('home.location_title')" />
-                            </template>
-                        </div>
-                    </div>
-                @endif
             </div>
         </section>
     @endif
 
-    {{-- ========== 9. MENGAPA MEMILIH KAMI (legacy mengapa_section) ========== --}}
+    {{-- ========== 9. MENGAPA MEMILIH KAMI (Gradien + Content Wrapper Putih) ========== --}}
     @if ($settings('why_description') || $whyVideoId || $benefits->isNotEmpty() || $processes->isNotEmpty())
-        <section id="tentang" class="border-y border-white/10 bg-neutral-900/50">
-            <div class="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 sm:px-6">
-                <x-section-heading :title="__('home.why_title')" />
+        <section id="tentang" class="section why-us-section" style="scroll-margin-top: 80px;">
+            <div class="container">
+                <div class="why-us-wrapper">
+                    <x-section-heading :title="__('home.why_title')" />
 
-                @if ($whyVideoId)
-                    <div class="mx-auto mt-10 max-w-4xl">
-                        <x-video-facade :id="$whyVideoId" :title="__('home.why_title')" />
-                    </div>
-                @endif
-
-                {{-- Legacy: description column, then list1, then list2 -- three
-                     columns side by side. nl2br on the description is preserved
-                     with whitespace-pre-line. --}}
-                <div class="mt-12 grid gap-8 lg:grid-cols-3">
-                    @if ($description = $settings('why_description'))
-                        <div class="rounded-xl border border-white/10 bg-neutral-950/40 p-6">
-                            <p class="whitespace-pre-line text-sm leading-relaxed text-neutral-300">{{ $description }}</p>
+                    @if ($whyVideoId)
+                        <div style="max-width: 800px; margin: 0 auto 36px auto;">
+                            <x-video-facade :id="$whyVideoId" :title="__('home.why_title')" />
                         </div>
                     @endif
 
-                    @foreach ([$benefits, $processes] as $column)
-                        @if ($column->isNotEmpty())
-                            <div class="rounded-xl border border-white/10 bg-neutral-950/40 p-6">
-                                <ul class="space-y-3">
-                                    @foreach ($column as $item)
-                                        <li class="flex gap-3 text-sm text-neutral-300">
-                                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" fill="none"
-                                                 stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                                                 aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            <span>{{ $item->label }}</span>
-                                        </li>
-                                    @endforeach
-                                </ul>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                        @if ($description = $settings('why_description'))
+                            <div class="card-light" style="padding: 24px;">
+                                <p style="white-space: pre-line; font-size: 0.95rem; line-height: 1.7; color: var(--text);">{{ $description }}</p>
                             </div>
                         @endif
+
+                        @foreach ([$benefits, $processes] as $column)
+                            @if ($column->isNotEmpty())
+                                <div class="card-light" style="padding: 24px;">
+                                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px;">
+                                        @foreach ($column as $item)
+                                            <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.95rem; color: var(--text);">
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"
+                                                     style="color: var(--gold-hover); flex-shrink: 0; margin-top: 2px;">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                <span>{{ $item->label }}</span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </section>
+    @endif
+
+    {{-- ========== 10. SERVICES (Background: --ink-600) ========== --}}
+    @if ($services->isNotEmpty())
+        <section id="layanan" class="section services-section" style="scroll-margin-top: 80px;">
+            <div class="container">
+                <x-section-heading
+                    :eyebrow="__('home.services_eyebrow')"
+                    :title="__('home.services_legacy_title')" />
+
+                <div class="grid grid-cols-4">
+                    @foreach ($services as $service)
+                        <x-service-card :service="$service" />
                     @endforeach
                 </div>
-            </div>
-        </section>
-    @endif
 
-    {{-- ========== 10. SERVICES (legacy layanan_section / #layanan) ========== --}}
-    @if ($services->isNotEmpty())
-        <section id="layanan" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 sm:px-6">
-            <x-section-heading
-                :eyebrow="__('home.services_eyebrow')"
-                :title="__('home.services_legacy_title')" />
-
-            <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                @foreach ($services as $service)
-                    <x-service-card :service="$service" :whatsapp="$whatsapp" />
-                @endforeach
-            </div>
-
-            {{-- Legacy: .cta-container -> "Konsultasi Sekarang". --}}
-            @if ($whatsapp)
-                <div class="mt-12 text-center">
-                    <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                       class="inline-block rounded-lg bg-amber-500 px-8 py-3 text-sm font-semibold
-                              text-neutral-950 transition hover:bg-amber-400">
-                        {{ __('home.consult_now') }}
-                    </a>
-                </div>
-            @endif
-        </section>
-    @endif
-
-    {{-- ========== 11. ORDER FLOW (legacy alur_section) ========== --}}
-    @if ($processLink = $settings('process_link_url'))
-        @php
-            // Legacy's <img src="path-to-your-thumbnail.jpg"> was an unreplaced
-            // placeholder that 404'd. If a real thumbnail has been set, use it;
-            // otherwise derive one from the linked YouTube video; otherwise fall
-            // back to a plain CTA card rather than a broken image.
-            $processThumb = $settings('process_thumbnail');
-            $processVideoId = \App\Models\DesignReview::extractYoutubeId($processLink);
-            $processThumbUrl = $processThumb
-                ? (str_starts_with($processThumb, 'http') ? $processThumb : asset($processThumb))
-                : ($processVideoId ? 'https://i.ytimg.com/vi/'.$processVideoId.'/maxresdefault.jpg' : null);
-        @endphp
-
-        <section id="informasi" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 sm:px-6">
-            <x-section-heading :title="__('home.process_title')" />
-
-            <a href="{{ $processLink }}" target="_blank" rel="noopener noreferrer"
-               class="group mx-auto mt-10 block max-w-4xl overflow-hidden rounded-xl border border-white/10
-                      bg-neutral-900 transition hover:border-amber-500/40">
-                @if ($processThumbUrl)
-                    <div class="relative aspect-video">
-                        <img src="{{ $processThumbUrl }}" alt="{{ __('home.process_title') }}"
-                             loading="lazy" decoding="async"
-                             class="h-full w-full object-cover">
-                        <div class="absolute inset-0 flex items-center justify-center bg-neutral-950/35
-                                    transition group-hover:bg-neutral-950/20">
-                            <span class="flex h-16 w-16 items-center justify-center rounded-full
-                                         bg-neutral-950/70 text-white ring-1 ring-white/20">
-                                <svg class="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"
-                                     aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-                            </span>
-                        </div>
-                    </div>
-                @else
-                    <div class="p-10 text-center">
-                        <span class="inline-block rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold
-                                     text-neutral-950">
-                            {{ __('home.view_process') }}
-                        </span>
-                    </div>
-                @endif
-            </a>
-        </section>
-    @endif
-
-    {{-- ========== 12. FAQ (legacy: 10 hardcoded .faq-item blocks) ========== --}}
-    @if ($faqs->isNotEmpty())
-        <section class="border-t border-white/10 bg-neutral-900/50">
-            <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-                <x-section-heading :title="__('home.faq_title')" />
-
-                <div class="mt-12">
-                    <x-faq-accordion :faqs="$faqs" />
-                </div>
-
-                {{-- Legacy: .learn-more-container -> "Konsultasi Sekarang". --}}
                 @if ($whatsapp)
-                    <div class="mt-10 text-center">
-                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                           class="inline-block rounded-lg bg-amber-500 px-8 py-3 text-sm font-semibold
-                                  text-neutral-950 transition hover:bg-amber-400">
+                    <div style="margin-top: 48px; text-align: center;">
+                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
                             {{ __('home.consult_now') }}
                         </a>
                     </div>
@@ -478,8 +357,65 @@
         </section>
     @endif
 
-    {{-- ========== 13. FLOATING WHATSAPP ========== --}}
-    @if ($whatsapp)
-        <x-floating-whatsapp :href="$whatsapp" />
+    {{-- ========== 11. ORDER FLOW (Background: --paper) ========== --}}
+    @if ($processLink = $settings('process_link_url'))
+        @php
+            $processThumb = $settings('process_thumbnail');
+            $processVideoId = \App\Models\DesignReview::extractYoutubeId($processLink);
+            $processThumbUrl = $processThumb
+                ? (str_starts_with($processThumb, 'http') ? $processThumb : asset($processThumb))
+                : ($processVideoId ? 'https://i.ytimg.com/vi/'.$processVideoId.'/maxresdefault.jpg' : null);
+        @endphp
+
+        <section id="informasi" class="section order-flow-section" style="scroll-margin-top: 80px;">
+            <div class="container">
+                <x-section-heading :title="__('home.process_title')" />
+
+                <a href="{{ $processLink }}" target="_blank" rel="noopener noreferrer"
+                   class="card-light" style="max-width: 860px; margin: 0 auto; display: block; text-decoration: none; overflow: hidden;">
+                    @if ($processThumbUrl)
+                        <div style="position: relative; aspect-ratio: 16 / 9; width: 100%; background: var(--ink-900);">
+                            <img src="{{ $processThumbUrl }}" alt="{{ __('home.process_title') }}"
+                                 loading="lazy" decoding="async"
+                                 style="width: 100%; height: 100%; object-fit: cover;">
+                            <div class="video-facade-play">
+                                <span class="video-play-btn">
+                                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="margin-left: 2px;">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </span>
+                            </div>
+                        </div>
+                    @else
+                        <div style="padding: 40px; text-align: center;">
+                            <span class="btn btn-primary">
+                                {{ __('home.view_process') }}
+                            </span>
+                        </div>
+                    @endif
+                </a>
+            </div>
+        </section>
+    @endif
+
+    {{-- ========== 12. FAQ (Background: --ink-800) ========== --}}
+    @if ($faqs->isNotEmpty())
+        <section class="section faq-section">
+            <div class="container">
+                <x-section-heading :title="__('home.faq_title')" />
+
+                <div>
+                    <x-faq-accordion :faqs="$faqs" />
+                </div>
+
+                @if ($whatsapp)
+                    <div style="margin-top: 40px; text-align: center;">
+                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+                            {{ __('home.consult_now') }}
+                        </a>
+                    </div>
+                @endif
+            </div>
+        </section>
     @endif
 @endsection

@@ -1,95 +1,60 @@
 {{--
-    Legacy nav (partials/header.php) pointed at homepage anchors:
-      #portofolio, #layanan, #tentang, #informasi, karir.php
-
-    Those anchors only exist on the homepage, so legacy's nav was broken on
-    every other page -- clicking "Portfolio" from karir.php went nowhere.
-    Here each anchor is resolved against the homepage route, so it works from
-    anywhere, and the real index pages are offered alongside.
-
-    CSP NOTE: the only Alpine attribute here is x-data="navMenu". The menu's
-    open/close state is a class the component toggles (see resources/js/app.js
-    and the [data-nav-panel] rules in app.css), because the CSP-safe Alpine
-    build cannot evaluate expressions like @click="open = !open".
+    3D Expert Web Header (Semantic Plain CSS per docs/design.md)
+    CSP NOTE: bare x-data="navMenu". Open/close states are CSS classes toggled by app.js.
 --}}
 @php
     $home = $lroute('home');
-    $whatsapp = $settings('company_whatsapp');
+    $whatsapp = $settings('company_whatsapp', 'https://wa.me/6282338389488');
     $sections = [
-        ['label' => __('nav.portfolio'),        'href' => $home.'#portofolio'],
-        ['label' => __('nav.services_prices'),  'href' => $home.'#layanan'],
-        ['label' => __('nav.about'),            'href' => $home.'#tentang'],
-        ['label' => __('nav.information'),      'href' => $home.'#informasi'],
+        ['label' => __('nav.portfolio'),        'href' => $home.'#portofolio', 'active' => request()->routeIs('*portfolio*')],
+        ['label' => __('nav.services_prices'),  'href' => $home.'#layanan',    'active' => false],
     ];
 @endphp
 
-<header x-data="navMenu"
-        class="sticky top-0 z-40 border-b border-white/10 bg-neutral-950/90 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <a href="{{ $home }}" class="flex shrink-0 items-center gap-2">
-            {{-- Legacy logo.png is 2893x915 (458 KB) rendered 36px tall. The
-                 explicit dimensions stop it shifting the layout; replacing the
-                 file with a right-sized one is a separate asset task. --}}
+<header x-data="navMenu" class="site-header">
+    <div class="container header-container">
+        <a href="{{ $home }}" class="site-logo">
             <img src="{{ asset('images/logo.png') }}"
                  alt="{{ $settings('company_name', config('app.name')) }}"
-                 class="h-9 w-auto" width="113" height="36" fetchpriority="high">
-            <span class="text-base font-semibold tracking-tight">
-                {{ $settings('company_name', config('app.name')) }}
-            </span>
+                 width="113" height="36" fetchpriority="high">
         </a>
 
-        <nav class="hidden items-center gap-1 lg:flex" aria-label="{{ __('nav.main') }}">
+        <nav class="nav-desktop" aria-label="{{ __('nav.main') }}">
             @foreach ($sections as $section)
-                <x-nav-link :href="$section['href']">{{ $section['label'] }}</x-nav-link>
+                <x-nav-link :href="$section['href']" :active="$section['active']">{{ $section['label'] }}</x-nav-link>
             @endforeach
 
-            {{-- Re-added by P6, which made /karir a real page. T0 had removed
-                 it because the route did not exist yet. --}}
-            <x-nav-link :href="$lroute('careers.index')">
-                {{ __('nav.careers') }}
+            <x-nav-link :href="$lroute('events.index')" :active="request()->routeIs('*events*')">
+                {{ __('nav.events') }}
             </x-nav-link>
 
-            {{-- D12: contact is a WhatsApp link, never a form. --}}
-            @if ($whatsapp)
-                <x-nav-link :href="$whatsapp" target="_blank" rel="noopener noreferrer">
-                    {{ __('nav.contact') }}
-                </x-nav-link>
-            @endif
+            <x-nav-link :href="$lroute('courses.index')" :active="request()->routeIs('*courses*')">
+                {{ __('nav.courses') }}
+            </x-nav-link>
 
-            {{-- Public accounts (P1). Reads the `customer` guard explicitly:
-                 auth() would read `web` and show staff state to visitors. --}}
-            @auth('customer')
-                <x-nav-link :href="$lroute('customer.account')">
-                    {{ __('customer.account_title') }}
-                </x-nav-link>
-            @else
-                <x-nav-link :href="$lroute('customer.login')">
-                    {{ __('customer.login_title') }}
-                </x-nav-link>
-            @endauth
+            <x-nav-link :href="$lroute('careers.index')" :active="request()->routeIs('*careers*')">
+                {{ __('nav.careers') }}
+            </x-nav-link>
         </nav>
 
-        <div class="flex items-center gap-2">
+        <div class="header-actions">
             <x-language-switcher />
 
-            {{-- Legacy .contact-button -> "Konsultasi" -> wa.me --}}
             @if ($whatsapp)
-                <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                   class="hidden rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold
-                          text-neutral-950 transition hover:bg-amber-400 sm:inline-block">
+                <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
                     {{ __('nav.consultation') }}
                 </a>
             @endif
 
             <button type="button" data-nav-toggle
-                    class="rounded-lg p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
+                    class="mobile-toggle"
                     aria-expanded="false" aria-controls="mobile-nav"
                     aria-label="{{ __('nav.toggle_menu') }}">
-                <svg class="icon-open h-6 w-6" fill="none" stroke="currentColor" stroke-width="2"
+                <svg class="icon-open" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
                      viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
-                <svg class="icon-close h-6 w-6" fill="none" stroke="currentColor" stroke-width="2"
+                <svg class="icon-close" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
                      viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -97,39 +62,28 @@
         </div>
     </div>
 
-    {{-- Collapsed by default via CSS (grid-template-rows: 0fr), so it is shut
-         before Alpine boots and stays shut if JS never runs. --}}
-    <nav id="mobile-nav" data-nav-panel class="border-t border-white/10 lg:hidden"
-         aria-label="{{ __('nav.main') }}">
-        <div class="space-y-1 px-4 py-3">
+    {{-- Mobile Dropdown Accordion Panel --}}
+    <nav id="mobile-nav" data-nav-panel aria-label="{{ __('nav.main') }}">
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; background: var(--ink-900); border-top: 1px solid var(--line-dark);">
             @foreach ($sections as $section)
-                <x-nav-link :href="$section['href']" mobile>{{ $section['label'] }}</x-nav-link>
+                <x-nav-link :href="$section['href']" :active="$section['active']" mobile>{{ $section['label'] }}</x-nav-link>
             @endforeach
 
-            <x-nav-link :href="$lroute('careers.index')" mobile>
+            <x-nav-link :href="$lroute('events.index')" :active="request()->routeIs('*events*')" mobile>
+                {{ __('nav.events') }}
+            </x-nav-link>
+
+            <x-nav-link :href="$lroute('courses.index')" :active="request()->routeIs('*courses*')" mobile>
+                {{ __('nav.courses') }}
+            </x-nav-link>
+
+            <x-nav-link :href="$lroute('careers.index')" :active="request()->routeIs('*careers*')" mobile>
                 {{ __('nav.careers') }}
             </x-nav-link>
 
             @if ($whatsapp)
-                <x-nav-link :href="$whatsapp" target="_blank" rel="noopener noreferrer" mobile>
-                    {{ __('nav.contact') }}
-                </x-nav-link>
-            @endif
-
-            @auth('customer')
-                <x-nav-link :href="$lroute('customer.account')" mobile>
-                    {{ __('customer.account_title') }}
-                </x-nav-link>
-            @else
-                <x-nav-link :href="$lroute('customer.login')" mobile>
-                    {{ __('customer.login_title') }}
-                </x-nav-link>
-            @endauth
-
-            @if ($whatsapp)
                 <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                   class="mt-2 block rounded-lg bg-amber-500 px-4 py-2 text-center text-sm
-                          font-semibold text-neutral-950">
+                   class="btn btn-primary btn-block" style="margin-top: 10px;">
                     {{ __('nav.consultation') }}
                 </a>
             @endif

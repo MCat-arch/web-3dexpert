@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('title', $portfolio->title . ' | ' . $settings('company_name', config('app.name')))
@@ -6,12 +5,6 @@
 @section('og_image', $portfolio->coverImage->first()?->url ?? '')
 
 @php
-    // Built here rather than inline in @json(...): Blade parses a directive's
-    // arguments by matching brackets, and this literal defeated it -- a
-    // multi-line array holding both a nested array and '@'-prefixed keys
-    // ('@context', '@type') compiled to a PHP parse error. The view was
-    // unreachable until the portfolio routes were registered, so the error had
-    // never surfaced.
     $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'CreativeWork',
@@ -24,87 +17,78 @@
 
 @push('head')
     <script type="application/ld+json">
-        {!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}
-    </script>
+            {!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}
+        </script>
 @endpush
 
 @section('content')
-    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <nav aria-label="Breadcrumb" class="text-sm text-neutral-500">
-            <ol class="flex flex-wrap items-center gap-2">
-                <li><a href="{{ $lroute('home') }}" class="hover:text-amber-400">{{ __('nav.home') }}</a></li>
-                <li aria-hidden="true">/</li>
-                <li><a href="{{ $lroute('portfolio.index') }}" class="hover:text-amber-400">{{ __('nav.portfolio') }}</a></li>
-                <li aria-hidden="true">/</li>
-                <li class="text-neutral-300" aria-current="page">{{ Str::limit($portfolio->title, 40) }}</li>
-            </ol>
-        </nav>
+    <div class="page-banner">
+        <div class="container">
+            <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+                <a href="{{ $lroute('home') }}">{{ __('nav.home') }}</a>
+                <span>/</span>
+                <a href="{{ $lroute('portfolio.index') }}">{{ __('nav.portfolio') }}</a>
+                <span>/</span>
+                <span style="color: #ffffff;">{{ Str::limit($portfolio->title, 40) }}</span>
+            </nav>
 
-        <h1 class="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">{{ $portfolio->title }}</h1>
+            <h1 class="page-banner-title">{{ $portfolio->title }}</h1>
 
-        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-400">
-            @if ($portfolio->location)
-                <span>{{ $portfolio->location }}</span>
-            @endif
-            @if ($portfolio->price)
-                <span class="font-semibold text-amber-400">
-                    {{ __('services.currency') }} {{ number_format((float) $portfolio->price, 0, ',', '.') }}
+            <div
+                style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; font-size: 0.95rem; color: var(--on-dark-muted); margin-top: 10px;">
+                @if ($portfolio->location)
+                    <span>📍 {{ $portfolio->location }}</span>
+                @endif
+                @if ($portfolio->price)
+                    <span style="font-weight: 600; color: var(--gold);">
+                        {{ __('services.currency') }} {{ number_format((float) $portfolio->price, 0, ',', '.') }}
+                    </span>
+                @endif
+                <span>
+                    👁
+                    {{ trans_choice('portfolio.view_count', $portfolio->view_count, ['count' => number_format($portfolio->view_count, 0, ',', '.')]) }}
                 </span>
-            @endif
-            <span class="text-neutral-600">
-                {{ trans_choice('portfolio.view_count', $portfolio->view_count, ['count' => number_format($portfolio->view_count, 0, ',', '.')]) }}
-            </span>
+            </div>
         </div>
+    </div>
 
-        {{-- Gallery. Legacy rendered a fixed set of divs with inline styles; this
-             is one Alpine component with keyboard support. --}}
+    <div class="container" style="padding-bottom: 70px;">
+        {{-- Gallery (CSP Alpine x-data="gallery") --}}
         @if ($portfolio->images->isNotEmpty())
-            {{-- CSP NOTE: only x-data="gallery" here. The component wires its own
-                 prev/next/thumbnail listeners and toggles .is-active, because
-                 SecurityHeaders.php sends script-src without 'unsafe-eval' and
-                 the CSP-safe Alpine build cannot evaluate @click="next()" or
-                 :class="current === 0 ? ... : ...". --}}
-            <div x-data="gallery" class="mt-8">
-                <div class="relative overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
-                    <div class="aspect-[16/10]">
+            <div x-data="gallery" style="margin-bottom: 40px;">
+                <div class="card-light" style="position: relative; overflow: hidden; background: #000000; padding: 0;">
+                    <div style="position: relative; width: 100%; aspect-ratio: 16 / 10; max-height: 600px;">
                         @foreach ($portfolio->images as $i => $image)
-                            <img data-gallery-item
-                                 @class(['h-full w-full object-cover', 'is-active' => $i === 0])
-                                 src="{{ $image->url }}"
-                                 alt="{{ $image->alt_text ?? $portfolio->title }}"
-                                 loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
-                                 aria-hidden="{{ $i === 0 ? 'false' : 'true' }}">
+                            <img data-gallery-item class="{{ $i === 0 ? 'is-active' : '' }}" src="{{ $image->url }}"
+                                alt="{{ $image->alt_text ?? $portfolio->title }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
+                                aria-hidden="{{ $i === 0 ? 'false' : 'true' }}"
+                                style="width: 100%; height: 100%; object-fit: contain;">
                         @endforeach
                     </div>
 
                     @if ($portfolio->images->count() > 1)
-                        <button type="button" data-gallery-prev
-                                class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-neutral-950/70 p-2
-                                       text-white transition hover:bg-neutral-950"
-                                aria-label="{{ __('portfolio.previous_image') }}">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                            </svg>
+                        <button type="button" data-gallery-prev class="btn btn-dark btn-sm"
+                            style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); border-radius: 50%; width: 44px; height: 44px; padding: 0;"
+                            aria-label="{{ __('portfolio.previous_image') }}">
+                            &larr;
                         </button>
-                        <button type="button" data-gallery-next
-                                class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-neutral-950/70 p-2
-                                       text-white transition hover:bg-neutral-950"
-                                aria-label="{{ __('portfolio.next_image') }}">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                            </svg>
+                        <button type="button" data-gallery-next class="btn btn-dark btn-sm"
+                            style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); border-radius: 50%; width: 44px; height: 44px; padding: 0;"
+                            aria-label="{{ __('portfolio.next_image') }}">
+                            &rarr;
                         </button>
                     @endif
                 </div>
 
                 @if ($portfolio->images->count() > 1)
-                    <div class="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+                    <div style="display: flex; gap: 10px; overflow-x: auto; padding: 12px 0;">
                         @foreach ($portfolio->images as $i => $image)
-                            <button type="button" data-gallery-thumb
-                                    @class(['aspect-square overflow-hidden rounded-lg transition', 'is-active' => $i === 0])
-                                    aria-current="{{ $i === 0 ? 'true' : 'false' }}"
-                                    aria-label="{{ __('portfolio.show_image', ['number' => $i + 1]) }}">
-                                <img src="{{ $image->url }}" alt="" loading="lazy" class="h-full w-full object-cover">
+                            <button type="button" data-gallery-thumb class="{{ $i === 0 ? 'is-active' : '' }}"
+                                style="width: 80px; height: 80px; border-radius: var(--radius-btn); overflow: hidden; border: none; padding: 0; flex-shrink: 0;"
+                                aria-current="{{ $i === 0 ? 'true' : 'false' }}"
+                                aria-label="{{ __('portfolio.show_image', ['number' => $i + 1]) }}">
+                                <img src="{{ $image->url }}" alt="" loading="lazy"
+                                    style="width: 100%; height: 100%; object-fit: cover;">
                             </button>
                         @endforeach
                     </div>
@@ -112,57 +96,59 @@
             </div>
         @endif
 
-        <div class="mt-12 grid gap-10 lg:grid-cols-3">
-            <div class="lg:col-span-2">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;" class="grid-cols-2">
+            <div>
                 @if ($portfolio->description)
-                    <h2 class="text-xl font-semibold text-white">{{ __('portfolio.about') }}</h2>
-                    <div class="mt-3 space-y-4 text-sm leading-relaxed text-neutral-300">
-                        @foreach (preg_split('/\R{2,}/', (string) $portfolio->description) as $paragraph)
-                            <p>{{ $paragraph }}</p>
-                        @endforeach
+                    <div class="card-light" style="padding: 28px;">
+                        <h2 style="font-size: 1.35rem; font-weight: 600; color: var(--text); margin-bottom: 16px;">
+                            {{ __('portfolio.about') }}</h2>
+                        <div
+                            style="display: flex; flex-direction: column; gap: 14px; font-size: 1rem; line-height: 1.7; color: var(--text);">
+                            @foreach (preg_split('/\R{2,}/', (string) $portfolio->description) as $paragraph)
+                                <p>{{ $paragraph }}</p>
+                            @endforeach
+                        </div>
                     </div>
                 @endif
             </div>
 
-            {{-- Specs. Legacy property_details was already key/value; desain_rumah's
-                 fixed columns were folded into the same shape during migration. --}}
+            {{-- Specifications Sidebar --}}
             @if ($portfolio->specs->isNotEmpty())
-                <aside class="rounded-xl border border-white/10 bg-neutral-900 p-6">
-                    <h2 class="text-base font-semibold text-white">{{ __('portfolio.specifications') }}</h2>
-                    <dl class="mt-4 divide-y divide-white/5 text-sm">
+                <aside class="card-light" style="padding: 24px;">
+                    <h2
+                        style="font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--line-light);">
+                        {{ __('portfolio.specifications') }}
+                    </h2>
+                    <dl style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem;">
                         @foreach ($portfolio->specs as $spec)
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-neutral-500">{{ $spec->label }}</dt>
-                                <dd class="text-right font-medium text-neutral-200">{{ $spec->value }}</dd>
+                            <div
+                                style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">{{ $spec->label }}</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ $spec->value }}</dd>
                             </div>
                         @endforeach
                     </dl>
 
-                    {{-- D12: contact is a WhatsApp link, never a form. Prefilling
-                         the message with the project title would be better, but
-                         company_whatsapp is a full URL that may already carry a
-                         query string -- that needs a helper, not string
-                         concatenation. Tracked for after T0. --}}
                     @if ($wa = $settings('company_whatsapp'))
-                        <a href="{{ $wa }}" target="_blank" rel="noopener noreferrer"
-                           class="mt-6 block rounded-lg bg-amber-500 px-4 py-2.5 text-center text-sm
-                                  font-semibold text-neutral-950 transition hover:bg-amber-400">
-                            {{ __('portfolio.request_similar') }}
-                        </a>
+                        <div style="margin-top: 24px;">
+                            <a href="{{ $wa }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">
+                                {{ __('portfolio.request_similar') }}
+                            </a>
+                        </div>
                     @endif
                 </aside>
             @endif
         </div>
 
         @if ($related->isNotEmpty())
-            <section class="mt-16">
-                <h2 class="text-xl font-semibold text-white">{{ __('portfolio.related') }}</h2>
-                <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <div style="margin-top: 60px;">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 24px;">{{ __('portfolio.related') }}</h2>
+                <div class="grid grid-cols-4">
                     @foreach ($related as $item)
-                        <x-portfolio-card :portfolio="$item" />
+                        <x-portfolio-card :portfolio="$item" light />
                     @endforeach
                 </div>
-            </section>
+            </div>
         @endif
     </div>
 @endsection

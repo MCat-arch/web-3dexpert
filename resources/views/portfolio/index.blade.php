@@ -4,45 +4,38 @@
 @section('description', __('portfolio.meta_description'))
 
 @section('content')
-    <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
-        <nav aria-label="Breadcrumb" class="text-sm text-neutral-400">
-            <ol class="flex flex-wrap items-center gap-2">
-                <li><a href="{{ $lroute('home') }}" class="hover:text-amber-400">{{ __('nav.home') }}</a></li>
-                <li aria-hidden="true">/</li>
-                <li class="text-neutral-300" aria-current="page">{{ __('portfolio.title') }}</li>
-            </ol>
-        </nav>
+    <div class="page-banner">
+        <div class="container">
+            <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+                <a href="{{ $lroute('home') }}">{{ __('nav.home') }}</a>
+                <span>/</span>
+                <span style="color: #ffffff;">{{ __('portfolio.title') }}</span>
+            </nav>
 
-        <div class="mt-6">
-            <x-section-heading
-                :eyebrow="__('portfolio.eyebrow')"
-                :title="__('portfolio.title')"
-                :subtitle="__('portfolio.meta_description')"
-                align="left" />
+            <h1 class="page-banner-title">{{ __('portfolio.title') }}</h1>
+            <p class="page-banner-desc">{{ __('portfolio.meta_description') }}</p>
         </div>
+    </div>
 
+    <div class="container" style="padding-bottom: 70px;">
         @if ($portfolios->isEmpty())
-            <div class="mt-10">
-                <x-empty-state
-                    :title="__('portfolio.empty_title')"
-                    :description="__('portfolio.empty_description')" />
-            </div>
+            <x-empty-state :title="__('portfolio.empty_title')" :description="__('portfolio.empty_description')" />
         @else
-            <p class="mt-8 text-sm text-neutral-400">
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px;">
                 {{ trans_choice('portfolio.result_count', $portfolios->total(), ['count' => number_format($portfolios->total(), 0, ',', '.')]) }}
             </p>
 
-            <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="grid grid-cols-3">
                 @foreach ($portfolios as $portfolio)
-                    <x-portfolio-card :portfolio="$portfolio" />
+                    <x-portfolio-card :portfolio="$portfolio" light />
                 @endforeach
             </div>
 
             @if ($portfolios->hasPages())
-                <div class="mt-10">
+                <div style="margin-top: 40px; display: flex; justify-content: center;">
                     {{ $portfolios->onEachSide(1)->links() }}
                 </div>
             @endif
         @endif
-    </section>
+    </div>
 @endsection

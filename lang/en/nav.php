@@ -7,6 +7,7 @@ return [
     'portfolio' => 'Portfolio',
     'services' => 'Services',
     'careers' => 'Careers',
+    'courses' => 'Courses',
     'contact' => 'Contact',
     'free_consultation' => 'Free Consultation',
     'toggle_menu' => 'Toggle menu',

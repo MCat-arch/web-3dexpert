@@ -1,15 +1,10 @@
-{{-- Replaces legacy's hardcoded index.php <-> index-en.php link, which only
-     existed on the homepage. This works on every page. --}}
-<div class="flex items-center gap-1 rounded-lg border border-white/10 p-0.5">
+<div style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-dark); border-radius: var(--radius-btn); padding: 2px 4px; background: var(--ink-700);">
     @foreach ($availableLocales as $code => $locale)
         <a href="{{ \App\Support\Locale::urlFor($code) }}"
            hreflang="{{ $code }}"
            lang="{{ $code }}"
-           @class([
-               'rounded-md px-2 py-1 text-xs font-semibold uppercase transition',
-               'bg-amber-500 text-neutral-950' => $code === $currentLocale,
-               'text-neutral-400 hover:text-white' => $code !== $currentLocale,
-           ])
+           class="lang-btn {{ $code === $currentLocale ? 'is-active' : '' }}"
+           style="padding: 4px 8px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; border-radius: 3px; text-decoration: none; transition: all var(--transition-fast); {{ $code === $currentLocale ? 'background: #444444; color: var(--gold);' : 'color: var(--on-dark-2);' }}"
            @if ($code === $currentLocale) aria-current="true" @endif
            title="{{ $locale['native'] }}">
             {{ $code }}

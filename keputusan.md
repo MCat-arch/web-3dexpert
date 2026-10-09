@@ -376,3 +376,88 @@ ini ikut gagal dan bisa dihapus.
 
 **Yang perlu user tinjau.** Tidak ada. Tapi setiap test validasi upload yang
 bergantung pada isi file harus memakai file sungguhan.
+
+---
+
+## K10 — Proyek "cancelled": ditampilkan atau disembunyikan?
+
+**Masalah.** Brief hanya menyebut *"only the project that not done yet"*. Itu
+jelas untuk status `completed`, tapi tidak menyelesaikan `cancelled`. Saya
+sudah menandai ini sebagai pertanyaan terbuka saat menulis rencana P7.
+
+**Pilihan.**
+1. Tampilkan `cancelled` beserta statusnya.
+2. Sembunyikan seperti `completed`.
+
+**Keputusan: sembunyikan — diperlakukan sama seperti `completed`.**
+
+**Alasan.**
+- `cancelled` juga termasuk "tidak sedang dikerjakan", jadi masih sesuai brief.
+- Pembatalan proyek adalah percakapan yang seharusnya dilakukan dengan orang,
+  bukan diumumkan oleh halaman self-service. Pelanggan yang proyeknya
+  dibatalkan biasanya sudah tahu alasannya, atau justru sedang berselisih —
+  keduanya bukan situasi yang membaik dengan satu badge status.
+- Lebih sedikit status yang bocor = lebih sedikit informasi untuk penyerang.
+  `cancelled` memakai **respons negatif seragam** yang sama, jadi tidak bisa
+  dibedakan dari "kode tidak ada".
+
+Diimplementasikan sebagai `Project::HIDDEN_STATUSES`, dan diuji
+(`test_a_cancelled_project_is_indistinguishable_from_an_unknown_code`).
+
+**Yang perlu user tinjau.** Kalau ternyata pelanggan memang perlu melihat
+status dibatalkan, hapus `STATUS_CANCELLED` dari `HIDDEN_STATUSES` — satu baris.
+Tapi ingat: begitu dilakukan, "dibatalkan" menjadi respons yang **bisa
+dibedakan**, dan itu mengonfirmasi bahwa kode proyeknya benar.
+
+---
+
+## K11 — Addendum K2: penyebab output buffer BUKAN Livewire asset injection
+
+Saat P7, sempat muncul dugaan kuat bahwa isu risky-test K2 disebabkan oleh
+Livewire yang menyuntikkan asset ke setiap respons HTML (dan injeksi semacam itu
+biasanya memakai output buffering).
+
+**Diuji langsung, dan dugaan itu salah:**
+
+| Kondisi | `ob_get_level()` sebelum → sesudah `GET /` |
+|---|---|
+| `livewire.inject_assets = true` | `1 → 2` (bocor) |
+| `livewire.inject_assets = false` | `1 → 2` (tetap bocor) |
+
+Jadi injeksi Livewire **bukan** penyebabnya. Hipotesis yang sudah dieliminasi
+untuk K2 sekarang menjadi enam: `ob_*` di kode sendiri, keseimbangan
+`@section`, keseimbangan tag komponen, `@push`/`@once`/`x-slot`, render lewat
+tinker, dan injeksi asset Livewire.
+
+**Keputusan: tetap dicatat sebagai isu diketahui, tidak memblokir apa pun.**
+Masih 8 test risky, masih 0 kegagalan, dan tidak ada assertion yang terpengaruh.
+
+**Yang perlu user tinjau.** Kalau nanti dikejar lagi, enam kandidat di atas
+sudah habis. Kandidat berikutnya: komponen Blade spesifik di `home.blade.php`
+(dipersempit dengan membuang satu per satu), atau `laravel/boost` yang memang
+hanya aktif di non-production.
+
+---
+
+## K12 — Livewire runtime dimuat di setiap halaman publik
+
+**Temuan sampingan saat P7.** Dari perbandingan respons mentah terlihat Livewire
+menyuntikkan `<!-- Livewire Styles -->` dan `<!-- Livewire Scripts -->`
+(termasuk `livewire.js`) ke **setiap halaman publik** — padahal tidak ada satu
+pun komponen Livewire di halaman publik. Livewire hanya dipakai oleh Filament
+di `/admin`.
+
+Artinya setiap pengunjung publik mengunduh satu file JS yang tidak pernah
+dipakai. Pada target 500 pengguna serentak, itu 500 unduhan yang sia-sia pada
+jalur yang justru paling ramai.
+
+**Keputusan: dicatat untuk fase O, tidak diubah sekarang.**
+
+**Alasan.** `livewire.inject_assets = false` lalu memanggil `@livewireStyles` /
+`@livewireScripts` secara manual di layout Filament adalah perubahan yang
+tampak kecil tapi bisa mematikan panel admin kalau salah — dan tidak ada
+baseline pengukuran untuk membuktikan manfaatnya (D18: ukur dulu). Tempatnya di
+**O2** (biaya request path), bukan di tengah fase fitur.
+
+**Yang perlu user tinjau.** Masukkan ke O2. Perkiraan manfaat: satu request JS
+per pengunjung hilang; risikonya panel admin perlu dites ulang setelahnya.

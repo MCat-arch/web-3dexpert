@@ -41,14 +41,14 @@
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap"
           rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     {{-- Structured data, so the firm can appear as a business rather than a
          generic page. Legacy had none. --}}
-    @php
+    <!-- @php
         $structuredData = [
             '@context' => 'https://schema.org',
             '@type' => 'LocalBusiness',
@@ -65,30 +65,22 @@
     @endphp
     <script type="application/ld+json">
         @json($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG)
-    </script>
+    </script> -->
 
     @stack('head')
 </head>
-<body class="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
-    <a href="#main"
-       class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2
-              focus:rounded focus:bg-amber-500 focus:px-4 focus:py-2 focus:text-neutral-950">
+<body class="site-body">
+    <!-- <a href="#main" class="skip-link">
         {{ __('nav.skip_to_content') }}
-    </a>
+    </a> -->
 
     @include('partials.header')
 
     <main id="main">
-        @if (session('success'))
-            <x-alert type="success">{{ session('success') }}</x-alert>
-        @endif
-
-        @if (session('error'))
-            <x-alert type="error">{{ session('error') }}</x-alert>
-        @endif
-
         @yield('content')
     </main>
+
+    <x-floating-whatsapp />
 
     @include('partials.footer')
 

@@ -1,16 +1,23 @@
-@props(['eyebrow' => null, 'title', 'subtitle' => null, 'align' => 'center'])
+@props([
+    'title' => '',
+    'eyebrow' => null,
+    'subtitle' => null,
+    'align' => 'center',
+])
 
-<div @class([
-    'max-w-3xl',
-    'mx-auto text-center' => $align === 'center',
-])>
+@php
+    // Memastikan nilai align valid, default ke 'center' jika input tidak dikenal
+    $textAlign = in_array($align, ['left', 'center', 'right', 'justify']) ? $align : 'center';
+@endphp
+
+<div {{ $attributes->merge(['class' => 'section-heading', 'style' => "text-align: {$textAlign};"]) }}>
     @if ($eyebrow)
-        <p class="text-sm font-semibold uppercase tracking-widest text-amber-500">{{ $eyebrow }}</p>
+        <span class="section-eyebrow">{{ $eyebrow }}</span>
     @endif
 
-    <h2 class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">{{ $title }}</h2>
+    <h2 class="section-title">{{ $title }}</h2>
 
     @if ($subtitle)
-        <p class="mt-4 text-base leading-relaxed text-neutral-400">{{ $subtitle }}</p>
+        <p class="section-subtitle">{{ $subtitle }}</p>
     @endif
 </div>

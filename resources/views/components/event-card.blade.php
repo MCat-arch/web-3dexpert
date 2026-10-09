@@ -1,51 +1,49 @@
 @props(['event'])
 
-<article class="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
-    <div class="flex-1 p-5">
-        <div class="flex flex-wrap items-center gap-2 text-xs">
+<article class="card-light">
+    <div class="card-body">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;">
             @if ($event->isFree())
-                <span class="rounded-full bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-400">
-                    {{ __('events.free') }}
-                </span>
+                <span class="badge badge-success">{{ __('events.free') }}</span>
             @else
-                <span class="rounded-full bg-amber-500/15 px-2.5 py-1 font-semibold text-amber-300">
-                    {{ __('events.paid') }}
-                </span>
+                <span class="badge badge-amber">{{ __('events.paid') }}</span>
             @endif
 
             @if ($event->location_type === 'online')
-                <span class="rounded-full bg-white/10 px-2.5 py-1 text-neutral-300">{{ __('events.online') }}</span>
+                <span class="badge badge-dark" style="background: #e5e5e5; color: var(--text);">{{ __('events.online') }}</span>
             @elseif ($event->location_type === 'hybrid')
-                <span class="rounded-full bg-white/10 px-2.5 py-1 text-neutral-300">{{ __('events.hybrid') }}</span>
+                <span class="badge badge-dark" style="background: #e5e5e5; color: var(--text);">{{ __('events.hybrid') }}</span>
             @endif
         </div>
 
-        <h3 class="mt-3 text-base font-semibold text-white">
-            <a href="{{ $lroute('events.show', ['event' => $event->slug]) }}" class="hover:text-amber-400">
+        <h3 style="font-size: 1.15rem; font-weight: 600; color: var(--text); margin-bottom: 8px;">
+            <a href="{{ $lroute('events.show', ['event' => $event->slug]) }}" style="color: inherit; text-decoration: none;">
                 {{ $event->title }}
             </a>
         </h3>
 
-        <p class="mt-2 text-sm text-neutral-400">
+        <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 4px;">
             {{ $event->starts_at->translatedFormat('l, j F Y') }} &middot; {{ $event->starts_at->format('H:i') }}
         </p>
 
         @if ($event->venue)
-            <p class="mt-1 text-sm text-neutral-500">{{ $event->venue }}</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">{{ $event->venue }}</p>
         @endif
     </div>
 
-    {{-- Availability is read live, never cached: a stale seat count either
-         oversells the event or hides seats that are actually free (O5). --}}
-    <div class="border-t border-white/10 px-5 py-3 text-xs">
+    <div style="border-top: 1px solid var(--line-light); padding: 12px 20px; font-size: 0.85rem; background: #fafafa; display: flex; align-items: center; justify-content: space-between;">
         @if (! $event->registrationIsOpen())
-            <span class="text-neutral-500">{{ __('events.closed') }}</span>
+            <span style="color: var(--text-muted);">{{ __('events.closed') }}</span>
         @elseif ($event->isUnlimited())
-            <span class="text-neutral-400">{{ __('events.seats_unlimited') }}</span>
+            <span style="color: var(--text-muted);">{{ __('events.seats_unlimited') }}</span>
         @else
-            <span @class(['text-neutral-400', 'text-red-400' => ! $event->hasSeatsLeft()])>
-                {{ trans_choice('events.seats_left', $event->seatsLeft(), ['count' => $event->seatsLeft()]) }}
+            <span style="color: var(--text-muted);">
+                {{ __('events.seats_left', ['count' => $event->seatsLeft() ?? $event->capacity]) }}
             </span>
         @endif
+
+        <a href="{{ $lroute('events.show', ['event' => $event->slug]) }}" style="color: var(--gold-hover); font-weight: 600; text-decoration: none;">
+            {{ __('events.details') ?? 'Detail &rarr;' }}
+        </a>
     </div>
 </article>

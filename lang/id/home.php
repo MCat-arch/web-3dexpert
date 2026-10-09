@@ -59,7 +59,7 @@ return [
     'view_process' => 'Lihat Alur Pemesanan',
 
     // Legacy "F.A.Q 3D Expert" (index.php:753)
-    'faq_title' => 'F.A.Q 3D Expert',
+    'faq_title' => 'F.A.Q',
 
     'cta_title' => 'Siap Mewujudkan Desain Impian Anda?',
     'cta_subtitle' => 'Konsultasikan kebutuhan Anda dengan arsitek profesional kami, gratis dan tanpa komitmen.',

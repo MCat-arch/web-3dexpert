@@ -63,7 +63,11 @@ class AppServiceProvider extends ServiceProvider
         // Customers are authorised by ownership, never by role (D1).
         Gate::policy(EventRegistration::class, EventRegistrationPolicy::class);
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);
+        Gate::policy(\App\Models\CourseLesson::class, \App\Policies\CourseLessonPolicy::class);
         Event::observe(EventObserver::class);
+        \App\Models\Course::observe(\App\Observers\CourseContentObserver::class);
+        \App\Models\CourseSection::observe(\App\Observers\CourseContentObserver::class);
+        \App\Models\CourseLesson::observe(\App\Observers\CourseContentObserver::class);
 
         /*
          * Every model the homepage payload reads must be here, or editing it
@@ -185,6 +189,27 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('customer-apply', fn (Request $request) => [
             Limit::perMinute(5)->by('apply:'.($request->user('customer')?->getKey() ?? $request->ip())),
             Limit::perHour(20)->by('apply-hour:'.($request->user('customer')?->getKey() ?? $request->ip())),
+        ]);
+
+        /*
+         * Progress tracker (P7). The most exposed surface on the site:
+         * unauthenticated, and it reads customer data.
+         *
+         * TWO limits, and the per-CODE one is the one that matters. A per-IP
+         * limit alone would let a distributed attempt grind through
+         * verification values against one known project code -- which is the
+         * only attack the second factor is actually defending against. Keyed
+         * on the code, that becomes 5 attempts per hour no matter how many
+         * addresses are used.
+         *
+         * The per-IP limit is the cheap backstop against someone enumerating
+         * codes, and it is kept loose for the same CGNAT reason as D17.
+         */
+        RateLimiter::for('project-lookup', fn (Request $request) => [
+            Limit::perHour(5)->by(
+                'track-code:'.Str::upper(preg_replace('/\s+/', '', (string) $request->input('project_code')))
+            ),
+            Limit::perMinute(10)->by('track-ip:'.$request->ip()),
         ]);
     }
 }

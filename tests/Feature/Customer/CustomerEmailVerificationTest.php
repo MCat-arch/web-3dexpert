@@ -46,6 +46,17 @@ class CustomerEmailVerificationTest extends TestCase
         $this->assertNotNull($customer->fresh()->email_verified_at);
     }
 
+    public function test_a_guest_clicking_a_valid_signed_link_is_verified_and_logged_in(): void
+    {
+        $customer = Customer::factory()->unverified()->create();
+
+        $this->get($this->verificationUrl($customer))
+            ->assertRedirect('/akun');
+
+        $this->assertNotNull($customer->fresh()->email_verified_at);
+        $this->assertAuthenticatedAs($customer, 'customer');
+    }
+
     public function test_an_unsigned_link_is_rejected(): void
     {
         $customer = Customer::factory()->unverified()->create();

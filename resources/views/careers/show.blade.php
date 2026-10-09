@@ -4,105 +4,108 @@
 @section('description', Str::limit(strip_tags((string) $vacancy->description), 155))
 
 @section('content')
-    <section class="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
-        <nav aria-label="Breadcrumb" class="text-sm text-neutral-500">
-            <ol class="flex flex-wrap items-center gap-2">
-                <li><a href="{{ $lroute('home') }}" class="hover:text-amber-400">{{ __('nav.home') }}</a></li>
-                <li aria-hidden="true">/</li>
-                <li><a href="{{ $lroute('careers.index') }}" class="hover:text-amber-400">{{ __('careers.title') }}</a></li>
-                <li aria-hidden="true">/</li>
-                <li class="text-neutral-300" aria-current="page">{{ Str::limit($vacancy->title, 40) }}</li>
-            </ol>
-        </nav>
+    <div class="page-banner">
+        <div class="container">
+            <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+                <a href="{{ $lroute('home') }}">{{ __('nav.home') }}</a>
+                <span>/</span>
+                <a href="{{ $lroute('careers.index') }}">{{ __('careers.title') }}</a>
+                <span>/</span>
+                <span style="color: #ffffff;">{{ Str::limit($vacancy->title, 40) }}</span>
+            </nav>
 
-        <h1 class="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">{{ $vacancy->title }}</h1>
+            <h1 class="page-banner-title">{{ $vacancy->title }}</h1>
+        </div>
+    </div>
 
-        <dl class="mt-6 grid gap-4 sm:grid-cols-3">
-            <div>
-                <dt class="text-xs uppercase tracking-wide text-neutral-500">{{ __('careers.department') }}</dt>
-                <dd class="mt-1 text-sm text-neutral-200">{{ $vacancy->department }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs uppercase tracking-wide text-neutral-500">{{ __('careers.location') }}</dt>
-                <dd class="mt-1 text-sm text-neutral-200">{{ $vacancy->location }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs uppercase tracking-wide text-neutral-500">{{ __('careers.employment_type') }}</dt>
-                <dd class="mt-1 text-sm text-neutral-200">{{ $vacancy->employment_type }}</dd>
-            </div>
-        </dl>
-
-        @if ($vacancy->description)
-            <div class="mt-8">
-                <h2 class="text-xl font-semibold text-white">{{ __('careers.description') }}</h2>
-                <div class="mt-3 space-y-4 text-sm leading-relaxed text-neutral-300">
-                    @foreach (preg_split('/\R{2,}/', (string) $vacancy->description) as $paragraph)
-                        <p>{{ $paragraph }}</p>
-                    @endforeach
+    <div class="container" style="max-width: 860px; padding-bottom: 70px;">
+        <div class="card-light" style="padding: 28px; margin-bottom: 30px;">
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line-light);">
+                <div>
+                    <span
+                        style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">
+                        {{ __('careers.department') }}
+                    </span>
+                    <p style="font-size: 1rem; font-weight: 500; margin: 0;">{{ $vacancy->department }}</p>
+                </div>
+                <div>
+                    <span
+                        style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">
+                        {{ __('careers.location') }}
+                    </span>
+                    <p style="font-size: 1rem; font-weight: 500; margin: 0;">{{ $vacancy->location }}</p>
+                </div>
+                <div>
+                    <span
+                        style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">
+                        {{ __('careers.employment_type') }}
+                    </span>
+                    <p style="font-size: 1rem; font-weight: 500; margin: 0;">{{ $vacancy->employment_type }}</p>
                 </div>
             </div>
-        @endif
 
-        @if ($vacancy->requirement)
-            <div class="mt-8">
-                <h2 class="text-xl font-semibold text-white">{{ __('careers.requirement') }}</h2>
-                <div class="mt-3 space-y-4 text-sm leading-relaxed text-neutral-300">
-                    @foreach (preg_split('/\R{2,}/', (string) $vacancy->requirement) as $paragraph)
-                        <p>{{ $paragraph }}</p>
-                    @endforeach
+            @if ($vacancy->description)
+                <div style="margin-top: 24px;">
+                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">{{ __('careers.description') }}</h2>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; line-height: 1.7; color: var(--text);">
+                        @foreach (preg_split('/\R{2,}/', (string) $vacancy->description) as $paragraph)
+                            <p>{{ $paragraph }}</p>
+                        @endforeach
+                    </div>
                 </div>
-            </div>
-        @endif
+            @endif
 
-        <div class="mt-10 rounded-xl border border-white/10 bg-neutral-900 p-6">
+            @if ($vacancy->requirement)
+                <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line-light);">
+                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">{{ __('careers.requirement') }}</h2>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; line-height: 1.7; color: var(--text);">
+                        @foreach (preg_split('/\R{2,}/', (string) $vacancy->requirement) as $paragraph)
+                            <p>{{ $paragraph }}</p>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        {{-- Application Action Card --}}
+        <div class="card-light" style="padding: 24px; background: #fafafa;">
             @if ($application && $application->isActive())
-                <p class="text-sm font-semibold text-emerald-400">{{ __('careers.applied') }}</p>
-                <p class="mt-2 text-sm text-neutral-400">
+                <p style="font-size: 1.05rem; font-weight: 600; color: var(--success); margin-bottom: 6px;">
+                    ✓ {{ __('careers.applied') }}
+                </p>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">
                     {{ __('careers.status_' . $application->status) }}
                 </p>
-                <a href="{{ $lroute('customer.applications') }}"
-                   class="mt-4 inline-block text-sm text-amber-400 underline hover:text-amber-300">
+                <a href="{{ $lroute('customer.applications') }}" class="btn btn-secondary btn-sm">
                     {{ __('careers.mine_title') }}
                 </a>
 
-            @elseif (! $vacancy->is_open)
-                <p class="text-sm text-neutral-500">{{ __('careers.closed') }}</p>
+            @elseif (!$vacancy->is_open)
+                <p style="color: var(--text-muted); margin: 0;">{{ __('careers.closed') }}</p>
 
             @elseif (auth('customer')->check())
-                <a href="{{ $lroute('careers.apply', ['vacancy' => $vacancy->slug]) }}"
-                   class="inline-block rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-neutral-950
-                          transition hover:bg-amber-400">
+                <a href="{{ $lroute('careers.apply', ['vacancy' => $vacancy->slug]) }}" class="btn btn-primary btn-lg">
                     {{ __('careers.apply') }}
                 </a>
 
             @else
-                <a href="{{ $lroute('customer.login') }}"
-                   class="inline-block rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-neutral-950
-                          transition hover:bg-amber-400">
+                <a href="{{ $lroute('customer.login') }}" class="btn btn-primary btn-lg">
                     {{ __('careers.apply_login') }}
                 </a>
             @endif
         </div>
 
-        {{--
-            D13: an optional per-vacancy HR link, and a QUESTION channel -- not
-            a second way to apply.
-
-            Deliberately subordinate to Apply above, and it renders ONLY when
-            contact_url is set. There is no fallback to company_whatsapp: that
-            is the sales number, and routing a candidate there is wrong for
-            both sides. An equal-weight link here would also split the funnel,
-            and CVs arriving over WhatsApp sit outside the pipeline, the D11
-            retention window, and the P8 audit log.
-        --}}
         @if ($vacancy->contact_url)
-            <p class="mt-6 text-sm text-neutral-500">
+            <div style="margin-top: 24px; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
                 {{ __('careers.ask_question') }}
                 <a href="{{ $vacancy->contact_url }}" target="_blank" rel="noopener noreferrer"
-                   class="text-neutral-300 underline hover:text-amber-400">
+                    style="color: var(--gold-hover); font-weight: 600; margin-left: 4px;">
                     {{ __('careers.ask_question_cta') }}
                 </a>
-            </p>
+            </div>
         @endif
-    </section>
+    </div>
 @endsection

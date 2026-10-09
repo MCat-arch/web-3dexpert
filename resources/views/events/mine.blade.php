@@ -3,59 +3,65 @@
 @section('title', __('events.mine_title') . ' | ' . $settings('company_name', config('app.name')))
 
 @section('content')
-    <section class="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-        <h1 class="text-2xl font-bold tracking-tight text-white">{{ __('events.mine_title') }}</h1>
+    <div class="page-banner">
+        <div class="container">
+            <h1 class="page-banner-title">{{ __('events.mine_title') }}</h1>
+        </div>
+    </div>
 
+    <div class="container" style="max-width: 860px; padding-bottom: 70px;">
         @if ($registrations->isEmpty())
-            <div class="mt-8">
-                <x-empty-state :title="__('events.mine_empty')" />
-            </div>
+            <x-empty-state :title="__('events.mine_empty')" />
         @else
-            <ul class="mt-8 space-y-4">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
                 @foreach ($registrations as $registration)
-                    <li class="rounded-xl border border-white/10 bg-neutral-900 p-5">
-                        <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="card-light" style="padding: 24px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
                             <div>
-                                <h2 class="text-base font-semibold text-white">
+                                <h2 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 6px;">
                                     <a href="{{ $lroute('events.show', ['event' => $registration->event->slug]) }}"
-                                       class="hover:text-amber-400">
+                                        style="color: inherit; text-decoration: none;">
                                         {{ $registration->event->title }}
                                     </a>
                                 </h2>
-                                <p class="mt-1 text-sm text-neutral-400">
+                                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">
                                     {{ $registration->event->starts_at->translatedFormat('l, j F Y') }} &middot;
                                     {{ $registration->event->starts_at->format('H:i') }}
                                 </p>
-                                <p class="mt-2 text-xs text-neutral-500">
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">
                                     {{ __('events.ticket_code') }}:
-                                    <span class="font-mono text-neutral-300">{{ $registration->ticket_code }}</span>
+                                    <span
+                                        style="font-family: monospace; background: #e5e5e5; padding: 2px 6px; border-radius: 4px; font-weight: 600; color: #000;">{{ $registration->ticket_code }}</span>
                                 </p>
                             </div>
 
-                            <span @class([
-                                'rounded-full px-2.5 py-1 text-xs font-semibold',
-                                'bg-emerald-500/15 text-emerald-400' => $registration->status === 'confirmed' || $registration->status === 'attended',
-                                'bg-amber-500/15 text-amber-400' => $registration->status === 'pending',
-                                'bg-white/10 text-neutral-400' => $registration->status === 'cancelled',
-                            ])>
+                            @php
+                                $statusClass = match ($registration->status) {
+                                    'confirmed', 'attended' => 'badge-success',
+                                    'pending' => 'badge-amber',
+                                    default => 'badge-dark',
+                                };
+                            @endphp
+                            <span class="badge {{ $statusClass }}">
                                 {{ __('events.status_' . $registration->status) }}
                             </span>
                         </div>
 
                         @if ($customerCan('cancel', $registration))
                             <form method="POST"
-                                  action="{{ $lroute('events.registration.cancel', ['registration' => $registration->id]) }}"
-                                  class="mt-4">
+                                action="{{ $lroute('events.registration.cancel', ['registration' => $registration->id]) }}"
+                                style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-light);">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-sm text-neutral-400 underline hover:text-white">
+                                <button type="submit" class="btn btn-secondary btn-sm" style="color: var(--danger);">
                                     {{ __('events.cancel') }}
                                 </button>
                             </form>
                         @endif
-                    </li>
+                    </div>
                 @endforeach
-            </ul>
+            </div>
         @endif
-    </section>
+    </div>
 @endsection

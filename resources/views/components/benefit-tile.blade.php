@@ -1,13 +1,30 @@
 @props(['item'])
 
-<article class="flex min-h-40 flex-col items-center justify-center rounded-xl border border-white/10 bg-neutral-900 p-5 text-center">
-    @if ($item->icon_path)
-        <img src="{{ route('media.show', ['path' => $item->icon_path]) }}"
-             alt="{{ $item->label }}"
-             loading="lazy"
-             class="h-14 w-14 object-contain"
-             width="56"
-             height="56">
+@php
+    $iconUrl = null;
+    if ($item->icon_path) {
+        if (str_starts_with($item->icon_path, 'http://') || str_starts_with($item->icon_path, 'https://')) {
+            $iconUrl = $item->icon_path;
+        } elseif (file_exists(public_path($item->icon_path))) {
+            $iconUrl = asset($item->icon_path);
+        } elseif (file_exists(public_path('images/icons/' . basename($item->icon_path)))) {
+            $iconUrl = asset('images/icons/' . basename($item->icon_path));
+        } else {
+            $iconUrl = route('media.show', ['path' => $item->icon_path]);
+        }
+    }
+@endphp
+
+<article class="benefit-tile">
+    @if ($iconUrl)
+        <div class="benefit-tile-icon">
+            <img src="{{ $iconUrl }}"
+                 alt="{{ $item->label }}"
+                 loading="lazy"
+                 width="40"
+                 height="40"
+                 style="width: 40px; height: 40px; object-fit: contain;">
+        </div>
     @endif
-    <h3 class="mt-4 text-sm font-semibold text-neutral-200">{{ $item->label }}</h3>
+    <h3 class="benefit-tile-label">{{ $item->label }}</h3>
 </article>

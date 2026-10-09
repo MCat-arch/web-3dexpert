@@ -3,19 +3,17 @@
 @section('title', __('customer.login_title') . ' | ' . $settings('company_name', config('app.name')))
 
 @section('content')
-    <x-customer-auth-card
-        :title="__('customer.login_title')"
-        :subtitle="__('customer.login_subtitle')"
+    <x-customer-auth-card :title="__('customer.login_title')" :subtitle="__('customer.login_subtitle')"
         :action="$lroute('customer.login')">
 
         <x-customer-field name="email" :label="__('customer.email')" type="email" required autocomplete="email" />
         <x-customer-field name="password" :label="__('customer.password')" type="password" required
-                          autocomplete="current-password" />
+            autocomplete="current-password" />
 
         <div class="flex items-center justify-between gap-4">
             <label for="remember" class="flex items-center gap-2 text-sm text-neutral-400">
                 <input id="remember" name="remember" type="checkbox" value="1"
-                       class="rounded border-white/20 bg-neutral-900 text-amber-500 focus:ring-amber-500">
+                    class="rounded border-white/20 bg-neutral-900 text-amber-500 focus:ring-amber-500">
                 {{ __('customer.login_remember') }}
             </label>
 
@@ -24,9 +22,8 @@
             </a>
         </div>
 
-        <button type="submit"
-                class="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950
-                       transition hover:bg-amber-400">
+        <button type="submit" class="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950
+                           transition hover:bg-amber-400">
             {{ __('customer.login_submit') }}
         </button>
 

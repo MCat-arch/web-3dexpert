@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Customer;
 
+use App\Support\Locale;
 use Illuminate\Auth\Notifications\VerifyEmail as BaseVerifyEmail;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -27,8 +28,14 @@ class VerifyEmail extends BaseVerifyEmail implements ShouldQueue
 
     protected function verificationUrl($notifiable): string
     {
+        // Build the route name for the current locale explicitly. Laravel's
+        // URL::temporarySignedRoute expects a route name, and our public routes
+        // are namespaced per locale ('en.customer.verification.verify'), so we
+        // use Locale::name() to get the correct one for the active locale.
+        $routeName = Locale::name('customer.verification.verify');
+
         return URL::temporarySignedRoute(
-            'customer.verification.verify',
+            $routeName,
             now()->addMinutes(config('auth.verification.expire', 60)),
             [
                 'id' => $notifiable->getKey(),

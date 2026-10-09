@@ -197,6 +197,18 @@ class LandingContentSeeder extends Seeder
                 'en' => 'The perfect blend of aesthetics, function and exclusivity.',
             ],
 
+            // Features / Stats
+            'home_heading' => [
+                'id' => 'Satukan Imajinasi dan Realitas Bersama Arsitek Profesional',
+                'en' => 'Bring Your Imagination to Life With Professional Architects',
+            ],
+            'home_subheading' => [
+                'id' => 'Desain rumah, interior, dan eksterior yang siap dibangun.',
+                'en' => 'House, interior and exterior designs that are ready to build.',
+            ],
+            'stat_projects' => 736,
+            'stat_clients' => 581,
+
             // Office block (index.php:501-514).
             'location_office_label' => [
                 'id' => 'HEAD OFFICE PT LUXORA AURA',
@@ -208,6 +220,17 @@ class LandingContentSeeder extends Seeder
             ],
             'company_maps_url' => 'https://goo.gl/maps/68pDytiKfG1dLDMB8',
             'company_name' => '3D Expert',
+            'company_email' => 'info@3dexpert.id',
+            'company_phone' => '+6282338389488',
+
+            // Videos & Process
+            'location_video_url' => 'https://www.youtube.com/watch?v=m7Bc3pLyij0',
+            'why_video_url' => 'https://www.youtube.com/watch?v=m7Bc3pLyij0',
+            'why_description' => [
+                'id' => 'Kami memahami kebutuhan Anda lebih dulu, supaya revisi desain minimal.',
+                'en' => 'We understand your needs first, so design revisions stay minimal.',
+            ],
+            'process_link_url' => $whatsapp,
 
             // Social (partials/footer.php:22-37).
             'company_whatsapp' => $whatsapp,
@@ -215,6 +238,16 @@ class LandingContentSeeder extends Seeder
             'company_instagram' => 'https://www.instagram.com/3dexpert.id',
             'company_youtube' => 'https://www.youtube.com/@3dexpertbuildingsolution',
             'company_tiktok' => 'https://www.tiktok.com/@3d.expert',
+
+            // SEO
+            'seo_title' => [
+                'id' => '3D Expert — Jasa Desain Arsitektur & Interior',
+                'en' => '3D Expert — Architecture & Interior Design Services',
+            ],
+            'seo_description' => [
+                'id' => 'Jasa desain rumah, interior, eksterior, dan gambar kerja perizinan siap bangun.',
+                'en' => 'House, interior and exterior design plus permit drawing services ready to build.',
+            ],
         ];
 
         foreach ($defaults as $key => $value) {
