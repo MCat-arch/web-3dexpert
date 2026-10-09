@@ -35,6 +35,7 @@
             <x-nav-link :href="$lroute('careers.index')" :active="request()->routeIs('*careers*')">
                 {{ __('nav.careers') }}
             </x-nav-link>
+
         </nav>
 
         <div class="header-actions">

@@ -20,7 +20,7 @@ class CoursePlayerController extends Controller
             abort(404);
         }
 
-        $course->loadMissing(['sections.lessons']);
+        $course->loadMissing(['sections.lessons.attachmentMedia']);
 
         $customer = auth('customer')->user();
         $isEnrolled = false;

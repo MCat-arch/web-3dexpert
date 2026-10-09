@@ -25,7 +25,11 @@
                 </span>
             @endif
 
-            @if ($course->isFree())
+            @if (! $course->hasLms())
+                <span class="badge badge-gold" style="background: var(--gold); color: #000;">
+                    Mentoring
+                </span>
+            @elseif ($course->isFree())
                 <span class="badge badge-success">
                     {{ __('courses.free') }}
                 </span>
@@ -40,14 +44,20 @@
     {{-- Card Body --}}
     <div class="card-body">
         <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
-            @if ($course->estimated_minutes)
+            @if ($course->category)
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--gold-hover);">{{ $course->category }}</span>
+            @elseif ($course->estimated_minutes)
                 <span>
                     ⏱ {{ $course->estimated_minutes >= 60 ? __('courses.duration_hours', ['count' => round($course->estimated_minutes / 60, 1)]) : __('courses.duration_minutes', ['count' => $course->estimated_minutes]) }}
                 </span>
             @endif
-            <span>
-                📚 {{ __('courses.lessons_count', ['count' => $course->lessons->count()]) }}
-            </span>
+            @if ($course->hasLms())
+                <span>
+                    📚 {{ __('courses.lessons_count', ['count' => $course->lessons_count ?? $course->lessons->count()]) }}
+                </span>
+            @else
+                <span style="color: var(--gold-hover); font-weight: 600;">🤝 Program Langsung</span>
+            @endif
         </div>
 
         <h3 style="font-size: 1.15rem; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.35;">
@@ -58,18 +68,19 @@
 
         @if ($course->excerpt)
             <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; flex: 1 1 auto;">
-                {{ Str::limit($course->excerpt, 100) }}
+                {{ $course->excerpt }}
             </p>
         @endif
 
         <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line-light); display: flex; align-items: center; justify-content: space-between;">
             <div>
-                @if ($course->instructor_name)
-                    <span style="font-size: 0.825rem; color: var(--text-muted);">{{ $course->instructor_name }}</span>
+                @if ($course->category)
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ $course->category }}</span>
                 @endif
             </div>
-            <a href="{{ $lroute('courses.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-sm">
-                {{ __('courses.view_detail') ?? 'Lihat Kursus' }}
+            <a href="{{ $lroute('courses.show', ['course' => $course->slug]) }}"
+               class="btn btn-primary btn-sm">
+                {{ $course->hasLms() ? (__('courses.view_detail') ?? 'Lihat Kursus') : 'Lihat Program' }}
             </a>
         </div>
     </div>

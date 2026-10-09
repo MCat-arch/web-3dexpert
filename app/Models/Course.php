@@ -27,6 +27,9 @@ class Course extends Model
         'cover_media_id',
         'price',
         'level',
+        'has_lms',
+        'category',
+        'whatsapp_cta',
         'estimated_minutes',
         'is_published',
         'published_at',
@@ -35,11 +38,30 @@ class Course extends Model
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
-            'is_published' => 'boolean',
+            'price'             => 'decimal:2',
+            'is_published'      => 'boolean',
+            'has_lms'           => 'boolean',
             'estimated_minutes' => 'integer',
-            'published_at' => 'datetime',
+            'published_at'      => 'datetime',
         ];
+    }
+
+    /**
+     * True for beginner/intermediate: full LMS player on the site.
+     * False for advanced: real-world mentoring, WhatsApp CTA instead.
+     */
+    public function hasLms(): bool
+    {
+        return (bool) $this->has_lms;
+    }
+
+    /**
+     * WhatsApp URL for this course's CTA (advanced courses can override the
+     * company default so each one routes to a specific mentor).
+     */
+    public function whatsappUrl(?string $companyDefault = null): ?string
+    {
+        return filled($this->whatsapp_cta) ? $this->whatsapp_cta : $companyDefault;
     }
 
     protected static function booted(): void
@@ -109,6 +131,15 @@ class Course extends Model
         }
 
         return 'Rp '.number_format((float) $this->price, 0, ',', '.');
+    }
+
+    public function getExcerptAttribute(): ?string
+    {
+        if (blank($this->description)) {
+            return null;
+        }
+
+        return Str::limit(strip_tags((string) $this->description), 140);
     }
 
     public function scopePublished(Builder $query): Builder

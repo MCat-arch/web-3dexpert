@@ -14,7 +14,8 @@ class CourseCatalogController extends Controller
     {
         $courses = Course::published()
             ->ordered()
-            ->with(['coverMedia', 'sections.lessons'])
+            ->with(['coverMedia', 'lessons', 'sections.lessons'])
+            ->withCount('lessons')
             ->paginate(self::PER_PAGE);
 
         return view('courses.index', compact('courses'));

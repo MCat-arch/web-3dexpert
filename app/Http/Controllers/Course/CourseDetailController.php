@@ -16,7 +16,7 @@ class CourseDetailController extends Controller
             abort(404);
         }
 
-        $course->loadMissing(['coverMedia', 'sections.lessons']);
+        $course->loadMissing(['coverMedia', 'lessons', 'sections.lessons.attachmentMedia']);
 
         $customer = auth('customer')->user();
         $isEnrolled = false;

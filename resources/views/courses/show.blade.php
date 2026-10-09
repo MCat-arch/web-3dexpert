@@ -15,15 +15,26 @@
             </nav>
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                @if ($course->category)
+                    <span class="badge badge-amber">
+                        {{ $course->category }}
+                    </span>
+                @endif
                 @if ($course->level)
                     <span class="badge badge-gold">
                         {{ __('courses.level_'.$course->level) }}
                     </span>
                 @endif
 
-                <span class="badge badge-dark">
-                    {{ __('courses.lifetime_access') }}
-                </span>
+                @if ($course->hasLms())
+                    <span class="badge badge-dark">
+                        {{ __('courses.lifetime_access') }}
+                    </span>
+                @else
+                    <span class="badge badge-dark">
+                        Mentoring Langsung
+                    </span>
+                @endif
 
                 @if ($course->isFree())
                     <span class="badge badge-success">
@@ -69,7 +80,8 @@
                     </div>
                 </div>
 
-                {{-- Syllabus --}}
+                {{-- Syllabus (LMS courses only) --}}
+                @if ($course->hasLms())
                 <div class="card-light" style="padding: 28px;">
                     <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 8px;">{{ __('courses.syllabus') }}</h2>
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px;">
@@ -120,6 +132,20 @@
                         @endforelse
                     </div>
                 </div>
+
+                @else
+                {{-- Advanced / real-world mentoring: no syllabus, show program highlights --}}
+                <div class="card-light" style="padding: 28px; margin-bottom: 30px;">
+                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Program Mentoring Langsung</h2>
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; line-height: 1.7; color: var(--text);">
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Terlibat langsung dalam proyek arsitektur & interior nyata</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Bimbingan intensif dari mentor 3D Expert berpengalaman</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Pengukuran lapangan, konsep desain, hingga presentasi klien</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Sertifikat & portofolio proyek nyata setelah selesai</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Kuota sangat terbatas per batch</li>
+                    </ul>
+                </div>
+                @endif
             </div>
 
             {{-- Right column: Pricing & Action Card --}}
@@ -153,31 +179,56 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
-                        @if ($isEnrolled)
-                            <a href="{{ $lroute('courses.player.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
-                                {{ __('courses.resume_learning') }}
-                            </a>
-                        @elseif (auth('customer')->check())
-                            <a href="{{ $lroute('courses.checkout.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
-                                {{ $course->isFree() ? __('courses.enroll_now') : __('courses.buy_now') }}
-                            </a>
+                        @if ($course->hasLms())
+                            {{-- LMS courses: enroll / buy / resume --}}
+                            @if ($isEnrolled)
+                                <a href="{{ $lroute('courses.player.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
+                                    {{ __('courses.resume_learning') }}
+                                </a>
+                            @elseif (auth('customer')->check())
+                                <a href="{{ $lroute('courses.checkout.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
+                                    {{ $course->isFree() ? __('courses.enroll_now') : __('courses.buy_now') }}
+                                </a>
+                            @else
+                                <a href="{{ $lroute('customer.login') }}" class="btn btn-primary btn-block btn-lg">
+                                    {{ __('courses.enroll_now') }}
+                                </a>
+                                <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
+                                    Belum punya akun? <a href="{{ $lroute('customer.register') }}" style="color: var(--gold-hover); font-weight: 600;">Daftar akun</a>
+                                </p>
+                            @endif
                         @else
-                            <a href="{{ $lroute('customer.login') }}" class="btn btn-primary btn-block btn-lg">
-                                {{ __('courses.enroll_now') }}
+                            {{-- Advanced / real-world: WhatsApp CTA --}}
+                            @php
+                                $ctaUrl = $course->whatsappUrl($settings('company_whatsapp', 'https://wa.me/6282338389488'));
+                            @endphp
+                            <a href="{{ $ctaUrl }}" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-primary btn-block btn-lg">
+                                💬 Hubungi & Daftar via WhatsApp
                             </a>
-                            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
-                                Belum punya akun? <a href="{{ $lroute('customer.register') }}" style="color: var(--gold-hover); font-weight: 600;">Daftar akun</a>
+                            <p style="text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-top: 6px;">
+                                Tim kami akan menghubungi Anda dalam 1×24 jam
                             </p>
                         @endif
                     </div>
 
                     <div style="border-top: 1px solid var(--line-light); padding-top: 16px;">
-                        <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">Yang Anda Dapatkan:</h4>
-                        <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--text);">
-                            <li style="display: flex; align-items: center; gap: 8px;">✓ Akses video materi HD selamanya</li>
-                            <li style="display: flex; align-items: center; gap: 8px;">✓ File latihan & aset 3D pendukung</li>
-                            <li style="display: flex; align-items: center; gap: 8px;">✓ Belajar di smartphone, tablet, PC</li>
-                        </ul>
+                        @if ($course->hasLms())
+                            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">Yang Anda Dapatkan:</h4>
+                            <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--text);">
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ Akses video materi HD selamanya</li>
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ File latihan & aset 3D pendukung</li>
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ Belajar di smartphone, tablet, PC</li>
+                            </ul>
+                        @else
+                            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">Yang Anda Dapatkan:</h4>
+                            <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--text);">
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ Proyek nyata di portofolio Anda</li>
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ Bimbingan intensif mentor senior</li>
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ Sertifikat resmi 3D Expert</li>
+                                <li style="display: flex; align-items: center; gap: 8px;">✓ Jaringan profesional arsitektur</li>
+                            </ul>
+                        @endif
                     </div>
 
                     @if ($whatsapp = $settings('company_whatsapp'))

@@ -49,7 +49,15 @@ class CourseLesson extends Model
 
     public function attachmentUrl(): ?string
     {
-        if ($this->attachmentMedia && $this->attachmentMedia->storage_path) {
+        if ($this->relationLoaded('attachmentMedia')) {
+            if ($this->attachmentMedia && $this->attachmentMedia->storage_path) {
+                return route('media.show', ['path' => $this->attachmentMedia->storage_path]);
+            }
+
+            return null;
+        }
+
+        if ($this->attachment_media_id && $this->attachmentMedia && $this->attachmentMedia->storage_path) {
             return route('media.show', ['path' => $this->attachmentMedia->storage_path]);
         }
 
