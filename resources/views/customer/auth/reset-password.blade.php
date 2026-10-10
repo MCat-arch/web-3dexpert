@@ -21,7 +21,7 @@
         </button>
 
         <x-slot:footer>
-            <a href="{{ $lroute('customer.login') }}" class="font-semibold text-amber-400 hover:text-amber-300">
+            <a href="{{ $lroute('customer.login') }}" style="font-weight: 600; color: var(--gold-hover);">
                 &larr; {{ __('customer.login_title') }}
             </a>
         </x-slot:footer>

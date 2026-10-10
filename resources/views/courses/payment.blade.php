@@ -66,32 +66,43 @@
                 </div>
             @else
                 <div style="margin-bottom: 30px;">
-                    <h3 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 14px;">Petunjuk Pembayaran Transfer / QRIS:
-                    </h3>
-                    <div
-                        style="background: #ffffff; border: 1px solid var(--line-light); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px;">
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Bank Transfer Virtual
-                            Account (BCA / Mandiri / BNI):</p>
-                        <p style="font-family: monospace; font-size: 1.15rem; font-weight: 700; margin: 0;">8801 2893 0192 8301
+                    <h3 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 14px; text-align: center;">Scan Kode QRIS untuk Membayar</h3>
+
+                    {{-- QRIS Display Box --}}
+                    <div style="background: #ffffff; border: 2px dashed var(--gold); border-radius: var(--radius-card); padding: 24px; text-align: center; margin-bottom: 20px; max-width: 340px; margin-left: auto; margin-right: auto;">
+                        <div style="font-weight: 700; font-size: 1.15rem; letter-spacing: 2px; color: #b91c1c; margin-bottom: 12px;">QRIS</div>
+                        <div style="display: inline-block; padding: 12px; background: #fff; border: 1px solid var(--line-light); border-radius: 8px;">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode(url('/kursus/pembayaran/' . $payment->order_id)) }}"
+                                 alt="QRIS Code"
+                                 style="width: 200px; height: 200px; display: block;">
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; margin-bottom: 0;">
+                            NMID: ID102003928192 &middot; 3D Expert Academy
+                        </p>
+                        <p style="font-size: 0.85rem; font-weight: 600; color: var(--text); margin-top: 4px; margin-bottom: 0;">
+                            Nominal: Rp {{ number_format((float) $payment->gross_amount, 0, ',', '.') }}
                         </p>
                     </div>
-                    <ul
-                        style="list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; color: var(--text-muted);">
-                        <li>Buka aplikasi m-Banking atau e-Wallet favorit Anda.</li>
-                        <li>Pilih menu Transfer Virtual Account atau Scan QRIS.</li>
-                        <li>Masukkan nominal tepat <strong>Rp
-                                {{ number_format((float) $payment->gross_amount, 0, ',', '.') }}</strong>.</li>
-                        <li>Konfirmasi pembayaran dan simpan bukti transaksi Anda.</li>
-                    </ul>
+
+                    <div style="background: #fafafa; border: 1px solid var(--line-light); border-radius: var(--radius-card); padding: 16px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Cara Pembayaran via QRIS:</h4>
+                        <ol style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.875rem; color: var(--text-muted);">
+                            <li>Buka aplikasi m-Banking (BCA, Mandiri, BRI, BNI) atau e-Wallet (GoPay, OVO, DANA, ShopeePay).</li>
+                            <li>Pilih menu <strong>Scan / Bayar QR</strong>.</li>
+                            <li>Arahkan kamera smartphone ke kode QRIS di atas.</li>
+                            <li>Periksa nominal dan nama penerima <strong>3D Expert Academy</strong>.</li>
+                            <li>Selesaikan pembayaran dan status akun Anda akan langsung aktif otomatis.</li>
+                        </ol>
+                    </div>
                 </div>
 
                 {{-- Simulation Button (development sandbox) --}}
                 <div style="padding-top: 20px; border-top: 1px solid var(--line-light); text-align: center;">
-                    <form method="POST" action="{{ $lroute('courses.payment.simulate', ['orderId' => $payment->order_id]) }}">
+                    <form method="POST" action="{{ $lroute('courses.payment.simulate', ['order_id' => $payment->order_id]) }}">
                         @csrf
                         <button type="submit" class="btn btn-outline btn-block"
                             style="color: var(--text); border-color: var(--gold);">
-                            ⚡ Simulasi Pembayaran Berhasil (Test Sandbox)
+                            ⚡ Simulasi Pembayaran QRIS Berhasil (Test Sandbox)
                         </button>
                     </form>
                 </div>

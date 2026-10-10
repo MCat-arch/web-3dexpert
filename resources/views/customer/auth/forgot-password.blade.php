@@ -10,15 +10,13 @@
 
         <x-customer-field name="email" :label="__('customer.email')" type="email" required autocomplete="email" />
 
-        <button type="submit"
-                class="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950
-                       transition hover:bg-amber-400">
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
             {{ __('customer.forgot_submit') }}
         </button>
 
         <x-slot:footer>
-            <a href="{{ $lroute('customer.login') }}" class="font-semibold text-amber-400 hover:text-amber-300">
-                {{ __('customer.login_title') }}
+            <a href="{{ $lroute('customer.login') }}" style="font-weight: 600; color: var(--gold-hover);">
+                &larr; {{ __('customer.login_title') }}
             </a>
         </x-slot:footer>
     </x-customer-auth-card>

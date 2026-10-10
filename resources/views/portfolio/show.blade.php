@@ -96,33 +96,93 @@
             </div>
         @endif
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;" class="grid-cols-2">
+        <div class="content-sidebar-grid">
             <div>
-                @if ($portfolio->description)
-                    <div class="card-light" style="padding: 28px;">
-                        <h2 style="font-size: 1.35rem; font-weight: 600; color: var(--text); margin-bottom: 16px;">
-                            {{ __('portfolio.about') }}</h2>
-                        <div
-                            style="display: flex; flex-direction: column; gap: 14px; font-size: 1rem; line-height: 1.7; color: var(--text);">
+                <div class="card-light" style="padding: 28px;">
+                    <h2 style="font-size: 1.35rem; font-weight: 600; color: var(--text); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--line-light);">
+                        {{ __('portfolio.about') }}
+                    </h2>
+
+                    @if ($portfolio->description)
+                        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 1rem; line-height: 1.75; color: var(--text);">
                             @foreach (preg_split('/\R{2,}/', (string) $portfolio->description) as $paragraph)
                                 <p>{{ $paragraph }}</p>
                             @endforeach
                         </div>
-                    </div>
-                @endif
+                    @else
+                        <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
+                            Proyek visualisasi dan desain 3D arsitektur berkualitas tinggi oleh 3D Expert. Setiap detail dirender dengan presisi tinggi untuk menghadirkan visualisasi ruang yang realistis, estetis, dan fungsional sesuai kebutuhan klien.
+                        </p>
+                    @endif
+                </div>
             </div>
 
             {{-- Specifications Sidebar --}}
-            @if ($portfolio->specs->isNotEmpty())
-                <aside class="card-light" style="padding: 24px;">
-                    <h2
-                        style="font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--line-light);">
+            <aside>
+                <div class="card-light" style="padding: 24px; position: sticky; top: 90px;">
+                    <h2 style="font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--line-light);">
                         {{ __('portfolio.specifications') }}
                     </h2>
-                    <dl style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem;">
+
+                    <dl style="display: flex; flex-direction: column; gap: 14px; font-size: 0.95rem; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                            <dt style="color: var(--text-muted);">Layanan</dt>
+                            <dd style="font-weight: 600; color: var(--text); text-align: right;">Desain &amp; 3D Rendering</dd>
+                        </div>
+
+                        @if ($portfolio->style)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">{{ __('portfolio.style') }}</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ $portfolio->style }}</dd>
+                            </div>
+                        @endif
+
+                        @if ($portfolio->location)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">{{ __('portfolio.location') }}</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ $portfolio->location }}</dd>
+                            </div>
+                        @endif
+
+                        @if ($portfolio->building_size)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">Luas Bangunan</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ $portfolio->building_size }} m²</dd>
+                            </div>
+                        @endif
+
+                        @if ($portfolio->land_size)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">Luas Lahan</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ $portfolio->land_size }} m²</dd>
+                            </div>
+                        @endif
+
+                        @if ($portfolio->floors)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">Jumlah Lantai</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ trans_choice('portfolio.floors', $portfolio->floors) }}</dd>
+                            </div>
+                        @endif
+
+                        @if ($portfolio->bedrooms)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">Kamar Tidur</dt>
+                                <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ trans_choice('portfolio.bedrooms', $portfolio->bedrooms) }}</dd>
+                            </div>
+                        @endif
+
+                        @if ($portfolio->price)
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                                <dt style="color: var(--text-muted);">Estimasi Nilai</dt>
+                                <dd style="font-weight: 600; color: var(--gold-hover); text-align: right;">
+                                    {{ __('services.currency') }} {{ number_format((float) $portfolio->price, 0, ',', '.') }}
+                                </dd>
+                            </div>
+                        @endif
+
                         @foreach ($portfolio->specs as $spec)
-                            <div
-                                style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
                                 <dt style="color: var(--text-muted);">{{ $spec->label }}</dt>
                                 <dd style="font-weight: 600; color: var(--text); text-align: right;">{{ $spec->value }}</dd>
                             </div>
@@ -130,14 +190,15 @@
                     </dl>
 
                     @if ($wa = $settings('company_whatsapp'))
-                        <div style="margin-top: 24px;">
-                            <a href="{{ $wa }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">
-                                {{ __('portfolio.request_similar') }}
+                        <div>
+                            <a href="{{ $wa }}?text={{ urlencode('Halo 3D Experts, saya tertarik dengan proyek portofolio: ' . $portfolio->title) }}"
+                               target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="box-shadow: 0 4px 12px rgba(200, 160, 89, 0.25);">
+                                {{ __('portfolio.request_similar') }} &rarr;
                             </a>
                         </div>
                     @endif
-                </aside>
-            @endif
+                </div>
+            </aside>
         </div>
 
         @if ($related->isNotEmpty())

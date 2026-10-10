@@ -24,6 +24,7 @@ class Course extends Model
         'title',
         'slug',
         'description',
+        'cover_path',
         'cover_media_id',
         'price',
         'level',
@@ -112,6 +113,14 @@ class Course extends Model
 
     public function getCoverUrlAttribute(): ?string
     {
+        if (filled($this->cover_path)) {
+            if (Str::startsWith($this->cover_path, ['http://', 'https://'])) {
+                return $this->cover_path;
+            }
+
+            return route('media.show', ['path' => $this->cover_path]);
+        }
+
         if ($this->coverMedia && $this->coverMedia->storage_path) {
             return route('media.show', ['path' => $this->coverMedia->storage_path]);
         }

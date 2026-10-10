@@ -7,7 +7,7 @@
     $whatsapp = $settings('company_whatsapp', 'https://wa.me/6282338389488');
     $sections = [
         ['label' => __('nav.portfolio'),        'href' => $home.'#portofolio', 'active' => request()->routeIs('*portfolio*')],
-        ['label' => __('nav.services_prices'),  'href' => $home.'#layanan',    'active' => false],
+        ['label' => __('nav.services_prices'),  'href' => $lroute('services.index'), 'active' => request()->routeIs('*services*')],
     ];
 @endphp
 

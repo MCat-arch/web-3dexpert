@@ -14,14 +14,13 @@
         <x-customer-field name="password_confirmation" :label="__('customer.password_confirmation')" type="password"
             required autocomplete="new-password" />
 
-        <button type="submit" class="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950
-                               transition hover:bg-amber-400">
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
             {{ __('customer.register_submit') }}
         </button>
 
         <x-slot:footer>
             {{ __('customer.register_have_account') }}
-            <a href="{{ $lroute('customer.login') }}" class="font-semibold text-amber-400 hover:text-amber-300">
+            <a href="{{ $lroute('customer.login') }}" style="font-weight: 600; color: var(--gold-hover);">
                 {{ __('customer.register_login_link') }}
             </a>
         </x-slot:footer>

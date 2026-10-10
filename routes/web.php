@@ -25,6 +25,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\Project\ProjectLookupController;
+use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -88,6 +89,9 @@ $publicRoutes = function (): void {
 
     Route::get('portofolio/{portfolio}', [PortfolioController::class, 'show'])
         ->name('portfolio.show');
+
+    // Services & Pricing
+    Route::get('layanan', ServiceController::class)->name('services.index');
 
     // Events (P5a). Browsing is public; enrolling needs a verified customer.
     Route::get('acara', EventListController::class)->name('events.index');

@@ -44,7 +44,7 @@
             <ul class="footer-links-list">
                 <li><a href="{{ $lroute('home') }}">{{ __('nav.home') }}</a></li>
                 <li><a href="{{ $lroute('home') }}#portofolio">{{ __('nav.portfolio') }}</a></li>
-                <li><a href="{{ $lroute('home') }}#layanan">{{ __('nav.services') }}</a></li>
+                <li><a href="{{ $lroute('services.index') }}">{{ __('nav.services') }}</a></li>
                 <li><a href="{{ $lroute('courses.index') }}">{{ __('nav.courses') }}</a></li>
                 <li><a href="{{ $lroute('careers.index') }}">{{ __('nav.careers') }}</a></li>
             </ul>

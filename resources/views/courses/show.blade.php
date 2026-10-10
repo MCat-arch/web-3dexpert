@@ -32,7 +32,7 @@
                     </span>
                 @else
                     <span class="badge badge-dark">
-                        Mentoring Langsung
+                        {{ __('courses.mentoring_direct') }}
                     </span>
                 @endif
 
@@ -53,7 +53,7 @@
             <div>
                 @if ($course->description)
                     <div class="card-light" style="padding: 28px; margin-bottom: 30px;">
-                        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Deskripsi Kursus</h2>
+                        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">{{ __('courses.description_title') }}</h2>
                         <div style="display: flex; flex-direction: column; gap: 14px; font-size: 1rem; line-height: 1.7; color: var(--text);">
                             @foreach (preg_split('/\R{2,}/', (string) $course->description) as $paragraph)
                                 <p>{{ $paragraph }}</p>
@@ -65,18 +65,18 @@
                 {{-- Highlights Row --}}
                 <div class="card-light" style="padding: 20px; margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; text-align: center;">
                     <div>
-                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Total Pelajaran</span>
-                        <strong style="font-size: 1.2rem; color: var(--text);">{{ $course->lessons->count() }} Materi</strong>
+                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ __('courses.total_lessons') }}</span>
+                        <strong style="font-size: 1.2rem; color: var(--text);">{{ __('courses.lessons_count', ['count' => $course->lessons->count()]) }}</strong>
                     </div>
                     <div>
-                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Durasi</span>
+                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ __('courses.duration') }}</span>
                         <strong style="font-size: 1.2rem; color: var(--text);">
-                            {{ $course->estimated_minutes ? ($course->estimated_minutes >= 60 ? round($course->estimated_minutes / 60, 1).' Jam' : $course->estimated_minutes.' Menit') : '-' }}
+                            {{ $course->estimated_minutes ? ($course->estimated_minutes >= 60 ? __('courses.duration_hours', ['count' => round($course->estimated_minutes / 60, 1)]) : __('courses.duration_minutes', ['count' => $course->estimated_minutes])) : '-' }}
                         </strong>
                     </div>
                     <div>
-                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Akses</span>
-                        <strong style="font-size: 1.2rem; color: var(--gold-hover);">Online Selamanya</strong>
+                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ __('courses.access') }}</span>
+                        <strong style="font-size: 1.2rem; color: var(--gold-hover);">{{ __('courses.access_forever') }}</strong>
                     </div>
                 </div>
 
@@ -85,15 +85,15 @@
                 <div class="card-light" style="padding: 28px;">
                     <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 8px;">{{ __('courses.syllabus') }}</h2>
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px;">
-                        {{ $sectionsPayload->count() }} Bagian &middot; {{ $course->lessons->count() }} Pelajaran
+                        {{ __('courses.section_count', ['count' => $sectionsPayload->count()]) }} &middot; {{ __('courses.lessons_count', ['count' => $course->lessons->count()]) }}
                     </p>
 
                     <div style="display: flex; flex-direction: column; gap: 16px;">
                         @forelse ($sectionsPayload as $sectionIndex => $sec)
                             <div style="border: 1px solid var(--line-light); border-radius: var(--radius-card); overflow: hidden;">
-                                <div style="background: #f7f7f7; padding: 14px 18px; font-weight: 600; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line-light);">
+                                <div style="background: var(--paper); padding: 14px 18px; font-weight: 600; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line-light);">
                                     <span>{{ $sectionIndex + 1 }}. {{ $sec['title'] }}</span>
-                                    <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">{{ count($sec['lessons']) }} materi</span>
+                                    <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">{{ count($sec['lessons']) }} {{ __('courses.lesson_unit') }}</span>
                                 </div>
 
                                 <div style="display: flex; flex-direction: column;">
@@ -119,7 +119,7 @@
                                                 @if ($les['unlocked'])
                                                     <a href="{{ $lroute('courses.player.show', ['course' => $course->slug, 'lesson' => $les['id']]) }}"
                                                        style="color: var(--gold-hover); font-weight: 600; text-decoration: none;">
-                                                        Buka &rarr;
+                                                        {{ __('courses.open_lesson') }} &rarr;
                                                     </a>
                                                 @endif
                                             </div>
@@ -136,13 +136,13 @@
                 @else
                 {{-- Advanced / real-world mentoring: no syllabus, show program highlights --}}
                 <div class="card-light" style="padding: 28px; margin-bottom: 30px;">
-                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Program Mentoring Langsung</h2>
+                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">{{ __('courses.program_mentoring_title') }}</h2>
                     <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; line-height: 1.7; color: var(--text);">
-                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Terlibat langsung dalam proyek arsitektur & interior nyata</li>
-                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Bimbingan intensif dari mentor 3D Expert berpengalaman</li>
-                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Pengukuran lapangan, konsep desain, hingga presentasi klien</li>
-                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Sertifikat & portofolio proyek nyata setelah selesai</li>
-                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;">✓</span> Kuota sangat terbatas per batch</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;"></span> {{ __('courses.mentoring_point_1') }}</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;"></span> {{ __('courses.mentoring_point_2') }}</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;"></span> {{ __('courses.mentoring_point_3') }}</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;"></span> {{ __('courses.mentoring_point_4') }}</li>
+                        <li style="display: flex; gap: 10px;"><span style="color:var(--gold-hover);font-weight:700;"></span> {{ __('courses.mentoring_point_5') }}</li>
                     </ul>
                 </div>
                 @endif
@@ -174,59 +174,50 @@
                             </div>
                         </div>
                         @if (! $course->isFree())
-                            <span class="badge badge-gold">Sekali Bayar</span>
+                            <span class="badge badge-gold">{{ __('courses.one_time_payment') }}</span>
                         @endif
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
-                        @if ($course->hasLms())
-                            {{-- LMS courses: enroll / buy / resume --}}
-                            @if ($isEnrolled)
+                        @if ($isEnrolled)
+                            @if ($course->hasLms())
                                 <a href="{{ $lroute('courses.player.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
                                     {{ __('courses.resume_learning') }}
                                 </a>
-                            @elseif (auth('customer')->check())
-                                <a href="{{ $lroute('courses.checkout.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
-                                    {{ $course->isFree() ? __('courses.enroll_now') : __('courses.buy_now') }}
-                                </a>
                             @else
-                                <a href="{{ $lroute('customer.login') }}" class="btn btn-primary btn-block btn-lg">
-                                    {{ __('courses.enroll_now') }}
-                                </a>
-                                <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
-                                    Belum punya akun? <a href="{{ $lroute('customer.register') }}" style="color: var(--gold-hover); font-weight: 600;">Daftar akun</a>
-                                </p>
+                                <div class="badge badge-success" style="padding: 12px; text-align: center; font-size: 0.95rem; width: 100%;">
+                                     {{ __('courses.already_enrolled_program') }}
+                                </div>
                             @endif
-                        @else
-                            {{-- Advanced / real-world: WhatsApp CTA --}}
-                            @php
-                                $ctaUrl = $course->whatsappUrl($settings('company_whatsapp', 'https://wa.me/6282338389488'));
-                            @endphp
-                            <a href="{{ $ctaUrl }}" target="_blank" rel="noopener noreferrer"
-                               class="btn btn-primary btn-block btn-lg">
-                                💬 Hubungi & Daftar via WhatsApp
+                        @elseif (auth('customer')->check())
+                            <a href="{{ $lroute('courses.checkout.show', ['course' => $course->slug]) }}" class="btn btn-primary btn-block btn-lg">
+                                {{ $course->isFree() ? __('courses.enroll_now') : __('courses.buy_now') }}
                             </a>
-                            <p style="text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-top: 6px;">
-                                Tim kami akan menghubungi Anda dalam 1×24 jam
+                        @else
+                            <a href="{{ $lroute('customer.login') }}" class="btn btn-primary btn-block btn-lg">
+                                {{ __('courses.enroll_now') }}
+                            </a>
+                            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
+                                {{ __('courses.no_account_yet') }} <a href="{{ $lroute('customer.register') }}" style="color: var(--gold-hover); font-weight: 600;">{{ __('courses.register_account') }}</a>
                             </p>
                         @endif
                     </div>
 
                     <div style="border-top: 1px solid var(--line-light); padding-top: 16px;">
                         @if ($course->hasLms())
-                            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">Yang Anda Dapatkan:</h4>
+                            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">{{ __('courses.you_get') }}</h4>
                             <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--text);">
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ Akses video materi HD selamanya</li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ File latihan & aset 3D pendukung</li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ Belajar di smartphone, tablet, PC</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.lms_benefit_video') }}</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.lms_benefit_assets') }}</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.lms_benefit_multidevice') }}</li>
                             </ul>
                         @else
-                            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">Yang Anda Dapatkan:</h4>
+                            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">{{ __('courses.you_get') }}</h4>
                             <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--text);">
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ Proyek nyata di portofolio Anda</li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ Bimbingan intensif mentor senior</li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ Sertifikat resmi 3D Expert</li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✓ Jaringan profesional arsitektur</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.mentoring_benefit_portfolio') }}</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.mentoring_benefit_mentor') }}</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.mentoring_benefit_certificate') }}</li>
+                                <li style="display: flex; align-items: center; gap: 8px;"> {{ __('courses.mentoring_benefit_network') }}</li>
                             </ul>
                         @endif
                     </div>

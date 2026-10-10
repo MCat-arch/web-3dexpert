@@ -8,6 +8,13 @@
         </div>
 
         <div class="auth-header">
+            <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                <a href="{{ $lroute('home') }}">
+                    <img src="{{ asset('images/logo.png') }}" alt="3D Expert"
+                         style="height: 40px; width: auto; object-fit: contain;"
+                         onerror="this.parentElement.innerHTML='<span style=\'font-size:1.1rem;font-weight:800;color:var(--ink-900);letter-spacing:-0.02em;\'>3D<span style=\'color:var(--gold-hover);\'>Expert</span></span>'">
+                </a>
+            </div>
             <h1 class="auth-title">{{ $title }}</h1>
             @if ($subtitle)
                 <p class="auth-desc">{{ $subtitle }}</p>

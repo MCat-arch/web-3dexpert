@@ -64,6 +64,21 @@
                             <p class="form-error">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    <div style="margin-top: 24px; padding: 18px; border: 1px solid var(--line-light); border-radius: var(--radius-card); background: #fafafa;">
+                        <label class="form-label" style="margin-bottom: 8px;"> Metode Pembayaran</label>
+                        <input type="hidden" name="payment_method" value="qris">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fff; border: 2px solid var(--gold); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                
+                                <div>
+                                    <strong style="display: block; font-size: 0.95rem; color: var(--text);">QRIS Dinamis</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">BCA, Mandiri, BRI, GoPay, OVO, DANA, ShopeePay</span>
+                                </div>
+                            </div>
+                            <span class="badge badge-gold" style="font-size: 0.75rem;">Otomatis</span>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Right: Order Summary --}}

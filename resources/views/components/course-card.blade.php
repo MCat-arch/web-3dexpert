@@ -27,7 +27,7 @@
 
             @if (! $course->hasLms())
                 <span class="badge badge-gold" style="background: var(--gold); color: #000;">
-                    Mentoring
+                    {{ __('courses.mentoring_badge') }}
                 </span>
             @elseif ($course->isFree())
                 <span class="badge badge-success">
@@ -56,7 +56,7 @@
                     📚 {{ __('courses.lessons_count', ['count' => $course->lessons_count ?? $course->lessons->count()]) }}
                 </span>
             @else
-                <span style="color: var(--gold-hover); font-weight: 600;">🤝 Program Langsung</span>
+                <span style="color: var(--gold-hover); font-weight: 600;">🤝 {{ __('courses.direct_program') }}</span>
             @endif
         </div>
 
@@ -80,7 +80,7 @@
             </div>
             <a href="{{ $lroute('courses.show', ['course' => $course->slug]) }}"
                class="btn btn-primary btn-sm">
-                {{ $course->hasLms() ? (__('courses.view_detail') ?? 'Lihat Kursus') : 'Lihat Program' }}
+                {{ $course->hasLms() ? __('courses.view_detail') : __('courses.view_program') }}
             </a>
         </div>
     </div>

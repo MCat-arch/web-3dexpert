@@ -18,6 +18,30 @@
     </div>
 
     <div class="container" style="padding-bottom: 70px;">
+        {{-- Filter Level Kursus --}}
+        <div style="display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; justify-content: center;">
+            <a href="{{ $lroute('courses.index') }}"
+               class="btn btn-sm {{ empty($currentLevel) ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ empty($currentLevel) ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Semua Kursus
+            </a>
+            <a href="{{ $lroute('courses.index', ['level' => 'beginner']) }}"
+               class="btn btn-sm {{ $currentLevel === 'beginner' ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ $currentLevel === 'beginner' ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Pemula (Beginner)
+            </a>
+            <a href="{{ $lroute('courses.index', ['level' => 'intermediate']) }}"
+               class="btn btn-sm {{ $currentLevel === 'intermediate' ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ $currentLevel === 'intermediate' ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Menengah (Intermediate)
+            </a>
+            <a href="{{ $lroute('courses.index', ['level' => 'advanced']) }}"
+               class="btn btn-sm {{ $currentLevel === 'advanced' ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ $currentLevel === 'advanced' ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Ahli (Advance)
+            </a>
+        </div>
+
         @if ($courses->isEmpty())
             <x-empty-state :title="__('courses.empty_title')" :description="__('courses.empty_description')" />
         @else

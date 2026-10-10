@@ -18,6 +18,25 @@
     </div>
 
     <div class="container" style="max-width: 900px; padding-bottom: 70px;">
+        {{-- Filter Kategori Karir --}}
+        <div style="display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center;">
+            <a href="{{ $lroute('careers.index') }}"
+               class="btn btn-sm {{ empty($currentType) ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ empty($currentType) ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Semua Lowongan
+            </a>
+            <a href="{{ $lroute('careers.index', ['type' => 'internship']) }}"
+               class="btn btn-sm {{ $currentType === 'internship' ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ $currentType === 'internship' ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Magang (Internship)
+            </a>
+            <a href="{{ $lroute('careers.index', ['type' => 'full-time']) }}"
+               class="btn btn-sm {{ $currentType === 'full-time' ? 'btn-primary' : 'btn-outline' }}"
+               style="{{ $currentType === 'full-time' ? '' : 'color: var(--text); border-color: var(--line-light);' }}">
+                Karyawan Tetap (Full-time)
+            </a>
+        </div>
+
         @if ($vacancies->isEmpty())
             <x-empty-state :title="__('careers.empty_title')" :description="__('careers.empty_description')" />
         @else

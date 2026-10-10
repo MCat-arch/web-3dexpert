@@ -19,7 +19,7 @@
 
                 @if ($customer)
                     <span class="badge badge-dark" style="font-size: 0.8rem;">
-                        Siswa: {{ $customer->name }}
+                        {{ __('courses.student_label') }}: {{ $customer->name }}
                     </span>
                 @endif
             </div>
@@ -44,10 +44,8 @@
                             <div
                                 style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; text-align: center; color: var(--on-dark-2);">
                                 <div style="font-size: 2.5rem; margin-bottom: 12px;">📄</div>
-                                <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">Materi
-                                    Bacaan / Non-Video</h3>
-                                <p style="font-size: 0.9rem; max-width: 480px; margin: 0;">Silakan pelajari uraian dan panduan
-                                    materi di bawah ini.</p>
+                                <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">{{ __('courses.lesson_reading_material') }}</h3>
+                                <p style="font-size: 0.9rem; max-width: 480px; margin: 0;">{{ __('courses.reading_material_desc') }}</p>
                             </div>
                         @endif
                     </div>
@@ -74,8 +72,8 @@
                 {{-- Syllabus Sidebar --}}
                 <div class="syllabus-sidebar">
                     <div
-                        style="padding: 16px 20px; background: #f0f0f0; border-bottom: 1px solid var(--line-light); font-weight: 700; font-size: 0.95rem; color: var(--text);">
-                        Daftar Silabus & Pelajaran
+                        style="padding: 16px 20px; background: var(--ink-800); border-bottom: 1px solid var(--line-dark); font-weight: 700; font-size: 0.9rem; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em;">
+                        {{ __('courses.syllabus_list') }}
                     </div>
 
                     <div style="max-height: 600px; overflow-y: auto;">

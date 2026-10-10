@@ -11,6 +11,15 @@ class CourseCheckoutRequest extends FormRequest
         return auth('customer')->check();
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('payment_method') || blank($this->payment_method)) {
+            $this->merge([
+                'payment_method' => 'qris',
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         $course = $this->route('course');

@@ -129,6 +129,19 @@ class Event extends Model
         return $this->seatsLeft();
     }
 
+    public function getCoverUrlAttribute(): ?string
+    {
+        if (blank($this->cover_path)) {
+            return null;
+        }
+
+        if (Str::startsWith($this->cover_path, ['http://', 'https://'])) {
+            return $this->cover_path;
+        }
+
+        return route('media.show', ['path' => $this->cover_path]);
+    }
+
     public function registrationIsOpen(): bool
     {
         if (! $this->is_published) {

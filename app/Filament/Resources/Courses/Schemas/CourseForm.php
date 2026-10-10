@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Courses\Schemas;
 
 use App\Models\Course;
+use App\Support\MediaUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -16,30 +17,41 @@ class CourseForm
     {
         return $schema->components([
 
+            Section::make('Pamflet / Banner Kursus')
+                ->schema([
+                    MediaUpload::field('cover_path', 'courses', ['image/jpeg', 'image/png', 'image/webp'], 5120, true)
+                        ->label('Pamflet / Poster Kursus')
+                        ->helperText('Unggah pamflet atau poster resmi kursus (JPG, PNG, WebP maks 5MB).'),
+                ]),
+
             Section::make('Judul dan Deskripsi')
-                ->columns(2)
                 ->schema([
                     TextInput::make('title.id')
-                        ->label('Judul (Indonesia)')
+                        ->label('Judul Kursus (Bahasa Indonesia)')
                         ->required()
                         ->maxLength(255)
                         ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('title', 'id') ?? ''),
 
+                    Textarea::make('description.id')
+                        ->label('Deskripsi Kursus (Bahasa Indonesia)')
+                        ->rows(6)
+                        ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('description', 'id') ?? ''),
+                ]),
+
+            Section::make('Kustomisasi Bahasa Inggris (Opsional)')
+                ->collapsed()
+                ->description('Kosongkan bagian ini jika ingin sistem otomatis menerjemahkan dari Bahasa Indonesia.')
+                ->schema([
                     TextInput::make('title.en')
                         ->label('Title (English)')
+                        ->placeholder('Otomatis diterjemahkan jika kosong...')
                         ->maxLength(255)
                         ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('title', 'en') ?? ''),
 
-                    Textarea::make('description.id')
-                        ->label('Deskripsi (Indonesia)')
-                        ->rows(6)
-                        ->columnSpanFull()
-                        ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('description', 'id') ?? ''),
-
                     Textarea::make('description.en')
                         ->label('Description (English)')
-                        ->rows(6)
-                        ->columnSpanFull()
+                        ->placeholder('Otomatis diterjemahkan jika kosong...')
+                        ->rows(5)
                         ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('description', 'en') ?? ''),
                 ]),
 

@@ -116,6 +116,12 @@ trait HasTranslations
 
     public function setTranslations(string $key, array $translations): static
     {
+        if (filled($translations['id'] ?? null) && blank($translations['en'] ?? null)) {
+            $translations['en'] = \App\Support\AutoTranslator::translateToEnglish($translations['id']);
+        } elseif (blank($translations['id'] ?? null) && filled($translations['en'] ?? null)) {
+            $translations['id'] = $translations['en'];
+        }
+
         $this->attributes[$key] = json_encode(
             array_filter($translations, fn ($v) => $v !== null),
             JSON_UNESCAPED_UNICODE

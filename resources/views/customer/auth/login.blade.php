@@ -10,26 +10,26 @@
         <x-customer-field name="password" :label="__('customer.password')" type="password" required
             autocomplete="current-password" />
 
-        <div class="flex items-center justify-between gap-4">
-            <label for="remember" class="flex items-center gap-2 text-sm text-neutral-400">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px;">
+            <label for="remember" style="display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--text-muted); cursor: pointer;">
                 <input id="remember" name="remember" type="checkbox" value="1"
-                    class="rounded border-white/20 bg-neutral-900 text-amber-500 focus:ring-amber-500">
+                    style="width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer;">
                 {{ __('customer.login_remember') }}
             </label>
 
-            <a href="{{ $lroute('customer.password.request') }}" class="text-sm text-amber-400 hover:text-amber-300">
+            <a href="{{ $lroute('customer.password.request') }}"
+               style="font-size: 0.875rem; color: var(--gold-hover); font-weight: 500; text-decoration: none; white-space: nowrap;">
                 {{ __('customer.login_forgot') }}
             </a>
         </div>
 
-        <button type="submit" class="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950
-                           transition hover:bg-amber-400">
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
             {{ __('customer.login_submit') }}
         </button>
 
         <x-slot:footer>
             {{ __('customer.login_no_account') }}
-            <a href="{{ $lroute('customer.register') }}" class="font-semibold text-amber-400 hover:text-amber-300">
+            <a href="{{ $lroute('customer.register') }}" style="font-weight: 600; color: var(--gold-hover);">
                 {{ __('customer.login_register_link') }}
             </a>
         </x-slot:footer>

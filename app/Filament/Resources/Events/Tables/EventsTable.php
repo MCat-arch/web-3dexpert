@@ -24,6 +24,11 @@ class EventsTable
                     ->searchable()
                     ->wrap(),
 
+                IconColumn::make('cover_path')
+                    ->label('Pamflet')
+                    ->boolean()
+                    ->state(fn ($record) => filled($record->cover_path)),
+
                 TextColumn::make('starts_at')
                     ->label('Mulai')
                     ->dateTime('d M Y H:i')
