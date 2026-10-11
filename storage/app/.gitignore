@@ -1,4 +1,7 @@
+# Runtime-managed media and private uploads are deployed outside Git.
 *
+!media/
+!media/.gitkeep
 !private/
 !public/
 !.gitignore

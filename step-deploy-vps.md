@@ -252,7 +252,54 @@ SESSION_SECURE_COOKIE=false
 
 Setelah domain dan HTTPS aktif, ubah menjadi `true`.
 
-## 6. Build dan jalankan Docker Compose
+## 6. Siapkan media dan storage persistent di VPS
+
+Media marketing tidak disimpan di GitHub dan tidak dibundel ke Docker image.
+Folder `storage/app/media` berisi hero, logo, portfolio, icon, dan empat PDF
+brochure yang direferensikan oleh data layanan. Upload folder ini ke VPS
+sebelum build atau start container.
+
+Buat directory persistent di luar checkout Git:
+
+```bash
+sudo install -d -o 33 -g 33 -m 775 /var/lib/3dexpert/media
+sudo install -d -o 33 -g 33 -m 770 /var/lib/3dexpert/applications
+```
+
+Upload isi `storage/app/media` dari komputer deployment. Contoh memakai
+`rsync` dari mesin Linux/macOS:
+
+```bash
+rsync -av --delete storage/app/media/ USER_VPS@IP_VPS:/tmp/3dexpert-media/
+ssh USER_VPS@IP_VPS \
+  'sudo rsync -a --delete --chown=33:33 /tmp/3dexpert-media/ /var/lib/3dexpert/media/ && rm -rf /tmp/3dexpert-media'
+```
+
+Jika komputer deployment hanya memiliki `scp`, gunakan archive sementara:
+
+```bash
+tar -czf 3dexpert-media.tar.gz -C storage/app media
+scp 3dexpert-media.tar.gz USER_VPS@IP_VPS:/tmp/
+ssh USER_VPS@IP_VPS \
+  'sudo tar -xzf /tmp/3dexpert-media.tar.gz -C /var/lib/3dexpert && sudo chown -R 33:33 /var/lib/3dexpert/media && rm -f /tmp/3dexpert-media.tar.gz'
+```
+
+Jalankan verifikasi di VPS sebelum melanjutkan:
+
+```bash
+find /var/lib/3dexpert/media -type f | wc -l
+du -sh /var/lib/3dexpert/media
+test -f '/var/lib/3dexpert/media/brochures/Arsitektur EKSTERIOR.pdf'
+test -f '/var/lib/3dexpert/media/brochures/Arsitektur INTERIOR.pdf'
+test -f '/var/lib/3dexpert/media/brochures/Gambar Perijinan.pdf'
+test -f '/var/lib/3dexpert/media/brochures/PEMBANGUNAN Lengkap.pdf'
+```
+
+Jumlah dan ukuran file harus sesuai dengan source media yang dikirim. Jangan
+menjalankan `rsync --delete` terhadap directory yang salah karena opsi tersebut
+akan menghapus media production yang tidak ada di source.
+
+## 7. Build dan jalankan Docker Compose
 
 Pastikan Docker Compose membaca `.env`:
 
@@ -297,7 +344,7 @@ docker compose logs --tail=100 worker
 Compose sudah menjalankan Nginx di port 80. Karena itu, jangan menjalankan
 Nginx host pada port 80 secara bersamaan sebelum arsitekturnya diubah.
 
-## 7. Inisialisasi Laravel dan database
+## 8. Inisialisasi Laravel, database, dan metadata media
 
 Generate application key di dalam container:
 
@@ -321,16 +368,27 @@ docker compose exec app php artisan migrate --seed --force
 Seeder utama mencakup data legacy yang sudah dipetakan untuk service,
 testimonial, design review, portfolio, dan portfolio images.
 
-Daftarkan metadata media jika file media memang sudah tersedia:
+Daftarkan metadata media setelah bind mount sudah aktif:
 
 ```bash
 docker compose exec -u root app php artisan app:import-media-assets
 ```
 
-`storage:link` hanya diperlukan jika aplikasi menggunakan disk `public` dan
-URL `/storage/...`. Pada project ini media utama memakai disk `media` dan
-dilayani oleh `MediaController`, sehingga command ini bukan solusi untuk semua
-404 media.
+Command tersebut membaca file dari `/var/www/html/storage/app/media`, yang
+merupakan mount `/var/lib/3dexpert/media` dari host. Command harus melaporkan
+file yang di-import atau sudah tersedia. Jika melaporkan `No supported media
+files were found`, hentikan deployment dan periksa mount serta isi directory.
+
+Verifikasi mount dan metadata:
+
+```bash
+docker compose exec app sh -lc 'find storage/app/media -type f | wc -l'
+docker compose exec app php artisan tinker --execute='echo App\Models\MediaAsset::count(), PHP_EOL;'
+```
+
+`storage:link` tidak diperlukan untuk media utama. Media menggunakan disk
+`media` dan dilayani oleh `MediaController`; membuat symbolic link public tidak
+menggantikan file media atau metadata `media_assets`.
 
 Jika tetap diperlukan:
 
@@ -344,7 +402,7 @@ Buat cache production:
 docker compose exec app php artisan optimize
 ```
 
-## 8. Buat role admin
+## 9. Buat role admin
 
 Admin dibuat setelah migration berhasil. Gunakan command yang sudah tersedia:
 
@@ -381,7 +439,7 @@ http://IP_VPS/admin
 
 Jangan membuat password admin hardcoded di seeder atau repository.
 
-## 9. Smoke test melalui IP VPS
+## 10. Smoke test melalui IP VPS
 
 Buka dari komputer lokal:
 
@@ -394,11 +452,24 @@ Periksa:
 - Homepage tampil.
 - Asset CSS dan JavaScript tidak 404.
 - Gambar portfolio tampil.
+- Gambar hero dan logo tampil.
+- Tombol brochure membuka PDF tanpa status `404`.
 - Course dan career tampil.
 - Login `/admin` berhasil.
 - Registrasi customer berhasil.
 - Email verification masuk queue.
 - Worker mengambil queue Redis.
+
+Periksa media yang dilayani aplikasi:
+
+```bash
+curl -I http://IP_VPS/media/images/logo.png
+curl -I http://IP_VPS/media/hero/hero_1_1750153978.jpg
+curl -I 'http://IP_VPS/media/brochures/Arsitektur%20EKSTERIOR.pdf'
+```
+
+Response yang diharapkan adalah `200 OK`. PDF diharapkan memiliki
+`Content-Type: application/pdf` dan `Content-Disposition: attachment`.
 
 Periksa queue:
 
@@ -425,7 +496,7 @@ Periksa aplikasi melalui command Laravel:
 docker compose exec app php artisan about
 ```
 
-## 10. Backup awal sebelum traffic production
+## 11. Backup awal sebelum traffic production
 
 Buat folder backup dengan permission terbatas:
 
@@ -446,7 +517,15 @@ docker compose exec -T mysql mysqldump \
 Jangan memasukkan password production ke script yang dikomit. Atur backup
 terjadwal setelah smoke test selesai.
 
-## 11. Menambahkan domain setelah deployment via IP berhasil
+Backup database tidak mencakup file pada disk media. Buat backup media dan
+private application uploads secara terpisah:
+
+```bash
+sudo tar -czf /var/backups/3dexpert/media-$(date +%F).tar.gz \
+  -C /var/lib/3dexpert media applications
+```
+
+## 12. Menambahkan domain setelah deployment via IP berhasil
 
 ### 11.1 Arahkan DNS
 
@@ -521,7 +600,7 @@ domain akan diaktifkan.
 Tahap ini dilakukan **setelah Tahap 1 berhasil** dan aplikasi dapat diakses
 melalui IP VPS.
 
-## 12. Model deployment GitHub Actions
+## 13. Model deployment GitHub Actions
 
 Alur yang digunakan:
 
@@ -544,7 +623,7 @@ VPS recreate container dan menjalankan migration
 `.env` tetap berada di VPS. GitHub Actions tidak mengirim file `.env` dari
 repository.
 
-## 13. Buat SSH deploy key khusus
+## 14. Buat SSH deploy key khusus
 
 Di komputer lokal, buat key khusus deployment:
 
@@ -574,7 +653,7 @@ ssh -i "$HOME\.ssh\3dexpert_actions" username@IP_VPS
 
 Private key tidak boleh di-commit atau ditempel di file workflow.
 
-## 14. Tambahkan GitHub Actions secrets
+## 15. Tambahkan GitHub Actions secrets
 
 Di GitHub buka:
 
@@ -601,7 +680,7 @@ Jangan tambahkan:
 
 Secret aplikasi tetap dikelola di `.env` VPS.
 
-## 15. Tambahkan job deployment setelah CI
+## 16. Tambahkan job deployment setelah CI
 
 File `.github/workflows/ci.yml` saat ini melakukan CI. Job deployment harus
 ditambahkan setelah CI berhasil, atau dibuat sebagai workflow terpisah dengan
@@ -615,8 +694,14 @@ git pull --ff-only origin main
 docker compose build
 docker compose up -d --force-recreate
 docker compose exec -T app php artisan migrate --force
+docker compose exec -T app php artisan app:import-media-assets
 docker compose exec -T app php artisan optimize
 ```
+
+Job deployment tidak meng-upload media dari GitHub. Pastikan proses deployment
+memiliki langkah upload/sinkronisasi media ke `/var/lib/3dexpert/media` sebelum
+`docker compose up -d --force-recreate`. Jangan memakai `rsync --delete` tanpa
+source media yang lengkap.
 
 Gunakan `docker compose exec -T` di CI agar command tidak menunggu TTY.
 
@@ -628,7 +713,7 @@ Sebelum mengaktifkan otomatisasi production:
 - Pastikan CI selesai sebelum deployment.
 - Simpan log deployment dan rollback command.
 
-## 16. Rollback deployment
+## 17. Rollback deployment
 
 Catat commit sebelum update:
 
@@ -658,22 +743,27 @@ docker compose logs --tail=100 app
 docker compose logs --tail=100 worker
 ```
 
-## 17. Checklist selesai
+## 18. Checklist selesai
 
 ### Tahap 1
 
 - [ ] GitHub repository dapat diakses dari VPS.
 - [ ] Docker Engine dan Compose aktif.
 - [ ] `.env` production dibuat hanya di VPS.
+- [ ] `/var/lib/3dexpert/media` dibuat dan diisi dari source media resmi.
+- [ ] Empat PDF brochure, hero, logo, icon, dan portfolio diverifikasi.
 - [ ] `docker compose config` berhasil.
 - [ ] Image app, worker, dan Nginx berhasil dibuild.
 - [ ] MySQL dan Redis healthy.
 - [ ] Migration dan legacy seeder berhasil.
 - [ ] Media asset metadata berhasil diimport.
+- [ ] Mount media terlihat dari container `app` dan `worker`.
 - [ ] Admin `superadmin` berhasil dibuat.
 - [ ] Homepage dan `/admin` dapat diakses melalui IP.
+- [ ] Hero, logo, dan link brochure menghasilkan `200 OK`.
 - [ ] Queue worker berjalan.
 - [ ] Backup database pertama dibuat.
+- [ ] Backup media dan private application uploads pertama dibuat.
 
 ### Tahap domain
 
@@ -693,4 +783,3 @@ docker compose logs --tail=100 worker
 - [ ] Production environment dan approval dikonfigurasi.
 - [ ] Deployment workflow diuji.
 - [ ] Rollback commit diuji atau didokumentasikan.
-

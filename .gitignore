@@ -6,7 +6,10 @@
 /public/js/filament
 /public/storage
 /storage/*.key
-/storage/app/media
+# Runtime-managed public media is uploaded to the VPS separately. Keep only
+# the directory placeholder in Git; never commit its contents.
+storage/app/media/*
+!storage/app/media/.gitkeep
 /storage/pail
 /vendor
 .env

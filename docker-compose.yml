@@ -14,6 +14,9 @@ services:
       SESSION_DRIVER: redis
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
+    volumes:
+      - /var/lib/3dexpert/media:/var/www/html/storage/app/media
+      - /var/lib/3dexpert/applications:/var/www/html/storage/app/private/applications
     expose:
       - "9000"
     depends_on:
@@ -38,6 +41,9 @@ services:
       SESSION_DRIVER: redis
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
+    volumes:
+      - /var/lib/3dexpert/media:/var/www/html/storage/app/media
+      - /var/lib/3dexpert/applications:/var/www/html/storage/app/private/applications
     command: php artisan queue:work redis --queue=mail,default --sleep=1 --tries=3 --timeout=90 --max-jobs=500 --max-time=3600 --memory=128
     depends_on:
       mysql:
