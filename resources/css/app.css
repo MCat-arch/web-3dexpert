@@ -717,20 +717,23 @@ p:last-child { margin-bottom: 0; }
     z-index: 3;
     max-width: 760px;
     color: #ffffff;
+    align-self: flex-end;                      /* NEW: dorong konten ke bawah hero */
+    padding-bottom: clamp(64px, 10vh, 110px);  /* NEW: jarak aman dari dots (bottom: 30px) */
 }
 
 .hero-title {
-    font-size: clamp(2.2rem, 5.5vw, 3.2rem);
+    font-size: clamp(1.8rem, 4vw, 2.5rem);       /* BEFORE: clamp(2.2rem, 5.5vw, 3.2rem) */
     font-weight: 700;
     line-height: 1.18;
     margin-bottom: 16px;
-    color: #ffffff;
+    color: rgba(255, 255, 255, 0.85);            /* BEFORE: #ffffff */
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45); /* NEW: jaga readability di atas image */
 }
 
 .hero-subtitle {
     font-size: clamp(1.05rem, 2.2vw, 1.25rem);
-    font-style: italic; /* Legacy signature */
-    color: var(--on-dark-2);
+    font-style: italic;
+    color: rgba(204, 204, 204, 0.85);            /* BEFORE: var(--on-dark-2) */
     margin-bottom: 30px;
     line-height: 1.6;
 }
@@ -795,6 +798,63 @@ p:last-child { margin-bottom: 0; }
     font-size: 0.9rem;
     color: var(--on-dark-2);
     font-weight: 400;
+}
+
+/* Arrow Toggle (Testimonials) — [REV-2] full transparent, tanpa blok.
+   Chevron-down saat collapsed, rotate 180° (chevron-up) saat expanded. */
+.show-more-arrow {
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    color: var(--gold);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity var(--transition), transform var(--transition);
+}
+
+.show-more-arrow:hover {
+    opacity: 1;
+    transform: translateY(2px);
+}
+
+.show-more-arrow.is-open {
+    transform: none;
+}
+
+.show-more-arrow svg {
+    transition: transform var(--transition-slow);
+}
+
+.show-more-arrow.is-open svg {
+    transform: rotate(180deg);
+}
+
+/* Instagram Embed (Order Flow) — NEW: 4:5 vertikal, centered */
+.ig-embed-card {
+    max-width: 420px;
+    margin-inline: auto;
+    aspect-ratio: 4 / 5;
+    background: var(--ink-900);
+    border: 1px solid var(--line-light);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+}
+
+.ig-embed-card iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+@media (max-width: 479px) {
+    .ig-embed-card {
+        max-width: 100%;
+    }
 }
 
 /* Portfolio 2x2 Grid (Landing) */
@@ -1695,6 +1755,11 @@ p:last-child { margin-bottom: 0; }
 [data-reveal-item].is-hidden {
     display: none;
 }
+
+[data-reveal-button][hidden] {
+    display: none;
+}
+
 
 /* Keyboard Focus Ring */
 :focus-visible {

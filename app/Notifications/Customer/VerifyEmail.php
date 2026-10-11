@@ -26,6 +26,17 @@ class VerifyEmail extends BaseVerifyEmail implements ShouldQueue
     /** @var array<int, int> */
     public array $backoff = [10, 60, 300];
 
+    /**
+     * Keep verification mail ahead of non-critical background work during a
+     * registration burst. The worker listens to mail before default.
+     *
+     * @return array<string, string>
+     */
+    public function viaQueues(): array
+    {
+        return ['mail' => 'mail'];
+    }
+
     protected function verificationUrl($notifiable): string
     {
         // Build the route name for the current locale explicitly. Laravel's

@@ -6,7 +6,8 @@ return [
     'video' => 'Video',
     'play_video' => 'Play video',
     'rating_of' => 'Rated :rating out of :max',
-
+    'view_more' => 'See More',
+    'testimonials_show_all' => 'Show all testimonials',
     'book_now' => 'Book Now',
     'free_consultation' => 'Free Consultation',
     'consult_now' => 'Start a Consultation',

@@ -29,7 +29,7 @@
                 {{-- Left: Student Info --}}
                 <div class="card-light" style="padding: 28px;">
                     <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
-                        👤 {{ __('courses.student_info') }}
+                        {{ __('courses.student_info') }}
                     </h2>
 
                     <div class="form-group">
@@ -85,7 +85,7 @@
                 <div>
                     <div class="card-light" style="padding: 24px; position: sticky; top: 90px;">
                         <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
-                            📋 {{ __('courses.order_summary') }}
+                            {{ __('courses.order_summary') }}
                         </h2>
 
                         <div style="padding-bottom: 16px; border-bottom: 1px solid var(--line-light); margin-bottom: 16px;">

@@ -221,11 +221,10 @@ class LandingContentSeeder extends Seeder
             'company_maps_url' => 'https://goo.gl/maps/68pDytiKfG1dLDMB8',
             'company_name' => '3D Expert',
             'company_email' => 'info@3dexpert.id',
-            'company_phone' => '+6282338389488',
 
             // Videos & Process
-            'location_video_url' => 'https://www.youtube.com/watch?v=m7Bc3pLyij0',
-            'why_video_url' => 'https://www.youtube.com/watch?v=m7Bc3pLyij0',
+            'location_video_url' => 'https://www.youtube.com/watch?v=ZN5d8k0Ii9w',
+            'why_video_url' => 'https://www.youtube.com/watch?v=ZN5d8k0Ii9w',
             'why_description' => [
                 'id' => 'Kami memahami kebutuhan Anda lebih dulu, supaya revisi desain minimal.',
                 'en' => 'We understand your needs first, so design revisions stay minimal.',

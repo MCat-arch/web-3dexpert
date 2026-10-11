@@ -107,13 +107,13 @@
                         {{-- Action Buttons --}}
                         <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--line-dark); margin-top: auto;">
                             <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">
-                                💬 {{ __('services.enquire_package') ?? 'Konsultasi Paket Ini' }}
+                                 {{ __('services.enquire_package') ?? 'Konsultasi Paket Ini' }}
                             </a>
 
                             @if ($service->brochure_path)
                                 <a href="{{ route('media.show', ['path' => $service->brochure_path]) }}" target="_blank"
                                    class="btn btn-outline btn-sm btn-block" style="color: var(--on-dark-2); border-color: var(--line-dark);">
-                                    📄 {{ __('services.download_brochure') ?? 'Unduh Brosur Spesifikasi' }}
+                                     {{ __('services.download_brochure') ?? 'Unduh Brosur Spesifikasi' }}
                                 </a>
                             @endif
                         </div>
@@ -127,9 +127,6 @@
     <section style="background: var(--ink-800); border-top: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark); padding: 70px 0;">
         <div class="container">
             <div style="max-width: 820px; margin: 0 auto; text-align: center; margin-bottom: 48px;">
-                <span class="badge badge-gold" style="margin-bottom: 14px; font-size: 0.85rem; padding: 6px 14px;">
-                    🛡️ Jaminan Transparansi Layanan
-                </span>
                 <h2 style="font-size: 2rem; font-weight: 800; color: #ffffff; margin-bottom: 14px; line-height: 1.3;">
                     Pantau Setiap Detik Pengerjaan dengan Fitur <span style="color: var(--gold);">Track Progress</span>
                 </h2>
@@ -141,7 +138,7 @@
             {{-- 4-Step Milestone Grid --}}
             <div class="grid grid-cols-4" style="gap: 20px; margin-bottom: 40px;">
                 <div class="card-dark" style="padding: 24px 20px; border-left: 3px solid var(--gold); border-radius: var(--radius-card);">
-                    <div style="font-size: 1.8rem; margin-bottom: 12px;">📋</div>
+                    
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px;">Tahap 1</span>
                     <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Briefing & Dokumen</h4>
                     <p style="font-size: 0.84rem; color: var(--on-dark-2); line-height: 1.5; margin: 0;">
@@ -150,7 +147,7 @@
                 </div>
 
                 <div class="card-dark" style="padding: 24px 20px; border-left: 3px solid var(--gold); border-radius: var(--radius-card);">
-                    <div style="font-size: 1.8rem; margin-bottom: 12px;">📐</div>
+
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px;">Tahap 2</span>
                     <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px;">3D Modelling Presisi</h4>
                     <p style="font-size: 0.84rem; color: var(--on-dark-2); line-height: 1.5; margin: 0;">
@@ -159,7 +156,6 @@
                 </div>
 
                 <div class="card-dark" style="padding: 24px 20px; border-left: 3px solid var(--gold); border-radius: var(--radius-card);">
-                    <div style="font-size: 1.8rem; margin-bottom: 12px;">🎨</div>
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px;">Tahap 3</span>
                     <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Draft Preview & Revisi</h4>
                     <p style="font-size: 0.84rem; color: var(--on-dark-2); line-height: 1.5; margin: 0;">
@@ -168,7 +164,6 @@
                 </div>
 
                 <div class="card-dark" style="padding: 24px 20px; border-left: 3px solid var(--gold); border-radius: var(--radius-card);">
-                    <div style="font-size: 1.8rem; margin-bottom: 12px;">📦</div>
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px;">Tahap 4</span>
                     <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Serah Terima Master</h4>
                     <p style="font-size: 0.84rem; color: var(--on-dark-2); line-height: 1.5; margin: 0;">
@@ -188,7 +183,7 @@
                     </p>
                 </div>
                 <a href="{{ $lroute('tracker.show') }}" class="btn btn-primary btn-lg">
-                    🔍 Buka Fitur Lacak Proyek &rarr;
+                    Buka Fitur Lacak Proyek;
                 </a>
             </div>
         </div>
@@ -237,18 +232,6 @@
         </div>
     </section>
 
-    {{-- ========== FAQ SECTION ========== --}}
-    @if ($faqs->isNotEmpty())
-        <section class="section faq-section" style="background: var(--ink-900); padding: 70px 0;">
-            <div class="container">
-                <x-section-heading title="Pertanyaan Umum Seputar Layanan" />
-
-                <div style="max-width: 860px; margin: 0 auto;">
-                    <x-faq-accordion :faqs="$faqs" />
-                </div>
-            </div>
-        </section>
-    @endif
 
     {{-- ========== CUSTOM INQUIRY BANNER ========== --}}
     @if ($whatsapp = $settings('company_whatsapp'))
@@ -256,7 +239,6 @@
             <div class="card-dark" style="padding: 40px; border-radius: var(--radius-feat); border: 1px solid var(--line-dark);">
                 <div style="display: flex; flex-direction: column; gap: 20px; align-items: flex-start; justify-content: space-between;" class="flex-between">
                     <div style="max-width: 680px;">
-                        <span class="badge badge-gold" style="margin-bottom: 12px;">Konsultasi Bebas Biaya</span>
                         <h2 style="font-size: 1.6rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">
                             Punya Kebutuhan Desain di Luar Paket di Atas?
                         </h2>
@@ -265,7 +247,7 @@
                         </p>
                     </div>
                     <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-                        <span>Konsultasi Sekarang &rarr;</span>
+                        <span>Konsultasi Sekarang</span>
                     </a>
                 </div>
             </div>

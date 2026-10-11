@@ -80,8 +80,6 @@
         @yield('content')
     </main>
 
-    <x-floating-whatsapp />
-
     @include('partials.footer')
 
     @stack('scripts')

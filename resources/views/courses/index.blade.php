@@ -74,7 +74,7 @@
                         </p>
                     </div>
                     <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-                        <span>Hubungi via WhatsApp &rarr;</span>
+                        <span>Hubungi via WhatsApp</span>
                     </a>
                 </div>
             </div>

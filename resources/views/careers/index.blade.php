@@ -55,9 +55,9 @@
 
                                 <div
                                     style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
-                                    <span>🏢 {{ $vacancy->department }}</span>
-                                    <span>📍 {{ $vacancy->location }}</span>
-                                    <span>💼 {{ $vacancy->employment_type }}</span>
+                                    <span>{{ $vacancy->department }}</span>
+                                    <span>{{ $vacancy->location }}</span>
+                                    <span>{{ $vacancy->employment_type }}</span>
                                 </div>
 
                                 @if ($vacancy->closes_at)
@@ -69,7 +69,7 @@
 
                             <a href="{{ $lroute('careers.show', ['vacancy' => $vacancy->slug]) }}" class="btn btn-outline btn-sm"
                                 style="color: var(--text); border-color: var(--line-light);">
-                                {{ __('careers.view_detail') ?? 'Detail &rarr;' }}
+                                {{ __('careers.view_detail') }}
                             </a>
                         </div>
                     </div>

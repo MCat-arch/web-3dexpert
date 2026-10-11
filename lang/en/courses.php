@@ -14,7 +14,7 @@ return [
     'level_beginner' => 'Beginner',
     'level_intermediate' => 'Intermediate',
     'level_advanced' => 'Advanced',
-    'view_detail' => 'View Syllabus',
+    'view_detail' => 'View Detail',
     'enroll_now' => 'Enroll Now',
     'buy_now' => 'Buy Course',
     'resume_learning' => 'Resume Learning',

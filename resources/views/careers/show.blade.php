@@ -74,7 +74,7 @@
         <div class="card-light" style="padding: 24px; background: #fafafa;">
             @if ($application && $application->isActive())
                 <p style="font-size: 1.05rem; font-weight: 600; color: var(--success); margin-bottom: 6px;">
-                    ✓ {{ __('careers.applied') }}
+                    {{ __('careers.applied') }}
                 </p>
                 <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">
                     {{ __('careers.status_' . $application->status) }}

@@ -26,8 +26,20 @@
         $whatsapp = $settings('company_whatsapp', 'https://wa.me/6282338389488');
         $locationVideoId = \App\Models\DesignReview::extractYoutubeId($settings('location_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0'));
         $whyVideoId = \App\Models\DesignReview::extractYoutubeId($settings('why_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0'));
-        $visiblePortfolios = $portfolios->take(\App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE);
-        $hasMorePortfolios = $portfolios->count() > \App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE;
+
+        // [CHANGED] Portfolio: maksimal 3 kartu tampil (1 featured + 2 grid),
+        // sisanya diarahkan ke halaman portfolio via tombol "Lihat Selengkapnya".
+        $visiblePortfolios = $portfolios->take(2);
+        $hasMorePortfolios = $portfolios->count() > 2;
+
+        // [HOTFIX] Tanpa filter kolom (nama kolom video belum terkonfirmasi).
+        // Jendela utama = ID 11-20 (10 item) -> grid-cols-4 -> 3 baris (4+4+2).
+        $testimonialWindow = $testimonials->whereIn('id', range(11, 20))->values();
+        $initialTestimonials = $testimonialWindow->take(12);
+        $initialTestimonialIds = $initialTestimonials->pluck('id')->all();
+        $moreTestimonials = $testimonials
+            ->reject(fn ($t) => in_array($t->id, $initialTestimonialIds))
+            ->values();
     @endphp
 
     {{-- ========== 2. HERO ========== --}}
@@ -60,10 +72,8 @@
                     {{ $settings('hero_subheading', 'Perpaduan sempurna antara estetika, fungsi, dan eksklusivitas.') }}
                 </p>
 
+                {{-- CTA tunggal: hanya "Konsultasi Gratis". --}}
                 <div class="hero-cta-group">
-                    <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-white">
-                        {{ __('home.book_now') }}
-                    </a>
                     <a href="#layanan" class="btn btn-outline">
                         {{ __('home.free_consultation') }}
                     </a>
@@ -137,37 +147,23 @@
                     :eyebrow="__('home.portfolio_eyebrow')"
                     :title="__('home.portfolio_title')" />
 
-                <div x-data="revealMore">
-                    <div class="portfolio-bento-grid">
-                        @if ($featured)
-                            <x-portfolio-card :portfolio="$featured" featured />
-                        @endif
+                <div class="portfolio-bento-grid">
+                    @if ($featured)
+                        <x-portfolio-card :portfolio="$featured" featured />
+                    @endif
 
-                        @foreach ($visiblePortfolios as $portfolio)
-                            <x-portfolio-card :portfolio="$portfolio" />
-                        @endforeach
+                    @foreach ($visiblePortfolios as $portfolio)
+                        <x-portfolio-card :portfolio="$portfolio" />
+                    @endforeach
+                </div>
 
-                        @if ($hasMorePortfolios)
-                            @foreach ($portfolios->slice(\App\Http\Controllers\HomeController::PORTFOLIO_VISIBLE) as $portfolio)
-                                <div data-reveal-item class="is-hidden" style="display: contents;">
-                                    <x-portfolio-card :portfolio="$portfolio" />
-                                </div>
-                            @endforeach
-                        @endif
-                    </div>
-
-                    <div style="margin-top: 40px; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
-                        @if ($hasMorePortfolios)
-                            <button type="button" data-reveal-button hidden class="btn btn-outline">
-                                {{ __('home.load_more') }}
-                            </button>
-                        @endif
-
-                        <a href="{{ $lroute('portfolio.index') }}" class="btn btn-outline">
-                            {{ __('home.view_all_portfolio') }}
+                @if ($hasMorePortfolios)
+                    <div style="margin-top: 40px; display: flex; justify-content: center;">
+                        <a href="{{ $lroute('portfolio.index') }}" class="btn btn-outline btn-lg">
+                            {{ __('home.view_more') }}
                         </a>
                     </div>
-                </div>
+                @endif
             </div>
         </section>
     @endif
@@ -188,17 +184,52 @@
                     </div>
                 @endif
 
-                @if ($testimonials->isNotEmpty())
-                    <div class="grid grid-cols-4">
-                        @foreach ($testimonials as $testimonial)
-                            <x-video-facade :video="$testimonial">
-                                @if ($testimonial->rating)
-                                    <div style="margin-top: 8px;">
-                                        <x-star-rating :rating="$testimonial->rating" />
-                                    </div>
-                                @endif
-                            </x-video-facade>
-                        @endforeach
+                {{-- Grid window ID 11-20 (3 baris). Expand/collapse via komponen
+                     CSP-safe "testimonialToggle" (markup zero ekspresi Alpine). --}}
+                @if ($initialTestimonials->isNotEmpty())
+                    <div x-data="testimonialToggle">
+                        <div class="grid grid-cols-4" data-testimonial-grid style="scroll-margin-top: 90px;">
+                            @foreach ($initialTestimonials as $testimonial)
+                                <x-video-facade :video="$testimonial">
+                                    @if ($testimonial->rating)
+                                        <div style="margin-top: 8px;">
+                                            <x-star-rating :rating="$testimonial->rating" />
+                                        </div>
+                                    @endif
+                                </x-video-facade>
+                            @endforeach
+
+                            {{-- Server-rendered = no-JS state: collapsed (is-hidden). --}}
+                            @foreach ($moreTestimonials as $testimonial)
+                                <div data-reveal-item class="is-hidden">
+                                    <x-video-facade :video="$testimonial">
+                                        @if ($testimonial->rating)
+                                            <div style="margin-top: 8px;">
+                                                <x-star-rating :rating="$testimonial->rating" />
+                                            </div>
+                                        @endif
+                                    </x-video-facade>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        @if ($moreTestimonials->isNotEmpty())
+                            <div style="margin-top: 24px; display: flex; justify-content: center;">
+                                <button type="button"
+                                        data-reveal-button
+                                        hidden
+                                        data-label-expand="{{ __('home.testimonials_show_all') }}"
+                                        data-label-collapse="{{ __('home.testimonials_show_less') }}"
+                                        class="show-more-arrow"
+                                        aria-expanded="false"
+                                        aria-label="{{ __('home.testimonials_show_all') }}">
+                                    <svg width="26" height="26" fill="none" stroke="currentColor"
+                                         stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -340,63 +371,38 @@
                     :eyebrow="__('home.services_eyebrow')"
                     :title="__('home.services_legacy_title')" />
 
-                <div class="grid grid-cols-4">
-                    @foreach ($services as $service)
+                <div class="grid grid-cols-3">
+                    @foreach ($services->take(3) as $service)
                         <x-service-card :service="$service" />
                     @endforeach
                 </div>
 
-                @if ($whatsapp)
-                    <div style="margin-top: 48px; text-align: center;">
-                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-                            {{ __('home.consult_now') }}
-                        </a>
-                    </div>
-                @endif
+                <div style="margin-top: 48px; text-align: center;">
+                    <a href="{{ $lroute('services.index') }}" class="btn btn-primary btn-lg">
+                        {{ __('home.consult_now') }}
+                    </a>
+                </div>
             </div>
         </section>
     @endif
 
     {{-- ========== 11. ORDER FLOW (Background: --paper) ========== --}}
-    @if ($processLink = $settings('process_link_url'))
-        @php
-            $processThumb = $settings('process_thumbnail');
-            $processVideoId = \App\Models\DesignReview::extractYoutubeId($processLink);
-            $processThumbUrl = $processThumb
-                ? (str_starts_with($processThumb, 'http') ? $processThumb : asset($processThumb))
-                : ($processVideoId ? 'https://i.ytimg.com/vi/'.$processVideoId.'/maxresdefault.jpg' : null);
-        @endphp
+    {{-- [SIMPLIFIED] Embed Instagram langsung (hardcoded), varian /embed.
+         Setting 'process_link_url' tidak lagi dipakai section ini. --}}
+    <section id="informasi" class="section order-flow-section" style="scroll-margin-top: 80px;">
+        <div class="container">
+            <x-section-heading :title="__('home.process_title')" />
 
-        <section id="informasi" class="section order-flow-section" style="scroll-margin-top: 80px;">
-            <div class="container">
-                <x-section-heading :title="__('home.process_title')" />
-
-                <a href="{{ $processLink }}" target="_blank" rel="noopener noreferrer"
-                   class="card-light" style="max-width: 860px; margin: 0 auto; display: block; text-decoration: none; overflow: hidden;">
-                    @if ($processThumbUrl)
-                        <div style="position: relative; aspect-ratio: 16 / 9; width: 100%; background: var(--ink-900);">
-                            <img src="{{ $processThumbUrl }}" alt="{{ __('home.process_title') }}"
-                                 loading="lazy" decoding="async"
-                                 style="width: 100%; height: 100%; object-fit: cover;">
-                            <div class="video-facade-play">
-                                <span class="video-play-btn">
-                                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="margin-left: 2px;">
-                                        <path d="M8 5v14l11-7z"/>
-                                    </svg>
-                                </span>
-                            </div>
-                        </div>
-                    @else
-                        <div style="padding: 40px; text-align: center;">
-                            <span class="btn btn-primary">
-                                {{ __('home.view_process') }}
-                            </span>
-                        </div>
-                    @endif
-                </a>
+            <div class="ig-embed-card">
+                <iframe src="https://www.instagram.com/reel/DD4BD7tS71i/embed"
+                        loading="lazy"
+                        scrolling="no"
+                        allowtransparency="true"
+                        allowfullscreen
+                        title="{{ __('home.process_title') }}"></iframe>
             </div>
-        </section>
-    @endif
+        </div>
+    </section>
 
     {{-- ========== 12. FAQ (Background: --ink-800) ========== --}}
     @if ($faqs->isNotEmpty())

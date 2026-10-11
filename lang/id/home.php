@@ -12,6 +12,8 @@ return [
     'free_consultation' => 'Konsultasi Gratis',
     'consult_now' => 'Konsultasi Sekarang',
     'whatsapp_consultation' => 'Konsultasi via WhatsApp',
+    'view_more' => 'Lihat Selengkapnya',
+'testimonials_show_all' => 'Tampilkan semua testimoni',
 
     // Legacy features buttons (index.php:81-86)
     'all_designs' => 'Semua Desain',

@@ -14,7 +14,7 @@ return [
     'level_beginner' => 'Pemula',
     'level_intermediate' => 'Menengah',
     'level_advanced' => 'Mahir',
-    'view_detail' => 'Lihat Silabus',
+    'view_detail' => 'Lihat Detail',
     'enroll_now' => 'Daftar Sekarang',
     'buy_now' => 'Beli Kursus',
     'resume_learning' => 'Lanjut Belajar',

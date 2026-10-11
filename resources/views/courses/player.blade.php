@@ -10,7 +10,7 @@
                 style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line-dark); flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 14px;">
                     <a href="{{ $lroute('courses.show', ['course' => $course->slug]) }}" class="btn btn-dark btn-sm">
-                        &larr; {{ __('courses.back_to_course') }}
+                        {{ __('courses.back_to_course') }}
                     </a>
                     <span style="font-size: 1rem; font-weight: 600; color: #ffffff;">
                         {{ $course->title }}
@@ -57,7 +57,7 @@
                             <h1 style="font-size: 1.5rem; font-weight: 700; color: #ffffff; margin: 0;">
                                 {{ $lessonPayload['title'] }}</h1>
                             @if ($lessonPayload['duration_formatted'])
-                                <span class="badge badge-amber">⏱ {{ $lessonPayload['duration_formatted'] }}</span>
+                                <span class="badge badge-amber">{{ $lessonPayload['duration_formatted'] }}</span>
                             @endif
                         </div>
 
@@ -90,7 +90,6 @@
                                     <a href="{{ $lroute('courses.player.show', ['course' => $course->slug, 'lesson' => $les['id']]) }}"
                                         class="syllabus-lesson-item {{ $isCurrent ? 'is-current' : '' }}">
                                         <div style="display: flex; align-items: center; gap: 8px;">
-                                            <span>{{ $isCurrent ? '▶' : '✓' }}</span>
                                             <span
                                                 style="color: {{ $isCurrent ? '#000000' : 'inherit' }}; font-weight: {{ $isCurrent ? '700' : '400' }};">
                                                 {{ $les['title'] }}
@@ -105,7 +104,6 @@
                                     <div class="syllabus-lesson-item"
                                         style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">
                                         <div style="display: flex; align-items: center; gap: 8px;">
-                                            <span>🔒</span>
                                             <span>{{ $les['title'] }}</span>
                                         </div>
                                     </div>

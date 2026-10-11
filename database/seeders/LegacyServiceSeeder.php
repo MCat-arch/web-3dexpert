@@ -72,6 +72,8 @@ class LegacyServiceSeeder extends Seeder
 
     public function run(): void
     {
+        $this->removeDemoServiceDuplicates();
+
         foreach ($this->legacyRows() as $sortOrder => $row) {
             [$original, $price] = self::SWAP_PRICES
                 ? [$row['price'], $row['original_price']]
@@ -113,6 +115,28 @@ class LegacyServiceSeeder extends Seeder
                 ]);
             }
         }
+
+    }
+
+    /**
+     * Older DatabaseSeeder versions created four demo services with these
+     * slugs. They have no legacy id or brochure, so remove only those known
+     * demo rows before restoring the canonical legacy records.
+     */
+    private function removeDemoServiceDuplicates(): void
+    {
+        Service::query()
+            ->whereIn('slug', [
+                'pembangunan-lengkap',
+                'arsitektur-interior',
+                'arsitektur-eksterior',
+                'gambar-perizinan',
+            ])
+            ->whereNull('brochure_path')
+            ->where('needs_review', false)
+            ->get()
+            ->each
+            ->delete();
     }
 
     /**
@@ -135,24 +159,9 @@ class LegacyServiceSeeder extends Seeder
         ];
 
         return [
+
             [
                 'id' => 1,
-                // Trailing "s" is in the legacy data. Not corrected.
-                'title' => 'Pembangunan Lengkaps',
-                'title_en' => 'Complete Construction Package',
-                // Legacy stored '24.0002' and '98.6002'. parseLegacyPrice()
-                // reads these as 240002 / 986002 and flags them, because the
-                // final group has four digits instead of three. Seeded as the
-                // clean reading of the same typo, matching rows 2-4.
-                'original_price' => 24000,
-                'price' => 98600,
-                'discount_text' => 'Diskon 17,5%',
-                'discount_text_en' => '17.5% off',
-                // Row 1's JSON has no "Gambar Kerja Struktur:" heading.
-                'features' => $structuralFeatures,
-            ],
-            [
-                'id' => 2,
                 'title' => 'Pembangunan Lengkap',
                 'title_en' => 'Complete Construction Package',
                 'original_price' => 24000,
@@ -162,7 +171,7 @@ class LegacyServiceSeeder extends Seeder
                 'features' => array_merge(['Gambar Kerja Struktur:'], $structuralFeatures),
             ],
             [
-                'id' => 3,
+                'id' => 2,
                 'title' => 'Pembangunan Lengkap',
                 'title_en' => 'Complete Construction Package',
                 'original_price' => 24000,
@@ -175,6 +184,16 @@ class LegacyServiceSeeder extends Seeder
                     $structuralFeatures,
                     ['Gambar kerja detail struktur atap'],
                 ),
+            ],
+            [
+                'id' => 3,
+                'title' => 'Pembangunan Lengkap',
+                'title_en' => 'Complete Construction Package',
+                'original_price' => 24000,
+                'price' => 98600,
+                'discount_text' => 'Diskon 17,5%',
+                'discount_text_en' => '17.5% off',
+                'features' => array_merge(['Gambar Kerja Struktur:'], $structuralFeatures),
             ],
             [
                 'id' => 4,

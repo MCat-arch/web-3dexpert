@@ -100,8 +100,7 @@
                                     @foreach ($sec['lessons'] as $les)
                                         <div style="padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem;">
                                             <div style="display: flex; align-items: center; gap: 10px;">
-                                                <span>{{ $les['unlocked'] ? '▶' : '🔒' }}</span>
-                                                <span style="color: {{ $les['unlocked'] ? 'var(--text)' : 'var(--text-muted)' }};">
+                                                <span style="color: {{ $les['unlocked'] ? 'var(--text)' : 'var(--text-muted)' }}">
                                                     {{ $les['title'] }}
                                                 </span>
                                                 @if ($les['is_free_preview'])
@@ -119,7 +118,7 @@
                                                 @if ($les['unlocked'])
                                                     <a href="{{ $lroute('courses.player.show', ['course' => $course->slug, 'lesson' => $les['id']]) }}"
                                                        style="color: var(--gold-hover); font-weight: 600; text-decoration: none;">
-                                                        {{ __('courses.open_lesson') }} &rarr;
+                                                        {{ __('courses.open_lesson') }}
                                                     </a>
                                                 @endif
                                             </div>
@@ -160,9 +159,7 @@
                         @elseif ($course->cover_url)
                             <img src="{{ $course->cover_url }}" alt="{{ $course->title }}" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
-                            <div style="display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; color: var(--gold);">
-                                🎬
-                            </div>
+                            <div style="height: 100%; width: 100%;"></div>
                         @endif
                     </div>
 
@@ -225,7 +222,7 @@
                     @if ($whatsapp = $settings('company_whatsapp'))
                         <div style="border-top: 1px solid var(--line-light); padding-top: 16px; margin-top: 16px; text-align: center;">
                             <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-decoration: none;">
-                                💬 {{ __('courses.consultation_cta') }}
+                                 {{ __('courses.consultation_cta') }}
                             </a>
                         </div>
                     @endif

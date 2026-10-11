@@ -28,12 +28,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(LandingContentSeeder::class);
-        $this->seedSettings();
+        // Keep the legacy service cards (including their brochure mapping) as
+        // the canonical landing-page service data. Do not create the old demo
+        // package set here, otherwise a fresh seed renders duplicate services.
+        $this->call(LegacyServiceSeeder::class);
         $this->seedHeroSlides();
-        $this->seedServices();
         $this->seedValuePropositions();
-        $this->seedTestimonials();
-        $this->seedPortfolios();
+        $this->call(LegacyPortfolioContentSeeder::class);
         $this->seedJobs();
         $this->call(CourseSeeder::class);
 
@@ -65,12 +66,12 @@ class DatabaseSeeder extends Seeder
             'id' => "Head Office PT Luxora Aura Semesta\nJl. Bendul Merisi Selatan 7 no 57 Surabaya",
             'en' => "Head Office PT Luxora Aura Semesta\nJl. Bendul Merisi Selatan 7 no 57 Surabaya",
         ]);
-        Settings::set('company_maps_url', 'https://goo.gl/maps/68pDytiKfG1dLDMB8');
+        Settings::set('company_maps_url', 'https://share.google/1hqg3Cm8EAEpmMP05');
         Settings::set('company_email', 'info@3dexpert.id');
         Settings::set('company_phone', '+6282338389488');
         Settings::set('company_whatsapp', 'https://wa.me/6282338389488');
-        Settings::set('location_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0');
-        Settings::set('why_video_url', 'https://www.youtube.com/watch?v=m7Bc3pLyij0');
+        Settings::set('location_video_url', 'https://www.youtube.com/watch?v=ZN5d8k0Ii9w');
+        Settings::set('why_video_url', 'https://www.youtube.com/watch?v=ZN5d8k0Ii9w');
         Settings::set('process_link_url', 'https://wa.me/6282338389488');
 
         Settings::set('seo_title', [

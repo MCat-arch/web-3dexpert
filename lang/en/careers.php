@@ -14,6 +14,7 @@ return [
     'closes_at' => 'Closes',
     'requirement' => 'Requirements',
     'description' => 'Job Description',
+    'view_detail' => 'View Detail',
 
     'apply' => 'Apply Now',
     'apply_login' => 'Sign In to Apply',

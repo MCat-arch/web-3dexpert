@@ -9,12 +9,7 @@
                  loading="lazy"
                  class="card-thumb">
         @else
-            <div style="display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; background: var(--ink-900); color: var(--gold);">
-                <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M14.25 9.75v-4.5m0 4.5h4.5m-4.5 0l6-6m-3 18c-8.284 0-15-6.716-15-15V4.5A2.25 2.25 0 014.5 2.25h15A2.25 2.25 0 0121.75 4.5v15a2.25 2.25 0 01-2.25 2.25z"/>
-                </svg>
-            </div>
+            <div style="height: 100%; width: 100%; background: var(--ink-900);"></div>
         @endif
 
         {{-- Overlaid Badges --}}
@@ -48,15 +43,15 @@
                 <span style="font-size: 0.78rem; font-weight: 600; color: var(--gold-hover);">{{ $course->category }}</span>
             @elseif ($course->estimated_minutes)
                 <span>
-                    ⏱ {{ $course->estimated_minutes >= 60 ? __('courses.duration_hours', ['count' => round($course->estimated_minutes / 60, 1)]) : __('courses.duration_minutes', ['count' => $course->estimated_minutes]) }}
+                    {{ $course->estimated_minutes >= 60 ? __('courses.duration_hours', ['count' => round($course->estimated_minutes / 60, 1)]) : __('courses.duration_minutes', ['count' => $course->estimated_minutes]) }}
                 </span>
             @endif
             @if ($course->hasLms())
                 <span>
-                    📚 {{ __('courses.lessons_count', ['count' => $course->lessons_count ?? $course->lessons->count()]) }}
+                    {{ __('courses.lessons_count', ['count' => $course->lessons_count ?? $course->lessons->count()]) }}
                 </span>
             @else
-                <span style="color: var(--gold-hover); font-weight: 600;">🤝 {{ __('courses.direct_program') }}</span>
+                <span style="color: var(--gold-hover); font-weight: 600;">{{ __('courses.direct_program') }}</span>
             @endif
         </div>
 
@@ -80,7 +75,7 @@
             </div>
             <a href="{{ $lroute('courses.show', ['course' => $course->slug]) }}"
                class="btn btn-primary btn-sm">
-                {{ $course->hasLms() ? __('courses.view_detail') : __('courses.view_program') }}
+                {{ __('courses.view_detail') }}
             </a>
         </div>
     </div>

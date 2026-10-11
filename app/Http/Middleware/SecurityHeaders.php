@@ -11,7 +11,9 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * The CSP is deliberately explicit about the third parties the pages actually
  * use, rather than being permissive:
- *   - youtube-nocookie.com : testimonial and review embeds
+ *   - youtube-nocookie.com : testimonial and review embeds (ytFacade)
+ *   - instagram.com        : "Alur Pemesanan" reel embed (frame only; content
+ *                            inside the iframe is governed by Instagram's own CSP)
  *   - fonts.googleapis/gstatic : webfonts
  *   - i.ytimg.com : video thumbnails
  *   - images.unsplash.com : legacy property_images rows hold external Unsplash
@@ -37,9 +39,10 @@ class SecurityHeaders
             "font-src 'self' https://fonts.gstatic.com data:",
             "script-src 'self'",
             "img-src 'self' data: https://i.ytimg.com https://images.unsplash.com",
-            // google.com was needed when the office map was an <iframe>. It is
-            // an anchor now, so framing google.com is no longer required.
-            'frame-src https://www.youtube-nocookie.com',
+            // [FIXED] Semua frame: YouTube (ytFacade) + Instagram reel (order flow).
+            // DITULIS SEBAGAI SATU STRING DENGAN NAMA DIREKTIF — bukan key array,
+            // karena implode() mengabaikan key dan nama direktifnya hilang.
+            "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.instagram.com",
             "connect-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",

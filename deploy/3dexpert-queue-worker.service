@@ -1,0 +1,20 @@
+[Unit]
+Description=3D Expert Laravel queue worker
+After=network.target redis-server.service mysql.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/3dexpert-web
+ExecStart=/usr/bin/php artisan queue:work redis --queue=mail,default --sleep=1 --tries=3 --timeout=90 --max-jobs=500 --max-time=3600 --memory=128
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=120
+StandardOutput=append:/var/log/3dexpert-queue-worker.log
+StandardError=append:/var/log/3dexpert-queue-worker-error.log
+
+[Install]
+WantedBy=multi-user.target

@@ -21,7 +21,7 @@
 
                 <div>
                     @if ($payment->isSettled())
-                        <span class="badge badge-success">✓ Lunas (Berhasil)</span>
+                        <span class="badge badge-success">Lunas (Berhasil)</span>
                     @else
                         <span class="badge badge-amber">⏳ {{ __('courses.pending_payment') }}</span>
                     @endif
@@ -51,7 +51,6 @@
             @if ($payment->isSettled())
                 <div
                     style="background: var(--success-bg); border: 1px solid rgba(16,185,129,0.3); border-radius: var(--radius-card); padding: 24px; text-align: center; margin-bottom: 24px;">
-                    <div style="font-size: 2rem; margin-bottom: 8px;">🎉</div>
                     <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--success); margin-bottom: 6px;">
                         {{ __('courses.payment_success_message') }}</h3>
                     <p style="font-size: 0.95rem; color: var(--text); margin-bottom: 20px;">Selamat! Akses kursus Anda telah
@@ -60,7 +59,7 @@
                     @if ($enrollment)
                         <a href="{{ $lroute('courses.player.show', ['course' => $enrollment->course->slug]) }}"
                             class="btn btn-primary btn-lg">
-                            {{ __('courses.start_learning') }} &rarr;
+                            {{ __('courses.start_learning') }}
                         </a>
                     @endif
                 </div>
@@ -102,7 +101,7 @@
                         @csrf
                         <button type="submit" class="btn btn-outline btn-block"
                             style="color: var(--text); border-color: var(--gold);">
-                            ⚡ Simulasi Pembayaran QRIS Berhasil (Test Sandbox)
+                            Simulasi Pembayaran QRIS Berhasil (Test Sandbox)
                         </button>
                     </form>
                 </div>

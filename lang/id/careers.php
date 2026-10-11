@@ -14,6 +14,7 @@ return [
     'closes_at' => 'Ditutup',
     'requirement' => 'Kualifikasi',
     'description' => 'Deskripsi Pekerjaan',
+    'view_detail' => 'Lihat Detail',
 
     'apply' => 'Lamar Sekarang',
     'apply_login' => 'Masuk untuk Melamar',
