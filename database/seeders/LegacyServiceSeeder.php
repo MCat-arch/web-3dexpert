@@ -93,9 +93,6 @@ class LegacyServiceSeeder extends Seeder
                     'brochure_path' => self::BROCHURES[$row['id']] ?? null,
                     'sort_order' => $sortOrder,
                     'is_published' => $publish,
-                    // Left true on purpose: the duplication and the price
-                    // ordering are real data problems, and this flag is how the
-                    // admin panel will surface them later.
                     'needs_review' => true,
                 ],
             );
