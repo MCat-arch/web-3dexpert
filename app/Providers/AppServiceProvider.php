@@ -52,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
         Model::preventLazyLoading(! app()->isProduction());
         Model::preventAccessingMissingAttributes(! app()->isProduction());
 
-        if (app()->isProduction()) {
+        if (app()->isProduction() && (bool) env('FORCE_HTTPS', false)) {
             URL::forceScheme('https');
         }
 

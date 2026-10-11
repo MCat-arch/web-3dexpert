@@ -196,6 +196,26 @@ chmod 600 .env
 nano .env
 ```
 
+File production berada di host VPS pada:
+
+```text
+/var/www/3dexpert-web/.env
+```
+
+Pastikan file tersebut benar-benar ada sebelum menjalankan Docker:
+
+```bash
+pwd
+ls -l /var/www/3dexpert-web/.env
+test -f /var/www/3dexpert-web/.env
+```
+
+`docker-compose.yml` menggunakan `env_file: .env` untuk menyuntikkan nilai
+environment ke container. Mekanisme ini **tidak** membuat file
+`/var/www/html/.env` di dalam container. Karena itu, command Artisan yang perlu
+membaca atau menulis file `.env` harus memasang file host tersebut secara
+sementara.
+
 Nilai minimal yang harus diatur:
 
 ```dotenv
@@ -203,6 +223,7 @@ APP_NAME="3D Expert"
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=http://IP_VPS
+FORCE_HTTPS=false
 APP_LOCALE=id
 APP_TIMEZONE=Asia/Jakarta
 
@@ -236,9 +257,13 @@ MAIL_FROM_ADDRESS=ALAMAT_EMAIL
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-Untuk tahap akses melalui IP, `APP_URL` harus memakai IP VPS. Jangan memakai
-`localhost` jika aplikasi akan dibuka dari komputer lain; `localhost` pada
-browser berarti komputer pengguna sendiri.
+Untuk tahap akses melalui IP, `APP_URL` harus memakai alamat HTTP yang benar
+dan dapat dijangkau browser, misalnya `http://103.117.57.39`. Jangan memakai
+`https://` sebelum TLS benar-benar dikonfigurasi pada reverse proxy/Nginx.
+Jangan memakai `127.0.0.1` atau `localhost`: nilai tersebut menunjuk ke
+komputer yang membuka browser, bukan ke VPS. `@vite` menggunakan `APP_URL`
+untuk membentuk URL asset CSS/JavaScript, sehingga protocol atau host yang
+salah membuat halaman tampil tanpa styling.
 
 `DB_PASSWORD` dan `DB_ROOT_PASSWORD` tidak diberikan oleh Laravel. Nilainya
 dibuat oleh operator deployment. Buat password acak yang berbeda untuk kedua
@@ -248,9 +273,11 @@ Karena tahap ini menggunakan HTTP melalui IP, gunakan:
 
 ```dotenv
 SESSION_SECURE_COOKIE=false
+FORCE_HTTPS=false
 ```
 
-Setelah domain dan HTTPS aktif, ubah menjadi `true`.
+Setelah domain dan HTTPS aktif, ubah `APP_URL` menjadi `https://domain-anda.example`,
+`SESSION_SECURE_COOKIE=true`, dan `FORCE_HTTPS=true`.
 
 ## 6. Siapkan media dan storage persistent di VPS
 
@@ -270,10 +297,11 @@ Upload isi `storage/app/media` dari komputer deployment. Contoh memakai
 `rsync` dari mesin Linux/macOS:
 
 ```bash
-rsync -av --delete storage/app/media/ USER_VPS@IP_VPS:/tmp/3dexpert-media/
-ssh USER_VPS@IP_VPS \
+rsync -av --delete storage/app/media/ luxora_alam_semesta@103.117.57.39:/tmp/3dexpert-media/
+ssh luxora_alam_semesta@103.117.57.39 \
   'sudo rsync -a --delete --chown=33:33 /tmp/3dexpert-media/ /var/lib/3dexpert/media/ && rm -rf /tmp/3dexpert-media'
 ```
+luxora_alam_semesta@103.117.57.39
 
 Jika komputer deployment hanya memiliki `scp`, gunakan archive sementara:
 
@@ -323,6 +351,8 @@ docker compose up -d
 docker compose ps
 ```
 
+
+
 Service yang harus tersedia:
 
 - `app`
@@ -346,14 +376,38 @@ Nginx host pada port 80 secara bersamaan sebelum arsitekturnya diubah.
 
 ## 8. Inisialisasi Laravel, database, dan metadata media
 
-Generate application key di dalam container:
+Generate atau overwrite application key langsung pada `.env` host VPS:
 
 ```bash
-docker compose run --rm app php artisan key:generate --force
+cd /var/www/3dexpert-web
+test -f .env
+command -v openssl
+NEW_APP_KEY="base64:$(openssl rand -base64 32 | tr -d '\n')"
+sed -i "s#^APP_KEY=.*#APP_KEY=${NEW_APP_KEY}#" .env
 ```
 
-`key:generate` mengubah `.env` di working directory VPS. Pastikan file tetap
-memiliki permission terbatas:
+Command tersebut mengganti nilai `APP_KEY` yang sudah ada langsung pada file
+host `/var/www/3dexpert-web/.env`. Cara ini dipakai karena `.env` sengaja
+memiliki permission `600`, dan Docker bind mount dapat menolak penulisan dari
+dalam container meskipun container dijalankan sebagai `root` (misalnya saat
+Docker menggunakan rootless mode atau user namespace). Jika `APP_KEY` belum
+ada di file, tambahkan satu baris `APP_KEY=` terlebih dahulu sebelum menjalankan
+command tersebut.
+
+Verifikasi bahwa key sudah berubah tanpa mencetak nilainya:
+
+```bash
+grep -q '^APP_KEY=base64:' .env && echo "APP_KEY tersedia"
+```
+
+Setelah key berubah, recreate service yang memakai `.env` agar environment
+container mengambil nilai baru:
+
+```bash
+docker compose up -d --force-recreate app worker
+```
+
+Pastikan file tetap memiliki permission terbatas:
 
 ```bash
 chmod 600 .env
@@ -447,6 +501,10 @@ Buka dari komputer lokal:
 http://IP_VPS
 ```
 
+Pastikan URL CSS yang dikirim halaman menggunakan `http://IP_VPS/build/...`,
+bukan `https://127.0.0.1/build/...` atau `https://IP_VPS/build/...` sebelum
+HTTPS aktif.
+
 Periksa:
 
 - Homepage tampil.
@@ -470,6 +528,48 @@ curl -I 'http://IP_VPS/media/brochures/Arsitektur%20EKSTERIOR.pdf'
 
 Response yang diharapkan adalah `200 OK`. PDF diharapkan memiliki
 `Content-Type: application/pdf` dan `Content-Disposition: attachment`.
+
+Periksa juga asset Vite dari dalam VPS sebelum membuka browser:
+
+```bash
+curl -I http://127.0.0.1/build/manifest.json
+docker compose exec nginx \
+  sh -lc 'ls -lh /var/www/html/public/build/manifest.json /var/www/html/public/build/assets/*'
+```
+
+Response `manifest.json` harus `200 OK`, dan directory `assets` harus berisi
+file CSS serta JavaScript. Image Nginx memiliki copy asset sendiri; perubahan
+`resources/css`, `resources/js`, atau `public` baru masuk ke image setelah
+Nginx dibuild ulang.
+
+Jika halaman tampil sebagai HTML polos tanpa CSS, ambil URL asset yang
+dihasilkan Laravel:
+
+```bash
+curl -s http://127.0.0.1/ | grep -Eo 'href="[^"]+\.css[^"]*|src="[^"]+\.js[^"]*'
+```
+
+Semua URL tersebut harus memakai IP atau domain production, bukan
+`localhost`, dan setiap path harus dapat diakses dengan `curl -I`. Jika file
+asset tidak ditemukan atau image Nginx dibangun sebelum commit terbaru,
+jalankan:
+
+```bash
+docker compose build --no-cache nginx
+docker compose up -d --force-recreate nginx
+```
+
+Jika `manifest.json` tersedia tetapi URL asset mengarah ke host atau protocol
+yang salah, periksa
+`APP_URL` pada `/var/www/3dexpert-web/.env`, ubah ke URL yang sedang dibuka,
+lalu recreate service Laravel:
+
+```bash
+nano /var/www/3dexpert-web/.env
+docker compose up -d --force-recreate app worker nginx
+docker compose exec app php artisan optimize:clear
+docker compose exec app php artisan optimize
+```
 
 Periksa queue:
 
@@ -567,6 +667,7 @@ Ubah:
 ```dotenv
 APP_URL=https://domain-anda.example
 SESSION_SECURE_COOKIE=true
+FORCE_HTTPS=true
 ```
 
 Recreate app agar environment terbaca:
