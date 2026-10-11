@@ -78,6 +78,23 @@ REDIS_QUEUE_RETRY_AFTER=120
 
 Jalankan instalasi dependency, migration, dan cache setelah `.env` valid:
 
+## Docker dan GitHub CI
+
+- [x] Docker image PHP 8.4-FPM dengan dependency Composer dan asset Vite.
+- [x] Compose service untuk PHP-FPM, Nginx, MySQL, Redis, dan queue worker Laravel.
+- [x] Health check MySQL dan Redis serta satu worker ringan untuk VPS 2 CPU/2 GB.
+- [x] GitHub Actions CI untuk Composer, build frontend, dan test Laravel.
+- [ ] Salin `.env.example` ke server sebagai `.env` dan isi secret hanya di server.
+- [ ] Pastikan Docker Engine dan Docker Compose tersedia di VPS.
+- [ ] Build dan smoke-test stack Compose di staging sebelum production.
+- [ ] Tentukan registry atau strategi build jika VPS harus menarik image prebuilt.
+
+Compose membutuhkan `DB_ROOT_PASSWORD` untuk inisialisasi MySQL. Nilai ini
+harus diisi di `.env` server dan tidak boleh dikomit ke repository.
+Build lokal belum dapat dijalankan karena Docker Desktop Linux engine tidak
+sedang aktif pada mesin pengembangan; konfigurasi Compose tetap tervalidasi
+secara statis dan harus dibuild setelah Docker Engine tersedia.
+
 ```bash
 composer install --no-dev --optimize-autoloader
 php artisan key:generate --force  # hanya jika APP_KEY belum ada

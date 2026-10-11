@@ -92,9 +92,6 @@
                 {{ __('nav.contact') }}
             </h2>
             <ul class="footer-links-list">
-                @if ($phone = $settings('company_phone'))
-                    <li><a href="tel:{{ preg_replace('/\s+/', '', $phone) }}">{{ $phone }}</a></li>
-                @endif
                 @if ($email = $settings('company_email'))
                     <li><a href="mailto:{{ $email }}">{{ $email }}</a></li>
                 @endif
@@ -107,11 +104,8 @@
 
     <div class="container footer-bottom">
         <div>
-            &copy; {{ date('Y') }} {{ $settings('company_name', config('app.name')) }}.
+            &copy; {{ date('Y') }} {{ $settings('company_name', config(' app.name')) }}
             {{ __('nav.rights_reserved') }}
-        </div>
-        <div>
-            <a href="#main" style="color: var(--gold);">{{ __('nav.back_to_top') ?? 'Kembali ke atas &uarr;' }}</a>
         </div>
     </div>
 </footer>

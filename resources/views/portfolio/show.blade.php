@@ -44,10 +44,6 @@
                         {{ __('services.currency') }} {{ number_format((float) $portfolio->price, 0, ',', '.') }}
                     </span>
                 @endif
-                <span>
-                    👁
-                    {{ trans_choice('portfolio.view_count', $portfolio->view_count, ['count' => number_format($portfolio->view_count, 0, ',', '.')]) }}
-                </span>
             </div>
         </div>
     </div>
@@ -193,7 +189,7 @@
                         <div>
                             <a href="{{ $wa }}?text={{ urlencode('Halo 3D Experts, saya tertarik dengan proyek portofolio: ' . $portfolio->title) }}"
                                target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="box-shadow: 0 4px 12px rgba(200, 160, 89, 0.25);">
-                                {{ __('portfolio.request_similar') }} &rarr;
+                                {{ __('portfolio.request_similar') }};
                             </a>
                         </div>
                     @endif

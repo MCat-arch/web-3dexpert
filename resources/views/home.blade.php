@@ -413,14 +413,6 @@
                 <div>
                     <x-faq-accordion :faqs="$faqs" />
                 </div>
-
-                @if ($whatsapp)
-                    <div style="margin-top: 40px; text-align: center;">
-                        <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-                            {{ __('home.consult_now') }}
-                        </a>
-                    </div>
-                @endif
             </div>
         </section>
     @endif
