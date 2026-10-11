@@ -91,9 +91,9 @@ class DatabaseSeeder extends Seeder
         }
 
         $heroImages = [
-            'hero/hero_1_1748948347.png',
-            'hero/hero_2_1748948347.jpg',
-            'hero/hero_3_1748948347.jpg',
+            'hero/hero_1_1750153978.jpg',
+            'hero/hero_2_1750153978.jpg',
+            'hero/hero_4_1750153978.jpg',
         ];
 
         foreach ($heroImages as $i => $path) {
