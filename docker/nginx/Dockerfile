@@ -19,7 +19,7 @@ FROM php:8.4-cli-bookworm AS filament-assets
 
 WORKDIR /app
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libicu-dev libzip-dev \
+    && apt-get install -y --no-install-recommends libicu-dev libonig-dev libzip-dev \
     && docker-php-ext-install -j"$(nproc)" bcmath intl mbstring zip pdo_mysql \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=vendor /app/vendor ./vendor
