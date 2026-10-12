@@ -14,6 +14,7 @@ return [
     'paid_price' => 'Price: IDR :price',
     'seats_left' => '{0} Fully booked|{1} 1 seat left|[2,*] :count seats left',
     'seats_unlimited' => 'Unlimited seats',
+    'view_detail' => 'Details',
     'when' => 'When',
     'where' => 'Where',
     'online' => 'Online',

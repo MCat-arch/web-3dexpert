@@ -561,6 +561,57 @@ Periksa:
 - Email verification masuk queue.
 - Worker mengambil queue Redis.
 
+### Verifikasi email dan autentikasi customer
+
+Email verifikasi tidak akan masuk inbox jika `MAIL_MAILER=log`, host SMTP
+salah, password SMTP kosong, atau worker belum memproses queue `mail`.
+Saat masih mengakses IP VPS melalui HTTP, pastikan cookie session tidak
+ditandai secure:
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_SCHEME=tls
+MAIL_HOST=HOST_SMTP
+MAIL_PORT=587
+MAIL_USERNAME=ALAMAT_EMAIL_SMTP
+MAIL_PASSWORD=PASSWORD_SMTP
+MAIL_EHLO_DOMAIN=DOMAIN_EMAIL
+MAIL_FROM_ADDRESS=ALAMAT_EMAIL_SMTP
+MAIL_FROM_NAME="3D Expert"
+SESSION_SECURE_COOKIE=false
+```
+
+Jangan menyalin contoh di atas secara literal. Gunakan host, alamat, dan
+password SMTP dari provider email atau cPanel. Setelah `.env` diperbarui,
+jalankan:
+
+```bash
+docker compose exec -T app php artisan optimize:clear
+docker compose restart worker
+docker compose logs --tail=100 -f worker
+```
+
+Daftarkan customer baru dengan alamat email yang dapat diakses, lalu periksa
+log worker. Job yang berhasil diproses akan keluar dari queue. Jika muncul
+`535`, `authentication failed`, atau `Connection refused`, perbaiki kredensial,
+port, atau skema TLS SMTP; masalah tersebut bukan masalah pada form
+verifikasi.
+
+Periksa status queue dan autentikasi dengan:
+
+```bash
+docker compose ps
+docker compose logs --tail=100 worker
+docker compose logs --tail=100 app
+```
+
+Login customer menggunakan email dan password yang dibuat melalui halaman
+`/daftar`. Customer yang belum memverifikasi email akan diarahkan ke
+`/verifikasi-email`; ini memang perilaku yang disengaja sebelum pendaftaran
+event atau fitur akun dapat digunakan. Jika login selalu kembali ke halaman
+login saat URL masih `http://IP_VPS`, pastikan `SESSION_SECURE_COOKIE=false`,
+lalu jalankan `php artisan optimize:clear` dan restart service `app`.
+
 Periksa media yang dilayani aplikasi:
 
 ```bash

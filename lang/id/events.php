@@ -14,6 +14,7 @@ return [
     'paid_price' => 'Harga: Rp :price',
     'seats_left' => '{0} Kuota penuh|[1,*] Sisa :count kursi',
     'seats_unlimited' => 'Kuota tidak terbatas',
+    'view_detail' => 'Detail',
     'when' => 'Waktu',
     'where' => 'Lokasi',
     'online' => 'Online',

@@ -61,19 +61,16 @@
     </div>
 
     <div style="border-top: 1px solid var(--line-light); padding: 12px 20px; font-size: 0.85rem; background: #fafafa; display: flex; align-items: center; justify-content: space-between;">
-        @if (! $event->registrationIsOpen())
-            <span style="color: var(--text-muted);">{{ __('events.closed') }}</span>
-        @elseif ($event->isUnlimited())
+        @if ($event->isUnlimited())
             <span style="color: var(--text-muted);">{{ __('events.seats_unlimited') }}</span>
         @else
             <span style="color: var(--text-muted); font-weight: 500;">
-                {{ __('events.seats_left', ['count' => $event->seatsLeft() ?? $event->capacity]) }}
+                {{ trans_choice('events.seats_left', $event->seatsLeft() ?? 0, ['count' => $event->seatsLeft() ?? 0]) }}
             </span>
         @endif
 
         <a href="{{ $lroute('events.show', ['event' => $event->slug]) }}" style="color: var(--gold-hover); font-weight: 600; text-decoration: none;">
-            {{ __('events.details') ?? 'Detail &rarr;' }}
+            {{ __('events.view_detail') }} &rarr;
         </a>
     </div>
 </article>
-
