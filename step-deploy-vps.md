@@ -301,7 +301,6 @@ rsync -av --delete storage/app/media/ luxora_alam_semesta@103.117.57.39:/tmp/3de
 ssh luxora_alam_semesta@103.117.57.39 \
   'sudo rsync -a --delete --chown=33:33 /tmp/3dexpert-media/ /var/lib/3dexpert/media/ && rm -rf /tmp/3dexpert-media'
 ```
-luxora_alam_semesta@103.117.57.39
 
 Jika komputer deployment hanya memiliki `scp`, gunakan archive sementara:
 
@@ -475,6 +474,7 @@ Untuk menentukan nama, email, dan role secara langsung:
 ```bash
 docker compose exec app php artisan app:create-admin \
   --name="Administrator 3D Expert" \
+  --username="superadmin" \
   --email="admin@domain-anda.example" \
   --role=superadmin
 ```
@@ -485,11 +485,54 @@ Password tetap diminta secara interaktif. Role yang tersedia:
 - `admin`: akses admin sesuai policy aplikasi.
 - `editor`: akses terbatas.
 
+Filament menerima **email atau username** pada kolom login. Username hanya
+dapat digunakan jika sudah tersimpan pada kolom `users.username`. Untuk akun
+baru, gunakan `--username` saat menjalankan `app:create-admin`. Untuk
+menemukan identifier akun tanpa menampilkan password atau hash password:
+
+```bash
+docker compose exec -T app php artisan app:list-admins
+```
+
+Jika hasilnya menampilkan username, masukkan username tersebut pada kolom
+`Email or username`. Jika username kosong, gunakan email yang ditampilkan.
+Kolom email tetap wajib saat membuat akun untuk menjaga kompatibilitas reset
+password dan data akun.
+
 Verifikasi login melalui:
 
 ```text
 http://IP_VPS/admin
 ```
+
+Jika `/admin` menghasilkan 404 atau halaman login menampilkan error
+`filamentSchema is not defined`, lakukan rebuild image Nginx agar aset Filament
+dipublish dari package Composer. Jangan hanya menjalankan `docker compose up`
+tanpa rebuild karena aset statis dibakar ke image Nginx:
+
+```bash
+cd /var/www/3dexpert-web
+git pull --ff-only origin main
+docker compose build --no-cache nginx app
+docker compose up -d --force-recreate app worker nginx
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan migrate --force
+docker compose exec -T app php artisan optimize
+docker compose exec -T app php artisan route:list --path=admin
+docker compose exec -T app php artisan app:list-admins
+```
+
+Periksa aset admin dari VPS:
+
+```bash
+curl -I http://127.0.0.1/css/filament/filament/app.css
+curl -I http://127.0.0.1/js/filament/schemas/schemas.js
+```
+
+Keduanya harus menghasilkan `200 OK`. Jika route list tidak menampilkan
+`admin/login` dan `admin`, source belum ter-update atau cache route masih lama;
+jalankan `php artisan optimize:clear`, lalu recreate container `app` dan
+`nginx`.
 
 Jangan membuat password admin hardcoded di seeder atau repository.
 
@@ -860,6 +903,7 @@ docker compose logs --tail=100 worker
 - [ ] Media asset metadata berhasil diimport.
 - [ ] Mount media terlihat dari container `app` dan `worker`.
 - [ ] Admin `superadmin` berhasil dibuat.
+- [ ] Login admin diuji dengan email atau username yang terdaftar.
 - [ ] Homepage dan `/admin` dapat diakses melalui IP.
 - [ ] Hero, logo, dan link brochure menghasilkan `200 OK`.
 - [ ] Queue worker berjalan.

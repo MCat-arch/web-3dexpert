@@ -20,6 +20,7 @@ class CreateAdmin extends Command
 {
     protected $signature = 'app:create-admin
                             {--name= }
+                            {--username= }
                             {--email= }
                             {--role=superadmin}';
 
@@ -31,6 +32,8 @@ class CreateAdmin extends Command
             label: 'Name',
             required: true,
         );
+
+        $username = $this->option('username');
 
         $email = $this->option('email') ?: text(
             label: 'Email',
@@ -51,9 +54,10 @@ class CreateAdmin extends Command
         );
 
         $validator = Validator::make(
-            ['name' => $name, 'email' => $email, 'password' => $plain],
+            ['name' => $name, 'username' => $username, 'email' => $email, 'password' => $plain],
             [
                 'name' => ['required', 'string', 'max:255'],
+                'username' => ['nullable', 'string', 'max:255', 'unique:users,username'],
                 'email' => ['required', 'email', 'max:255', 'unique:users,email'],
                 // 12 chars minimum: the legacy admin password was "admin123".
                 'password' => ['required', 'string', 'min:12'],
@@ -70,6 +74,7 @@ class CreateAdmin extends Command
 
         $user = User::create([
             'name' => $name,
+            'username' => $username,
             'email' => $email,
             'password' => $plain,  // hashed by the model's 'hashed' cast
             'role' => $role,
