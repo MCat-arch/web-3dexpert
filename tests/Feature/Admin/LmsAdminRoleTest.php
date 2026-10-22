@@ -13,11 +13,19 @@ use App\Models\CourseEnrollment;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class LmsAdminRoleTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Notification::fake();
+    }
 
     private function lmsAdmin(): User
     {

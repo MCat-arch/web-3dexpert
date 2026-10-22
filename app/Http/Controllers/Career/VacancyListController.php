@@ -17,12 +17,12 @@ class VacancyListController extends Controller
         if ($currentType === 'internship') {
             $query->where(function ($q) {
                 $q->where('employment_type', 'like', '%intern%')
-                  ->orWhere('employment_type', 'like', '%magang%');
+                    ->orWhere('employment_type', 'like', '%magang%');
             });
         } elseif ($currentType === 'full-time') {
             $query->where(function ($q) {
                 $q->where('employment_type', 'like', '%full%')
-                  ->orWhere('employment_type', 'like', '%karyawan%');
+                    ->orWhere('employment_type', 'like', '%karyawan%');
             });
         }
 

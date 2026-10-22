@@ -25,7 +25,7 @@ Local test commands:
 
 ```bash
 php artisan --env=local migrate --force
-php artisan --env=local app:create-admin --name="Admin 3D Expert" --username=admin --email=smtp3dexpert@gmail.com --role=superadmin
+php artisan --env=local app:init-admin --name="Admin 3D Expert" --username=admin --email=smtp3dexpert@gmail.com
 php artisan --env=local serve
 ```
 
@@ -53,8 +53,9 @@ php artisan app:migrate-legacy-data
 php artisan app:import-media-assets
 php artisan app:verify-migration
 
-# Create the first administrator and build assets.
-php artisan app:create-admin
+# Create the first superadmin (prompts for a password) and build assets.
+# It also reads ADMIN_NAME/ADMIN_EMAIL/ADMIN_USERNAME/ADMIN_PASSWORD.
+php artisan app:init-admin
 npm run build
 php artisan serve
 ```
@@ -157,8 +158,9 @@ deliberately method-compatible (`getTranslation`/`setTranslation`/`getTranslatio
 so swapping to the package later means deleting the trait. **Switch if you need
 per-locale querying or fallback chains — do not grow that file.**
 
-The Filament panel is installed at `/admin`. Admin accounts are created with
-`php artisan app:create-admin`; the project administrator email is
+The Filament panel is installed at `/admin`. The first superadmin is created
+with `php artisan app:init-admin`; additional staff accounts use
+`php artisan app:create-admin`. The project administrator email is
 `smtp3dexpert@gmail.com`. Editors can manage landing content, while only
 admins/superadmins can change site settings. Public accounts use a separate
 `customers` table and `customer` guard, so they cannot authenticate to Filament.
@@ -274,7 +276,8 @@ this.** `Kredensial Akses.txt` is downloadable from the live site today.
 |---|---|
 | `app:migrate-legacy-data [--dry-run] [--fresh]` | Migrate the legacy DB. Idempotent, transactional, reports everything it could not decide |
 | `app:verify-migration` | Reconcile counts, check integrity, gate launch. Non-zero exit on a blocking problem |
-| `app:create-admin` | Create an admin account (replaces `reg.php`) |
+| `app:init-admin [--force]` | Create or repair the first superadmin from env/CLI/prompt; idempotent |
+| `app:create-admin` | Create an additional staff account (replaces `reg.php`) |
 
 ## Layout
 

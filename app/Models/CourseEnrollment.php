@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\Payable;
+use App\Notifications\Courses\CourseEnrollmentActivated;
 use App\Support\CourseProgress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CourseEnrollment extends Model implements Payable
 {
@@ -134,6 +136,10 @@ class CourseEnrollment extends Model implements Payable
         $this->payment_id = $payment->id;
         $this->activated_at = now();
         $this->save();
+
+        DB::afterCommit(fn () => $this->customer?->notify(
+            new CourseEnrollmentActivated($this->fresh(['course', 'payment']))
+        ));
     }
 
     public function revokePayment(Payment $payment): void

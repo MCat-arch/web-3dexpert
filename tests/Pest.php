@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 /*
  * MERGE NOTE: `composer create-project` generates its own tests/Pest.php.
@@ -8,10 +9,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * framework versions -- and add the RefreshDatabase trait binding below.
  */
 
-pest()->extend(Tests\TestCase::class)
+pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
-pest()->extend(Tests\TestCase::class)
+pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Unit');

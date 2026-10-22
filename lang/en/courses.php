@@ -125,6 +125,17 @@ return [
     'assignment_score' => 'Score: :score / :max',
     'open_my_courses' => 'Open my courses',
 
+    // --- course registration emails ---
+    'mail_registration_subject' => 'Course registration received: :course',
+    'mail_registration_intro' => 'We have received your registration for :course.',
+    'mail_registration_order' => 'Order ID: :order',
+    'mail_registration_total' => 'Payment total: :amount',
+    'mail_registration_next' => 'Complete payment before the deadline so we can activate your course access.',
+    'mail_registration_action' => 'View Payment Instructions',
+    'mail_active_subject' => 'Course access active: :course',
+    'mail_active_intro' => 'Your access to :course is now active. Happy learning!',
+    'mail_active_action' => 'Start Learning',
+
     // --- course-card.blade.php ---
     'mentoring_badge' => 'Mentoring',
     'direct_program' => 'Direct Program',

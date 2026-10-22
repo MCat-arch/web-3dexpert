@@ -18,12 +18,7 @@ class JobVacancyForm
                 ->columns(2)
                 ->schema([
                     TextInput::make('title.id')
-                        ->label('Judul (Indonesia)')
-                        ->required()
-                        ->maxLength(255),
-
-                    TextInput::make('title.en')
-                        ->label('Judul (Inggris)')
+                        ->label('Judul')
                         ->required()
                         ->maxLength(255),
 
@@ -35,14 +30,17 @@ class JobVacancyForm
 
                     TextInput::make('department')
                         ->label('Departemen')
+                        ->required()
                         ->maxLength(255),
 
                     TextInput::make('location')
                         ->label('Lokasi')
+                        ->required()
                         ->maxLength(255),
 
                     TextInput::make('employment_type')
                         ->label('Jenis pekerjaan')
+                        ->required()
                         ->maxLength(255)
                         ->placeholder('Full Time / Internship / Contract'),
 
@@ -61,21 +59,12 @@ class JobVacancyForm
             Section::make('Deskripsi')
                 ->schema([
                     Textarea::make('requirement.id')
-                        ->label('Persyaratan (Indonesia)')
-                        ->rows(5)
-                        ->required(),
-
-                    Textarea::make('requirement.en')
-                        ->label('Persyaratan (Inggris)')
+                        ->label('Persyaratan')
                         ->rows(5)
                         ->required(),
 
                     Textarea::make('description.id')
-                        ->label('Deskripsi (Indonesia)')
-                        ->rows(6),
-
-                    Textarea::make('description.en')
-                        ->label('Deskripsi (Inggris)')
+                        ->label('Deskripsi')
                         ->rows(6),
                 ]),
 
@@ -83,7 +72,8 @@ class JobVacancyForm
                 ->schema([
                     Toggle::make('is_published')
                         ->label('Tampilkan di situs publik')
-                        ->default(false),
+                        ->default(false)
+                        ->helperText('Aktifkan agar lowongan muncul di halaman Karier publik.'),
                 ]),
         ]);
     }

@@ -14,7 +14,7 @@ return [
     'select_service' => 'Select a service (optional)',
 
     'submit' => 'Send Message',
-    'success' => "Thank you! We have received your message and will be in touch shortly.",
+    'success' => 'Thank you! We have received your message and will be in touch shortly.',
     'or_whatsapp' => 'Or reach us directly on',
 
     'spam_detected' => 'Submission rejected.',

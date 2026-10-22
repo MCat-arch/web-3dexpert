@@ -6,6 +6,8 @@ use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Notifications\Courses\CourseEnrollmentActivated;
+use App\Notifications\Courses\CourseRegistrationReceived;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -25,7 +27,7 @@ class StartCourseRegistration
         ?string $studentName = null,
         ?string $studentPhone = null
     ): array {
-        if (!$course->is_published) {
+        if (! $course->is_published) {
             throw new InvalidArgumentException(__('courses.not_published'));
         }
 
@@ -40,7 +42,7 @@ class StartCourseRegistration
         }
 
         return DB::transaction(function () use ($course, $customer, $paymentMethod, $studentName, $studentPhone, $existing) {
-            $enrollment = $existing ?? new CourseEnrollment();
+            $enrollment = $existing ?? new CourseEnrollment;
             $enrollment->course_id = $course->id;
             $enrollment->customer_id = $customer->id;
             $enrollment->student_name = $studentName ?: $customer->name;
@@ -52,6 +54,10 @@ class StartCourseRegistration
                 $enrollment->activated_at = now();
                 $enrollment->save();
 
+                DB::afterCommit(fn () => $customer->notify(
+                    new CourseEnrollmentActivated($enrollment->fresh(['course']))
+                ));
+
                 return [
                     'enrollment' => $enrollment,
                     'payment' => null,
@@ -59,7 +65,7 @@ class StartCourseRegistration
             }
 
             // Create Pending Payment record
-            $orderId = 'CRS-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+            $orderId = 'CRS-'.date('Ymd').'-'.strtoupper(Str::random(6));
 
             $payment = Payment::create([
                 'payable_type' => CourseEnrollment::class,
@@ -89,6 +95,10 @@ class StartCourseRegistration
             $payment->update([
                 'payable_id' => $enrollment->id,
             ]);
+
+            DB::afterCommit(fn () => $customer->notify(
+                new CourseRegistrationReceived($enrollment->fresh(['course', 'payment']))
+            ));
 
             return [
                 'enrollment' => $enrollment,

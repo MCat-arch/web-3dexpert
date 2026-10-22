@@ -3,14 +3,17 @@
 namespace Tests\Feature\Careers;
 
 use App\Filament\Resources\JobApplications\JobApplicationResource;
+use App\Filament\Resources\JobApplications\Pages\ListJobApplications;
 use App\Models\Customer;
 use App\Models\JobApplication;
 use App\Models\JobApplicationDocument;
 use App\Models\JobVacancy;
 use App\Models\User;
+use App\Notifications\Careers\ApplicationStatusChanged;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -96,5 +99,62 @@ class CareerAdminTest extends TestCase
     public function test_a_guest_cannot_reach_the_application_admin(): void
     {
         $this->get(JobApplicationResource::getUrl('index'))->assertRedirect();
+    }
+
+    public function test_status_changes_send_an_email_to_the_linked_customer(): void
+    {
+        $application = $this->application();
+        $customer = $application->customer;
+
+        $this->actingAs($this->staff(), 'web');
+
+        Livewire::test(ListJobApplications::class)
+            ->callTableAction('changeStatus', $application, data: [
+                'status' => JobApplication::STATUS_SCREENING,
+            ])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame(JobApplication::STATUS_SCREENING, $application->fresh()->status);
+        Notification::assertSentTo($customer, ApplicationStatusChanged::class);
+    }
+
+    public function test_status_changes_fall_back_to_the_application_email_after_account_deletion(): void
+    {
+        $application = $this->application();
+        $applicantEmail = $application->applicant_email;
+        $application->customer->forceDelete();
+
+        $this->actingAs($this->staff(), 'web');
+
+        Livewire::test(ListJobApplications::class)
+            ->callTableAction('changeStatus', $application->fresh(), data: [
+                'status' => JobApplication::STATUS_INTERVIEW,
+            ])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertNull($application->fresh()->customer_id);
+
+        Notification::assertSentOnDemand(
+            ApplicationStatusChanged::class,
+            function (ApplicationStatusChanged $notification, array $channels, $notifiable) use ($applicantEmail): bool {
+                return ($notifiable->routes['mail'] ?? null) === $applicantEmail;
+            },
+        );
+    }
+
+    public function test_selecting_the_same_status_does_not_send_an_email(): void
+    {
+        $application = $this->application();
+        $customer = $application->customer;
+
+        $this->actingAs($this->staff(), 'web');
+
+        Livewire::test(ListJobApplications::class)
+            ->callTableAction('changeStatus', $application, data: [
+                'status' => $application->status,
+            ])
+            ->assertHasNoTableActionErrors();
+
+        Notification::assertNotSentTo($customer, ApplicationStatusChanged::class);
     }
 }

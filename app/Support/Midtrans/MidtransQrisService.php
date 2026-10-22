@@ -26,20 +26,20 @@ class MidtransQrisService
         if (! $this->isConfigured()) {
             // Fallback mode jika API Key belum diisi di .env agar aplikasi tidak error
             return [
-                'qr_url'         => 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' . urlencode(url('/kursus/pembayaran/' . $payment->order_id)),
-                'qr_string'      => null,
+                'qr_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='.urlencode(url('/kursus/pembayaran/'.$payment->order_id)),
+                'qr_string' => null,
                 'transaction_id' => null,
-                'raw'            => ['mode' => 'sandbox_simulated'],
+                'raw' => ['mode' => 'sandbox_simulated'],
             ];
         }
 
         $serverKey = config('midtrans.server_key');
-        $endpoint = rtrim(config('midtrans.api_url'), '/') . '/charge';
+        $endpoint = rtrim(config('midtrans.api_url'), '/').'/charge';
 
         $payload = [
             'payment_type' => 'qris',
             'transaction_details' => [
-                'order_id'     => $payment->order_id,
+                'order_id' => $payment->order_id,
                 'gross_amount' => (int) round((float) $payment->gross_amount),
             ],
             'qris' => [
@@ -47,16 +47,16 @@ class MidtransQrisService
             ],
             'customer_details' => array_filter([
                 'first_name' => $customerData['name'] ?? null,
-                'email'      => $customerData['email'] ?? null,
-                'phone'      => $customerData['phone'] ?? null,
+                'email' => $customerData['email'] ?? null,
+                'phone' => $customerData['phone'] ?? null,
             ]),
         ];
 
         try {
             $response = Http::withHeaders([
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode($serverKey . ':'),
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Basic '.base64_encode($serverKey.':'),
             ])->timeout(15)->post($endpoint, $payload);
 
             if ($response->successful()) {
@@ -73,23 +73,23 @@ class MidtransQrisService
                 }
 
                 return [
-                    'qr_url'         => $qrUrl,
-                    'qr_string'      => $body['qr_string'] ?? null,
+                    'qr_url' => $qrUrl,
+                    'qr_string' => $body['qr_string'] ?? null,
                     'transaction_id' => $body['transaction_id'] ?? null,
-                    'raw'            => $body,
+                    'raw' => $body,
                 ];
             }
 
             Log::error('Midtrans QRIS Charge Failed', ['response' => $response->body()]);
         } catch (\Throwable $e) {
-            Log::error('Midtrans Connection Error: ' . $e->getMessage());
+            Log::error('Midtrans Connection Error: '.$e->getMessage());
         }
 
         return [
-            'qr_url'         => null,
-            'qr_string'      => null,
+            'qr_url' => null,
+            'qr_string' => null,
             'transaction_id' => null,
-            'raw'            => [],
+            'raw' => [],
         ];
     }
 
@@ -99,7 +99,7 @@ class MidtransQrisService
     public function verifySignature(string $orderId, string $statusCode, string $grossAmount, string $signatureKey): bool
     {
         $serverKey = config('midtrans.server_key');
-        $expected = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        $expected = hash('sha512', $orderId.$statusCode.$grossAmount.$serverKey);
 
         return hash_equals($expected, $signatureKey);
     }

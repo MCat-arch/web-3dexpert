@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Courses\Tables;
 
+use App\Filament\Resources\Courses\CourseResource;
+use App\Models\Course;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -85,7 +88,16 @@ class CoursesTable
             ->filters([
                 TernaryFilter::make('is_published')->label('Terbit'),
             ])
-            ->recordActions([EditAction::make()])
+            ->recordActions([
+                EditAction::make(),
+
+                Action::make('manageCurriculum')
+                    ->label('Kelola kurikulum')
+                    ->icon('heroicon-o-book-open')
+                    ->url(fn (Course $record) => CourseResource::getUrl('edit', [
+                        'record' => $record,
+                    ])),
+            ])
             ->toolbarActions([
                 BulkActionGroup::make([DeleteBulkAction::make()]),
             ]);

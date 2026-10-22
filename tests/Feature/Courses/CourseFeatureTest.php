@@ -9,11 +9,19 @@ use App\Models\CourseSection;
 use App\Models\Customer;
 use App\Models\Payment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class CourseFeatureTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Notification::fake();
+    }
 
     public function test_catalog_renders_in_both_locales(): void
     {

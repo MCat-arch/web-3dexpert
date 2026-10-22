@@ -455,39 +455,57 @@ Buat cache production:
 docker compose exec app php artisan optimize
 ```
 
-## 9. Buat role admin
+## 9. Buat superadmin pertama
 
-Admin dibuat setelah migration berhasil. Gunakan command yang sudah tersedia:
+Superadmin dibuat setelah migration berhasil. Gunakan initializer idempotent:
 
 ```bash
-docker compose exec app php artisan app:create-admin
+docker compose exec app php artisan app:init-admin
 ```
 
 Isi prompt:
 
 - Name
 - Email
-- Password minimal 12 karakter
+- Password minimal 12 karakter (tidak ada password default)
 
-Untuk menentukan nama, email, dan role secara langsung:
+Untuk menentukan nama, email, dan username secara langsung:
+
+```bash
+docker compose exec app php artisan app:init-admin \
+  --name="Administrator 3D Expert" \
+  --username="superadmin" \
+  --email="admin@domain-anda.example"
+```
+
+Command juga membaca `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_USERNAME`, dan
+`ADMIN_PASSWORD` dari environment. Menjalankannya lagi aman: akun superadmin
+yang sudah ada tidak diubah tanpa `--force`, dan email milik role lain ditolak
+tanpa `--force`. Gunakan `--force` hanya untuk memperbaiki/mempromosikan akun
+atau mereset password; jika password baru tidak diberikan, password lama tetap
+dipakai.
+
+Untuk menambah staf lain dengan role berbeda, gunakan `app:create-admin`:
 
 ```bash
 docker compose exec app php artisan app:create-admin \
-  --name="Administrator 3D Expert" \
-  --username="superadmin" \
-  --email="admin@domain-anda.example" \
-  --role=superadmin
+  --name="Editor 3D Expert" \
+  --username="editor" \
+  --email="editor@domain-anda.example" \
+  --role=editor
 ```
 
-Password tetap diminta secara interaktif. Role yang tersedia:
+Role yang tersedia:
 
 - `superadmin`: akses penuh panel admin.
 - `admin`: akses admin sesuai policy aplikasi.
+- `lms_admin`: kurikulum, enrollment, tugas, dan media.
 - `editor`: akses terbatas.
 
 Filament menerima **email atau username** pada kolom login. Username hanya
 dapat digunakan jika sudah tersimpan pada kolom `users.username`. Untuk akun
-baru, gunakan `--username` saat menjalankan `app:create-admin`. Untuk
+baru, gunakan `--username` saat menjalankan `app:init-admin` atau
+`app:create-admin`. Untuk
 menemukan identifier akun tanpa menampilkan password atau hash password:
 
 ```bash

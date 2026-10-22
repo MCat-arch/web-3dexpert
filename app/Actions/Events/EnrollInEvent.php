@@ -36,9 +36,9 @@ class EnrollInEvent
 {
     /**
      * @param  array{name?: string, phone?: string}|null  $attendee
-     *         Details from the registration dialog. They apply to this event
-     *         only; the customer profile is never updated here. Email is not
-     *         accepted because it is always the account email.
+     *                                                               Details from the registration dialog. They apply to this event
+     *                                                               only; the customer profile is never updated here. Email is not
+     *                                                               accepted because it is always the account email.
      */
     public function __invoke(Event $event, Customer $customer, ?array $attendee = null): EventRegistration
     {

@@ -56,7 +56,6 @@ return [
     'whatsapp_register' => 'Daftar via WhatsApp',
     'ask_question' => 'Punya pertanyaan seputar acara? Hubungi kami',
 
-
     'register' => 'Daftar Sekarang',
     'register_login' => 'Masuk untuk Mendaftar',
     'registered' => 'Anda sudah terdaftar',

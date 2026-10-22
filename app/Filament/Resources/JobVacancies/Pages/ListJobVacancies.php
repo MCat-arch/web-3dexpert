@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\JobVacancies\Pages;
 
 use App\Filament\Resources\JobVacancies\JobVacancyResource;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListJobVacancies extends ListRecords
@@ -12,5 +13,12 @@ class ListJobVacancies extends ListRecords
     public function getTitle(): string
     {
         return 'Lowongan Kerja';
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            CreateAction::make()->label('Tambah lowongan'),
+        ];
     }
 }

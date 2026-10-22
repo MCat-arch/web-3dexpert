@@ -81,7 +81,7 @@ class LandingContentSeeder extends Seeder
                 ->get()
                 ->first(fn (ValueProposition $v) => $v->getTranslation('label', 'id') === $labelId);
 
-            $tile = $existing ?: new ValueProposition();
+            $tile = $existing ?: new ValueProposition;
             $tile->group = ValueProposition::GROUP_DELIVERABLE;
             $tile->label = ['id' => $labelId, 'en' => $labelEn];
             $tile->icon_path = 'images/icons/'.$icon;
@@ -98,7 +98,7 @@ class LandingContentSeeder extends Seeder
             $existing = Faq::all()
                 ->first(fn (Faq $f) => $f->getTranslation('question', 'id') === $qId);
 
-            $faq = $existing ?: new Faq();
+            $faq = $existing ?: new Faq;
             $faq->question = ['id' => $qId, 'en' => $qEn];
             $faq->answer = ['id' => $aId, 'en' => $aEn];
             $faq->sort_order = $order;

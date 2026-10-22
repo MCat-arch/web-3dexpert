@@ -56,7 +56,6 @@ return [
     'whatsapp_register' => 'Register via WhatsApp',
     'ask_question' => 'Have a question about this event? Contact us',
 
-
     'register' => 'Register Now',
     'register_login' => 'Sign In to Register',
     'registered' => 'You are registered',

@@ -131,7 +131,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Inventory                                                             */
+    /* Inventory */
     /* ===================================================================== */
 
     /**
@@ -162,20 +162,20 @@ class MigrateLegacyData extends Command
         foreach (['desain_rumah', 'galeri_rumah'] as $table) {
             if (! $this->legacyHasTable($table)) {
                 $this->warnings[] = "Legacy table `{$table}` is absent. edit.php reads and "
-                    ."writes it, so those handlers were dead code on this database. Nothing "
-                    ."to migrate from it.";
+                    .'writes it, so those handlers were dead code on this database. Nothing '
+                    .'to migrate from it.';
             }
         }
 
         if ($this->legacyHasTable('properties') && ! $this->legacyHasColumn('properties', 'likes')) {
-            $this->warnings[] = "`properties.likes` is absent (this is the column behind the "
-                ."live fatal at index.php:66). is_featured will be set on the newest portfolio "
-                ."instead -- review it in the admin panel.";
+            $this->warnings[] = '`properties.likes` is absent (this is the column behind the '
+                .'live fatal at index.php:66). is_featured will be set on the newest portfolio '
+                .'instead -- review it in the admin panel.';
         }
     }
 
     /* ===================================================================== */
-    /* Settings                                                              */
+    /* Settings */
     /* ===================================================================== */
 
     private function migrateSettings(): void
@@ -242,7 +242,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Hero slides                                                           */
+    /* Hero slides */
     /* ===================================================================== */
 
     private function migrateHeroSlides(): void
@@ -271,7 +271,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Services                                                              */
+    /* Services */
     /* ===================================================================== */
 
     /**
@@ -428,7 +428,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Value propositions                                                    */
+    /* Value propositions */
     /* ===================================================================== */
 
     /**
@@ -457,6 +457,7 @@ class MigrateLegacyData extends Command
 
             if ($list1 === '' && $list2 === '') {
                 $skippedOrphans++;
+
                 continue;
             }
 
@@ -499,7 +500,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Testimonials & design reviews (kept separate per decision #1)          */
+    /* Testimonials & design reviews (kept separate per decision #1) */
     /* ===================================================================== */
 
     private function migrateTestimonials(): void
@@ -567,7 +568,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Portfolios -- unified from BOTH legacy modules                         */
+    /* Portfolios -- unified from BOTH legacy modules */
     /* ===================================================================== */
 
     private function migratePortfoliosFromProperties(): void
@@ -814,18 +815,12 @@ class MigrateLegacyData extends Command
         $number = (int) preg_replace('/\D/', '', $value);
 
         match (true) {
-            str_contains($normalized, 'style') || str_contains($normalized, 'gaya')
-                => $portfolio->style = Str::limit($value, 100, ''),
-            str_contains($normalized, 'lantai') || str_contains($normalized, 'floor')
-                => $portfolio->floors = $number ?: null,
-            str_contains($normalized, 'kamar tidur') || str_contains($normalized, 'bedroom')
-                => $portfolio->bedrooms = $number ?: null,
-            str_contains($normalized, 'kamar mandi') || str_contains($normalized, 'bathroom')
-                => $portfolio->bathrooms = $number ?: null,
-            str_contains($normalized, 'tanah') || str_contains($normalized, 'land')
-                => $portfolio->land_size = $number ?: null,
-            str_contains($normalized, 'bangunan') || str_contains($normalized, 'building')
-                => $portfolio->building_size = $number ?: null,
+            str_contains($normalized, 'style') || str_contains($normalized, 'gaya') => $portfolio->style = Str::limit($value, 100, ''),
+            str_contains($normalized, 'lantai') || str_contains($normalized, 'floor') => $portfolio->floors = $number ?: null,
+            str_contains($normalized, 'kamar tidur') || str_contains($normalized, 'bedroom') => $portfolio->bedrooms = $number ?: null,
+            str_contains($normalized, 'kamar mandi') || str_contains($normalized, 'bathroom') => $portfolio->bathrooms = $number ?: null,
+            str_contains($normalized, 'tanah') || str_contains($normalized, 'land') => $portfolio->land_size = $number ?: null,
+            str_contains($normalized, 'bangunan') || str_contains($normalized, 'building') => $portfolio->building_size = $number ?: null,
             default => null,
         };
     }
@@ -890,7 +885,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Job vacancies                                                         */
+    /* Job vacancies */
     /* ===================================================================== */
 
     /**
@@ -946,7 +941,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Users                                                                 */
+    /* Users */
     /* ===================================================================== */
 
     /**
@@ -972,6 +967,7 @@ class MigrateLegacyData extends Command
             if ($email === '') {
                 $this->warnings[] = "Legacy user id {$row->id} ('{$username}') has no email "
                     .'and was skipped -- the new users table requires one.';
+
                 continue;
             }
 
@@ -1005,7 +1001,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Redirect map                                                          */
+    /* Redirect map */
     /* ===================================================================== */
 
     /**
@@ -1047,7 +1043,7 @@ class MigrateLegacyData extends Command
     }
 
     /* ===================================================================== */
-    /* Helpers                                                               */
+    /* Helpers */
     /* ===================================================================== */
 
     private function truncateDestination(): void

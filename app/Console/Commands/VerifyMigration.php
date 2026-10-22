@@ -7,6 +7,7 @@ use App\Models\JobVacancy;
 use App\Models\Portfolio;
 use App\Models\Service;
 use App\Models\Testimonial;
+use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,7 @@ class VerifyMigration extends Command
         foreach ($pairs as $legacyTable => [$newTable, $query]) {
             if (! Schema::connection($connectionName)->hasTable($legacyTable)) {
                 $rows[] = [$legacyTable, 'absent', $newTable, (string) $query->count(), '-'];
+
                 continue;
             }
 
@@ -197,13 +199,13 @@ class VerifyMigration extends Command
                 .'module, then publish or delete.';
         }
 
-        if (\App\Models\User::where('role', \App\Models\User::ROLE_SUPERADMIN)
+        if (User::where('role', User::ROLE_SUPERADMIN)
             ->where('is_active', true)->doesntExist()) {
             $this->blocking[] = 'No active superadmin exists. Run `php artisan app:create-admin`.';
         }
 
-        $activeLegacy = \App\Models\User::where('is_active', true)
-            ->where('role', '!=', \App\Models\User::ROLE_SUPERADMIN)->count();
+        $activeLegacy = User::where('is_active', true)
+            ->where('role', '!=', User::ROLE_SUPERADMIN)->count();
         if ($activeLegacy > 0) {
             $this->advisory[] = "{$activeLegacy} migrated account(s) are active. The legacy admin "
                 .'password was public, so confirm each one has had its password changed.';

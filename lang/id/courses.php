@@ -125,6 +125,17 @@ return [
     'assignment_score' => 'Nilai: :score / :max',
     'open_my_courses' => 'Buka kursus saya',
 
+    // --- email pendaftaran kursus ---
+    'mail_registration_subject' => 'Pendaftaran kursus diterima: :course',
+    'mail_registration_intro' => 'Pendaftaran Anda untuk kursus :course sudah kami terima.',
+    'mail_registration_order' => 'Nomor pesanan: :order',
+    'mail_registration_total' => 'Total pembayaran: :amount',
+    'mail_registration_next' => 'Selesaikan pembayaran sebelum batas waktu agar akses kursus dapat dibuka.',
+    'mail_registration_action' => 'Lihat Instruksi Pembayaran',
+    'mail_active_subject' => 'Akses kursus aktif: :course',
+    'mail_active_intro' => 'Akses Anda ke kursus :course sudah aktif. Selamat belajar!',
+    'mail_active_action' => 'Mulai Belajar',
+
     // --- course-card.blade.php ---
     'mentoring_badge' => 'Mentoring',
     'direct_program' => 'Program Langsung',

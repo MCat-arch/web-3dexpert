@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Courses\Pages;
 
 use App\Filament\Resources\Courses\CourseResource;
+use App\Filament\Resources\CourseSections\CourseSectionResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -13,7 +15,18 @@ class EditCourse extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [
+            Action::make('curriculumIndex')
+                ->label('Daftar kurikulum')
+                ->icon('heroicon-o-book-open')
+                ->url(fn () => CourseSectionResource::getUrl('index', [
+                    'tableFilters' => [
+                        'course_id' => ['value' => $this->getRecord()->getKey()],
+                    ],
+                ])),
+
+            DeleteAction::make(),
+        ];
     }
 
     protected function afterSave(): void

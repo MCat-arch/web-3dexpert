@@ -13,7 +13,7 @@ The current `.env` is the production file. Do not use it for local work.
 
 - The admin panel is Filament at `/admin`.
 - It uses the `web` guard and the `users` table.
-- There is **no public staff registration route**. Staff accounts are created from the CLI with `php artisan app:create-admin`.
+- There is **no public staff registration route**. The first superadmin is created with `php artisan app:init-admin`; additional staff accounts use `php artisan app:create-admin`.
 - Customer accounts are separate: they use the `customer` guard and the `customers` table, and cannot authenticate to `/admin`.
 - The first admin email for this project is **`smtp3dexpert@gmail.com`**.
 - The login form accepts either the email address or the username.
@@ -112,7 +112,7 @@ http://localhost:8000/admin
 - Role: `superadmin`
 - Password: the temporary password delivered to the owner separately; it is intentionally not written to this repository.
 
-Change the password after the first login. If it is lost, create another superadmin with `app:create-admin` (use a different email) or reset it from the panel while logged in.
+Change the password after the first login. If it is lost, repair the account with `app:init-admin --force` (and a new password), create another superadmin with `app:create-admin` (use a different email), or reset it from the panel while logged in.
 
 ### Local password recovery
 
@@ -200,23 +200,36 @@ docker compose exec app php artisan app:verify-migration
 
 ### 3.5 Create the first administrator
 
-Run the command interactively inside the application container:
+Run the idempotent initializer inside the application container. It creates the
+first superadmin, or repairs/promotes an existing account when `--force` is
+explicitly supplied:
 
 ```bash
-docker compose exec app php artisan app:create-admin \
+docker compose exec app php artisan app:init-admin \
   --name="Admin 3D Expert" \
   --username=admin \
-  --email=smtp3dexpert@gmail.com \
-  --role=superadmin
+  --email=smtp3dexpert@gmail.com
 ```
 
-It prompts for a password of at least 12 characters. Store it in a password manager, not in a file in the repository.
+It prompts for a password of at least 12 characters. Store it in a password
+manager, not in a file in the repository. For non-interactive provisioning, set
+`ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` in the
+environment before running the command. There is no default password.
+
+The command is safe to run again. Without `--force` it leaves an existing
+superadmin unchanged and refuses to take over an email that belongs to another
+role. Use `--force` only to repair the account, promote it to superadmin, or
+reset its password; if no new password is supplied, the current password is
+kept.
 
 Verify:
 
 ```bash
 docker compose exec app php artisan app:list-admins
 ```
+
+Use `app:create-admin` instead when you intentionally want to add another staff
+account with a different email.
 
 ### 3.6 Access the panel
 
@@ -234,7 +247,20 @@ Log in with:
 
 ### 3.7 If the admin is locked out
 
-There is no public registration or recovery form that can create staff accounts. Create another superadmin from the CLI:
+There is no public registration or recovery form that can create staff accounts.
+Repair the original account with `--force` when you know its email:
+
+```bash
+docker compose exec app php artisan app:init-admin \
+  --name="Admin 3D Expert" \
+  --username=admin \
+  --email=smtp3dexpert@gmail.com \
+  --force
+```
+
+Supply `--password` (or `ADMIN_PASSWORD`) to reset it; otherwise the current
+password is kept. Alternatively, create another superadmin with a different
+email:
 
 ```bash
 docker compose exec app php artisan app:create-admin \
@@ -244,7 +270,8 @@ docker compose exec app php artisan app:create-admin \
   --role=superadmin
 ```
 
-The email must be unique. If you want to recover the original account instead, use the password-reset flow or reset it from a superadmin session. The CLI command refuses a duplicate email.
+The email must be unique. If you want to recover the original account instead,
+use the password-reset flow or reset it from a superadmin session.
 
 You can also reset a password from the panel profile page after logging in, or use the password-reset link. Password reset requires working mail configuration and a running queue worker if the notification is queued.
 

@@ -115,7 +115,20 @@ Open **Sistem → Pengguna Staf**.
 - A superadmin can send a password-reset link from the user table.
 - A user can change their own name, email, and password from **Profile**.
 
-If the last superadmin is locked out, create a new superadmin from the CLI:
+If the last superadmin is locked out, repair the original account with the
+idempotent initializer:
+
+```bash
+php artisan --env=local app:init-admin \
+  --name="Admin 3D Expert" \
+  --username=admin \
+  --email=smtp3dexpert@gmail.com \
+  --force
+```
+
+Add `--password` (or set `ADMIN_PASSWORD`) to reset the password; without it the
+current password is kept. The command refuses to overwrite a superadmin unless
+`--force` is explicit. To create a separate recovery account instead:
 
 ```bash
 php artisan --env=local app:create-admin \
@@ -125,7 +138,7 @@ php artisan --env=local app:create-admin \
   --role=superadmin
 ```
 
-On the VM, run the same command through `docker compose exec app`.
+On the VM, run either command through `docker compose exec app`.
 
 ### 3.3 Courses and curriculum
 
@@ -133,8 +146,14 @@ On the VM, run the same command through `docker compose exec app`.
 2. Create the course, set title, slug, cover, description, level, and status.
 3. Only admin/superadmin can change **price** or **WhatsApp CTA**.
 4. Only admin/superadmin can delete a course.
-5. Open the course and manage its sections and lessons.
-6. A lesson can contain video/content and an optional assignment.
+5. Open the course and manage its sections and lessons. The course edit page
+   has a **Kurikulum** relation manager with **Tambah bab** and **Kelola materi**.
+6. From the course list, use **Kelola kurikulum** to open the same curriculum.
+   The **Daftar kurikulum** header action opens the cross-course overview.
+7. The dedicated **Program → Kurikulum** menu lists every section grouped by
+   course. Use **Kelola materi** to add lessons, and **Buka kursus** to return to
+   the course.
+8. A lesson can contain video/content and an optional assignment.
 
 The panel warns when a course has no curriculum. Publish only after sections and lessons exist.
 
@@ -149,6 +168,17 @@ Open **Pelanggan → Siswa & Progress**.
 - LMS admins see only enrollment data; they cannot edit the underlying customer account, payments, or refunds.
 
 A refund should revoke the related enrollment. Do not grant manual access to bypass a failed payment unless an admin has approved it.
+
+Course enrollment emails are automatic:
+
+- A paid checkout sends **registration received** with the order ID, total, and a
+  payment-instruction link.
+- Free registration, successful payment, and staff-granted access send an
+  **access activated** email.
+- Granting access again to an already-active enrollment does not send a
+  duplicate activation email.
+- The activation link opens the course player. If mail delivery fails, check the
+  queue worker and `storage/logs/laravel.log`.
 
 ### 3.5 Payments and refunds
 
@@ -183,7 +213,18 @@ Open **Konten → Media**.
 
 ### 3.8 Hiring
 
-Open **Karier → Lowongan Kerja** to create, publish, or close a vacancy.
+Open **Karier → Lowongan Kerja** and use **Tambah lowongan** to create a
+vacancy.
+
+- Title, requirement, department, location, and employment type are required.
+  The admin form is Indonesian-only; legacy English values are still readable
+  by the public `/en` routes.
+- Leave **Slug** blank to generate it from the title.
+- Turn on **Tampilkan di situs publik** and make sure the closing date is in the
+  future before publishing.
+- Changing an application status sends the applicant an email. If the linked
+  customer account was deleted, the email uses the application's snapshot
+  address. Selecting the same status again sends nothing.
 
 Open **Karier → Lamaran Kerja** to review applications.
 

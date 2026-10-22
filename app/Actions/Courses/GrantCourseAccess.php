@@ -5,6 +5,7 @@ namespace App\Actions\Courses;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\Customer;
+use App\Notifications\Courses\CourseEnrollmentActivated;
 use App\Support\AuditLogger;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,8 @@ class GrantCourseAccess
                 ],
             );
 
+            $wasActive = ! $enrollment->wasRecentlyCreated && $enrollment->isActive();
+
             if (! $enrollment->wasRecentlyCreated) {
                 $enrollment->forceFill([
                     'student_name' => $customer->name,
@@ -42,6 +45,12 @@ class GrantCourseAccess
                     'status' => CourseEnrollment::STATUS_ACTIVE,
                     'activated_at' => $enrollment->activated_at ?? now(),
                 ])->save();
+            }
+
+            if (! $wasActive) {
+                DB::afterCommit(fn () => $customer->notify(
+                    new CourseEnrollmentActivated($enrollment->fresh(['course']))
+                ));
             }
 
             app(AuditLogger::class)->log(

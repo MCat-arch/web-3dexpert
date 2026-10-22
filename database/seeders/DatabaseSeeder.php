@@ -99,7 +99,7 @@ class DatabaseSeeder extends Seeder
         foreach ($heroImages as $i => $path) {
             HeroSlide::create([
                 'image_path' => $path,
-                'alt_text' => ['id' => "3D Expert Hero " . ($i + 1), 'en' => "3D Expert Hero " . ($i + 1)],
+                'alt_text' => ['id' => '3D Expert Hero '.($i + 1), 'en' => '3D Expert Hero '.($i + 1)],
                 'sort_order' => $i + 1,
                 'is_active' => true,
             ]);

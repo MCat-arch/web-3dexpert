@@ -5,8 +5,9 @@ namespace App\Filament\Resources\Faqs\Schemas;
 use App\Models\Faq;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class FaqForm
 {
@@ -34,7 +35,7 @@ class FaqForm
                             ->rows(4)
                             ->formatStateUsing(fn ($state, ?Faq $record) => $record?->getTranslation('answer', 'en') ?? ''),
                         TextInput::make('sort_order')->numeric()->default(0)->required(),
-                        \Filament\Forms\Components\Toggle::make('is_published')->default(true),
+                        Toggle::make('is_published')->default(true),
                     ]),
             ]);
     }

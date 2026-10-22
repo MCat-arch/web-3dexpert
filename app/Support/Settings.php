@@ -39,52 +39,52 @@ class Settings
         // Hero block (legacy: hardcoded <h1>/<p>/CTA in index.php:33-36).
         // Kept separate from home_heading: legacy's hero headline and the
         // features headline are different strings and both are on the page.
-        'hero_heading'        => ['text',    true,  'hero'],
-        'hero_subheading'     => ['text',    true,  'hero'],
+        'hero_heading' => ['text',    true,  'hero'],
+        'hero_subheading' => ['text',    true,  'hero'],
 
         // Features block headline (legacy features_section.judul_konten /
         // .sub_konten). NOT the hero -- see above.
-        'home_heading'        => ['text',    true,  'home'],
-        'home_subheading'     => ['text',    true,  'home'],
-        'stat_projects'       => ['integer', false, 'home'],
-        'stat_clients'        => ['integer', false, 'home'],
+        'home_heading' => ['text',    true,  'home'],
+        'home_subheading' => ['text',    true,  'home'],
+        'stat_projects' => ['integer', false, 'home'],
+        'stat_clients' => ['integer', false, 'home'],
 
         // "Mengapa" block (legacy mengapa_section main row)
-        'why_description'     => ['text',    true,  'why'],
-        'why_video_url'       => ['string',  false, 'why'],
+        'why_description' => ['text',    true,  'why'],
+        'why_video_url' => ['string',  false, 'why'],
 
         // Process / flow block (legacy alur_section)
-        'process_link_url'    => ['string',  false, 'process'],
+        'process_link_url' => ['string',  false, 'process'],
         // Legacy's thumbnail was the unreplaced placeholder
         // "path-to-your-thumbnail.jpg" (index.php:744), which 404'd in
         // production. Optional here: when empty, the view derives a thumbnail
         // from the linked YouTube video, and falls back to a plain CTA card.
-        'process_thumbnail'   => ['string',  false, 'process'],
+        'process_thumbnail' => ['string',  false, 'process'],
 
         // Location block (legacy location_section + the hardcoded office
         // details at index.php:501-514)
-        'location_video_url'  => ['string',  false, 'location'],
+        'location_video_url' => ['string',  false, 'location'],
         'location_office_label' => ['text',  true,  'location'],
 
         // Company contact details (legacy: hardcoded in partials/footer.php)
-        'company_name'        => ['string',  false, 'company'],
-        'company_address'     => ['text',    true,  'company'],
-        'company_phone'       => ['string',  false, 'company'],
-        'company_whatsapp'    => ['string',  false, 'company'],
-        'company_email'       => ['string',  false, 'company'],
-        'company_facebook'    => ['string',  false, 'company'],
-        'company_instagram'   => ['string',  false, 'company'],
-        'company_youtube'     => ['string',  false, 'company'],
-        'company_tiktok'      => ['string',  false, 'company'],
+        'company_name' => ['string',  false, 'company'],
+        'company_address' => ['text',    true,  'company'],
+        'company_phone' => ['string',  false, 'company'],
+        'company_whatsapp' => ['string',  false, 'company'],
+        'company_email' => ['string',  false, 'company'],
+        'company_facebook' => ['string',  false, 'company'],
+        'company_instagram' => ['string',  false, 'company'],
+        'company_youtube' => ['string',  false, 'company'],
+        'company_tiktok' => ['string',  false, 'company'],
         // A human-facing Google Maps LINK (legacy used goo.gl/maps/...), not an
         // /maps/embed URL. Rendered as an anchor, never as an iframe src:
         // Google refuses to be framed from a non-embed URL, so the previous
         // iframe treatment produced an empty box.
-        'company_maps_url'    => ['string',  false, 'company'],
+        'company_maps_url' => ['string',  false, 'company'],
 
         // SEO defaults
-        'seo_title'           => ['string',  true,  'seo'],
-        'seo_description'     => ['text',    true,  'seo'],
+        'seo_title' => ['string',  true,  'seo'],
+        'seo_description' => ['text',    true,  'seo'],
     ];
 
     public static function all(): array

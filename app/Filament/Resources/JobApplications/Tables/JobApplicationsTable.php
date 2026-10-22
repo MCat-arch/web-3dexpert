@@ -13,6 +13,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 class JobApplicationsTable
 {
@@ -22,7 +23,7 @@ class JobApplicationsTable
             ->defaultSort('submitted_at', 'desc')
             // Both are rendered per row; preventLazyLoading() throws outside
             // production without this.
-            ->modifyQueryUsing(fn ($query) => $query->with(['vacancy', 'documents']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['vacancy', 'documents', 'customer']))
             ->columns([
                 TextColumn::make('vacancy.title')
                     ->label('Posisi')
@@ -99,13 +100,24 @@ class JobApplicationsTable
                     ])
                     ->action(function (JobApplication $record, array $data) {
                         $oldStatus = $record->status;
+                        $newStatus = (string) $data['status'];
+                        $statusChanged = $oldStatus !== $newStatus;
 
-                        $record->forceFill([
-                            'status' => $data['status'],
-                            'status_changed_at' => now(),
+                        $attributes = [
                             'internal_notes' => $data['internal_notes'] ?? $record->internal_notes,
                             'reviewed_by' => auth()->id(),
-                        ])->save();
+                        ];
+
+                        if ($statusChanged) {
+                            $attributes['status'] = $newStatus;
+                            $attributes['status_changed_at'] = now();
+                        }
+
+                        $record->forceFill($attributes)->save();
+
+                        if (! $statusChanged) {
+                            return;
+                        }
 
                         app(AuditLogger::class)->statusChanged(
                             $record,
@@ -114,8 +126,20 @@ class JobApplicationsTable
                             'application.status_changed',
                         );
 
-                        // Carries the status only, never the notes.
-                        $record->customer?->notify(new ApplicationStatusChanged($record->fresh(['vacancy'])));
+                        // Carries the status only, never the notes. The snapshot
+                        // email keeps working after the customer account is gone.
+                        $application = $record->fresh(['vacancy']);
+
+                        if ($record->customer) {
+                            $record->customer->notify(new ApplicationStatusChanged($application));
+
+                            return;
+                        }
+
+                        if (filled($record->applicant_email)) {
+                            NotificationFacade::route('mail', $record->applicant_email)
+                                ->notify(new ApplicationStatusChanged($application));
+                        }
                     }),
             ]);
     }

@@ -11,11 +11,19 @@ use App\Models\CourseEnrollment;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class EnrollmentAdminTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Notification::fake();
+    }
 
     public function test_granting_access_creates_an_active_enrollment_without_a_payment(): void
     {

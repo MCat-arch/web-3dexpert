@@ -4,18 +4,30 @@ namespace App\Filament\Resources\CourseSections;
 
 use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\CourseSections\Pages\EditCourseSection;
+use App\Filament\Resources\CourseSections\Pages\ListCourseSections;
 use App\Filament\Resources\CourseSections\RelationManagers\LessonsRelationManager;
+use App\Filament\Resources\CourseSections\Tables\CourseSectionsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\CourseSection;
 use App\Models\User;
+use BackedEnum;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class CourseSectionResource extends AdminResource
 {
     protected static ?string $model = CourseSection::class;
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::PROGRAM;
+
+    protected static ?int $navigationSort = 40;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
+
+    protected static ?string $navigationLabel = 'Kurikulum';
 
     protected static string $accessArea = User::AREA_CURRICULUM;
 
@@ -40,6 +52,11 @@ class CourseSectionResource extends AdminResource
                 ->numeric()
                 ->required(),
         ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return CourseSectionsTable::configure($table);
     }
 
     public static function getRelations(): array
@@ -67,6 +84,7 @@ class CourseSectionResource extends AdminResource
     public static function getPages(): array
     {
         return [
+            'index' => ListCourseSections::route('/'),
             'edit' => EditCourseSection::route('/{record}/edit'),
         ];
     }

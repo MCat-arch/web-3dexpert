@@ -6,6 +6,7 @@ use App\Filament\Resources\Assignments\AssignmentResource;
 use App\Filament\Resources\AuditLogs\AuditLogResource;
 use App\Filament\Resources\CourseEnrollments\CourseEnrollmentResource;
 use App\Filament\Resources\Courses\CourseResource;
+use App\Filament\Resources\CourseSections\CourseSectionResource;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\JobVacancies\JobVacancyResource;
@@ -66,6 +67,7 @@ class AdminPanelSmokeTest extends TestCase
 
         foreach ([
             CourseResource::class,
+            CourseSectionResource::class,
             AssignmentResource::class,
             CourseEnrollmentResource::class,
             PaymentResource::class,
@@ -85,6 +87,7 @@ class AdminPanelSmokeTest extends TestCase
 
         foreach ([
             CourseResource::class,
+            CourseSectionResource::class,
             AssignmentResource::class,
             CourseEnrollmentResource::class,
             PaymentResource::class,
@@ -108,6 +111,7 @@ class AdminPanelSmokeTest extends TestCase
 
         foreach ([
             CourseResource::class,
+            CourseSectionResource::class,
             AssignmentResource::class,
             CourseEnrollmentResource::class,
             PaymentResource::class,
@@ -126,6 +130,7 @@ class AdminPanelSmokeTest extends TestCase
 
         foreach ([
             CourseResource::class,
+            CourseSectionResource::class,
             AssignmentResource::class,
             CourseEnrollmentResource::class,
             MediaAssetResource::class,
