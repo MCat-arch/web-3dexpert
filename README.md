@@ -19,6 +19,20 @@ the database stores only their metadata and private storage path.
 
 ## Setup
 
+> **Local vs production:** `.env` is the production profile. For local testing use the ignored `.env.local` file and run Artisan with `--env=local`. The full local and VM runbook is in [docs/vm-setup-and-admin.md](docs/vm-setup-and-admin.md); the panel guide is in [docs/admin-panel.md](docs/admin-panel.md).
+
+Local test commands:
+
+```bash
+php artisan --env=local migrate --force
+php artisan --env=local app:create-admin --name="Admin 3D Expert" --username=admin --email=smtp3dexpert@gmail.com --role=superadmin
+php artisan --env=local serve
+```
+
+Open `http://localhost:8000/admin` and log in with `smtp3dexpert@gmail.com` or `admin`.
+
+Production / VM setup:
+
 ```bash
 # Install dependencies
 composer install
@@ -144,7 +158,8 @@ so swapping to the package later means deleting the trait. **Switch if you need
 per-locale querying or fallback chains — do not grow that file.**
 
 The Filament panel is installed at `/admin`. Admin accounts are created with
-`php artisan app:create-admin`; editors can manage landing content, while only
+`php artisan app:create-admin`; the project administrator email is
+`smtp3dexpert@gmail.com`. Editors can manage landing content, while only
 admins/superadmins can change site settings. Public accounts use a separate
 `customers` table and `customer` guard, so they cannot authenticate to Filament.
 Verified customers can enroll in free events; paid-event enrollment is deferred

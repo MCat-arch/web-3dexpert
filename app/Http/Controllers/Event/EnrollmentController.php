@@ -6,6 +6,7 @@ use App\Actions\Events\CancelEventRegistration;
 use App\Actions\Events\EnrollInEvent;
 use App\Exceptions\EnrollmentException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Event\EnrollRequest;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Support\Locale;
@@ -15,12 +16,10 @@ use Illuminate\Support\Facades\Gate;
 
 class EnrollmentController extends Controller
 {
-    public function store(Request $request, Event $event, EnrollInEvent $enroll): RedirectResponse
+    public function store(EnrollRequest $request, Event $event, EnrollInEvent $enroll): RedirectResponse
     {
-        abort_unless($event->is_published, 404);
-
         try {
-            $registration = $enroll($event, $request->user('customer'));
+            $registration = $enroll($event, $request->user('customer'), $request->attendee());
         } catch (EnrollmentException $e) {
             // Expected business outcomes -- full, closed, already registered --
             // are flashed, not raised as faults.

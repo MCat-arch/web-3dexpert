@@ -60,6 +60,10 @@ class ProgressTrackerNegativeResponseTest extends TestCase
             [
                 '/<!-- Livewire Styles -->.*?<\/style>/s',
                 '/<!-- Livewire Scripts -->.*?<\/script>/s',
+                // Current Livewire versions inject a plain <script> tag with
+                // no marker comment, and inject it only on the first response
+                // of some application instances. Strip by URL as well.
+                '/<script[^>]*\bsrc="[^"]*livewire[^"]*"[^>]*><\/script>/is',
             ],
             '',
             $body,

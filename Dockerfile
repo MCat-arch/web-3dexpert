@@ -30,7 +30,7 @@ FROM php:8.4-fpm-bookworm
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev \
+        git curl libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev \
         libicu-dev libzip-dev unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" bcmath exif gd intl pdo_mysql zip \

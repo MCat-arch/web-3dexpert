@@ -14,8 +14,6 @@ class Event extends Model
 {
     use HasFactory, HasTranslations, SoftDeletes;
 
-    public const PUBLIC_LIST_CACHE_KEY = 'events.public-list';
-
     public const LOCATION_OFFLINE = 'offline';
 
     public const LOCATION_ONLINE = 'online';
@@ -83,11 +81,6 @@ class Event extends Model
         return $this->hasMany(EventRegistration::class);
     }
 
-    public static function listingCacheKey(string $locale): string
-    {
-        return self::PUBLIC_LIST_CACHE_KEY.'.'.$locale;
-    }
-
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);
@@ -96,6 +89,23 @@ class Event extends Model
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('starts_at', '>=', now());
+    }
+
+    /**
+     * Events that are still relevant to the public list: not started yet, or
+     * already started but not finished. Without this, an event created for
+     * "today, starting now" disappears the moment the clock passes its start
+     * time, even though the event is still running.
+     */
+    public function scopePubliclyListed(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->where('starts_at', '>=', now())
+                ->orWhere(function (Builder $query): void {
+                    $query->whereNotNull('ends_at')
+                        ->where('ends_at', '>=', now());
+                });
+        });
     }
 
     public function scopeOrdered(Builder $query): Builder

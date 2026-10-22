@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -49,7 +50,7 @@ class EventAdminTest extends TestCase
 
         Livewire::test(CreateEvent::class)
             ->fillForm([
-                'title' => ['id' => 'Acara Uji', 'en' => 'Test Event'],
+                'title' => ['id' => 'Acara Uji'],
                 'starts_at' => now()->addWeek(),
                 'location_type' => Event::LOCATION_OFFLINE,
                 'capacity' => 25,
@@ -64,6 +65,115 @@ class EventAdminTest extends TestCase
             'is_published' => true,
             'capacity' => 25,
             'seats_taken' => 0,
+        ]);
+    }
+
+    public function test_a_new_event_is_visible_on_the_public_list_immediately(): void
+    {
+        $this->actingAs($this->staff());
+
+        Livewire::test(CreateEvent::class)
+            ->fillForm([
+                'title' => ['id' => 'Acara Publik Baru'],
+                'starts_at' => now()->addWeek(),
+                'location_type' => Event::LOCATION_OFFLINE,
+                'capacity' => 10,
+                'price' => 0,
+                'is_published' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->get('/acara')
+            ->assertOk()
+            ->assertSee('Acara Publik Baru');
+    }
+
+    public function test_a_new_event_is_published_by_default(): void
+    {
+        $this->actingAs($this->staff());
+
+        Livewire::test(CreateEvent::class)
+            ->fillForm([
+                'title' => ['id' => 'Acara Langsung'],
+                'starts_at' => now()->addWeek(),
+                'location_type' => Event::LOCATION_OFFLINE,
+                'capacity' => 10,
+                'price' => 0,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('events', [
+            'slug' => 'acara-langsung',
+            'is_published' => true,
+        ]);
+    }
+
+    public function test_a_blank_price_is_saved_as_free(): void
+    {
+        $this->actingAs($this->staff());
+
+        Livewire::test(CreateEvent::class)
+            ->fillForm([
+                'title' => ['id' => 'Acara Gratis'],
+                'starts_at' => now()->addWeek(),
+                'location_type' => Event::LOCATION_OFFLINE,
+                'capacity' => 10,
+                'price' => '',
+                'is_published' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('events', [
+            'slug' => 'acara-gratis',
+            'price' => 0,
+        ]);
+    }
+
+    public function test_an_event_can_be_created_with_a_poster_and_a_blank_price(): void
+    {
+        $this->actingAs($this->staff());
+
+        Livewire::test(CreateEvent::class)
+            ->fillForm([
+                'title' => ['id' => 'Acara Poster'],
+                'cover_path' => UploadedFile::fake()->image('poster.jpg', 80, 80),
+                'starts_at' => now()->addWeek(),
+                'location_type' => Event::LOCATION_OFFLINE,
+                'capacity' => 10,
+                'price' => '',
+                'is_published' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $event = Event::query()->where('slug', 'acara-poster')->firstOrFail();
+
+        $this->assertNotNull($event->cover_path);
+        $this->assertDatabaseHas('media_assets', ['path' => $event->cover_path]);
+    }
+
+    public function test_the_end_time_must_be_after_the_start_time(): void
+    {
+        $this->actingAs($this->staff());
+
+        Livewire::test(CreateEvent::class)
+            ->fillForm([
+                'title' => ['id' => 'Acara Salah Waktu'],
+                'starts_at' => now()->addWeek(),
+                'ends_at' => now()->addWeek()->subHour(),
+                'location_type' => Event::LOCATION_OFFLINE,
+                'capacity' => 10,
+                'price' => 0,
+                'is_published' => true,
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['ends_at']);
+
+        $this->assertDatabaseMissing('events', [
+            'slug' => 'acara-salah-waktu',
         ]);
     }
 

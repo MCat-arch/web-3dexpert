@@ -3,6 +3,15 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -33,6 +42,8 @@ class AdminPanelProvider extends PanelProvider
             // can reach this panel.
             ->authGuard('web')
             ->login(Login::class)
+            ->profile()
+            ->passwordReset()
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -59,5 +70,26 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    /**
+     * Filament's built-in action labels depend on a matching locale pack.
+     * This panel is intentionally Indonesian-only, so set the labels once
+     * here instead of repeating ->label() on every resource table. Explicit
+     * labels in a resource still win because configureUsing only supplies the
+     * default before the action is customised.
+     */
+    public function boot(): void
+    {
+        ViewAction::configureUsing(fn (ViewAction $action) => $action->label('Lihat'));
+        EditAction::configureUsing(fn (EditAction $action) => $action->label('Ubah'));
+        DeleteAction::configureUsing(fn (DeleteAction $action) => $action->label('Hapus'));
+        CreateAction::configureUsing(fn (CreateAction $action) => $action->label('Tambah'));
+
+        DeleteBulkAction::configureUsing(fn (DeleteBulkAction $action) => $action->label('Hapus yang dipilih'));
+        ForceDeleteAction::configureUsing(fn (ForceDeleteAction $action) => $action->label('Hapus permanen'));
+        ForceDeleteBulkAction::configureUsing(fn (ForceDeleteBulkAction $action) => $action->label('Hapus permanen yang dipilih'));
+        RestoreAction::configureUsing(fn (RestoreAction $action) => $action->label('Pulihkan'));
+        RestoreBulkAction::configureUsing(fn (RestoreBulkAction $action) => $action->label('Pulihkan yang dipilih'));
     }
 }

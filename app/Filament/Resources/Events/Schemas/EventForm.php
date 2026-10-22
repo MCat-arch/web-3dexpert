@@ -36,26 +36,14 @@ class EventForm
                         ->formatStateUsing(fn ($state, ?Event $record) => $record?->getTranslation('description', 'id') ?? ''),
                 ]),
 
-            Section::make('Kustomisasi Bahasa Inggris (Opsional)')
-                ->collapsed()
-                ->description('Kosongkan bagian ini jika ingin sistem otomatis menerjemahkan dari Bahasa Indonesia.')
-                ->schema([
-                    TextInput::make('title.en')
-                        ->label('Title (English)')
-                        ->placeholder('Otomatis diterjemahkan jika kosong...')
-                        ->formatStateUsing(fn ($state, ?Event $record) => $record?->getTranslation('title', 'en') ?? ''),
-                    Textarea::make('description.en')
-                        ->label('Description (English)')
-                        ->placeholder('Otomatis diterjemahkan jika kosong...')
-                        ->rows(4)
-                        ->formatStateUsing(fn ($state, ?Event $record) => $record?->getTranslation('description', 'en') ?? ''),
-                ]),
-
             Section::make('Waktu dan lokasi')
                 ->columns(2)
                 ->schema([
                     DateTimePicker::make('starts_at')->label('Mulai')->required()->seconds(false),
-                    DateTimePicker::make('ends_at')->label('Selesai')->seconds(false),
+                    DateTimePicker::make('ends_at')
+                        ->label('Selesai')
+                        ->seconds(false)
+                        ->after('starts_at'),
                     Select::make('location_type')
                         ->label('Tipe lokasi')
                         ->options([
@@ -91,8 +79,10 @@ class EventForm
                         ->label('Harga')
                         ->numeric()
                         ->default(0)
+                        ->minValue(0)
                         ->prefix('Rp')
-                        ->helperText('0 = gratis. Pembayaran menyusul di fase P5b.'),
+                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
+                        ->helperText('0 = gratis. Kosongkan juga berarti gratis.'),
 
                     DateTimePicker::make('registration_opens_at')
                         ->label('Pendaftaran dibuka')
@@ -104,8 +94,8 @@ class EventForm
 
                     Toggle::make('is_published')
                         ->label('Terbit')
-                        ->default(false)
-                        ->helperText('Acara hanya tampil di situs jika terbit.'),
+                        ->default(true)
+                        ->helperText('Aktif secara default. Nonaktifkan jika acara masih berupa draf.'),
                 ]),
 
             Section::make('Kursi terpakai')

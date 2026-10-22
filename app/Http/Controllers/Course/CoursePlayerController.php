@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Course;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\CourseLesson;
+use App\Support\CourseProgress;
 use App\Support\LessonPayload;
 use App\Support\Locale;
 use Illuminate\Http\RedirectResponse;
@@ -20,15 +22,31 @@ class CoursePlayerController extends Controller
             abort(404);
         }
 
-        $course->loadMissing(['sections.lessons.attachmentMedia']);
+        $course->loadMissing(['sections.lessons.attachmentMedia'])->loadCount('lessons');
 
         $customer = auth('customer')->user();
+        $enrollment = null;
         $isEnrolled = false;
+        $completedLessonIds = [];
+        $progress = null;
+        $assignments = collect();
+
         if ($customer) {
-            $isEnrolled = CourseEnrollment::where('course_id', $course->id)
-                ->where('customer_id', $customer->id)
-                ->active()
-                ->exists();
+            $enrollment = CourseEnrollment::query()
+                ->where('course_id', $course->getKey())
+                ->where('customer_id', $customer->getKey())
+                ->first();
+
+            $isEnrolled = $enrollment?->isActive() ?? false;
+
+            if ($enrollment) {
+                $completedLessonIds = $enrollment->completions()
+                    ->pluck('course_lesson_id')
+                    ->all();
+
+                $enrollment->setRelation('course', $course);
+                $progress = CourseProgress::for($enrollment);
+            }
         }
 
         // Find selected lesson or fall back to first lesson
@@ -50,12 +68,25 @@ class CoursePlayerController extends Controller
                 ->with('error', __('courses.locked_lesson_prompt'));
         }
 
-        $sectionsPayload = $course->sections->map(function ($section) use ($isEnrolled) {
+        if ($isEnrolled) {
+            $assignments = Assignment::query()
+                ->where('course_lesson_id', $currentLesson->getKey())
+                ->published()
+                ->with([
+                    'submissions' => fn ($query) => $query->where('customer_id', $customer->getKey()),
+                ])
+                ->orderBy('due_at')
+                ->get();
+        }
+
+        $sectionsPayload = $course->sections->map(function ($section) use ($isEnrolled, $completedLessonIds) {
             return [
                 'id' => $section->id,
                 'title' => $section->title,
-                'lessons' => $section->lessons->map(function ($l) use ($isEnrolled) {
-                    return LessonPayload::for($l, $isEnrolled || $l->is_free_preview);
+                'lessons' => $section->lessons->map(function ($lesson) use ($isEnrolled, $completedLessonIds) {
+                    return LessonPayload::for($lesson, $isEnrolled || $lesson->is_free_preview) + [
+                        'completed' => in_array($lesson->getKey(), $completedLessonIds, true),
+                    ];
                 }),
             ];
         });
@@ -69,6 +100,10 @@ class CoursePlayerController extends Controller
             'sectionsPayload' => $sectionsPayload,
             'isEnrolled' => $isEnrolled,
             'customer' => $customer,
+            'enrollment' => $enrollment,
+            'progress' => $progress,
+            'completedLessonIds' => $completedLessonIds,
+            'assignments' => $assignments,
         ]);
     }
 }

@@ -46,11 +46,11 @@ class LocalizationTest extends TestCase
         $this->get('/')->assertSee('rel="canonical"', false);
     }
 
-    public function test_it_does_not_expose_localized_standalone_pages(): void
+    public function test_it_serves_the_services_page_in_every_locale_but_not_contact(): void
     {
-        // '/en/karir' is a real page as of P6. '/en/layanan' is not: there are
-        // no service pages, and D12 means there is no contact page either.
-        $this->get('/en/layanan')->assertNotFound();
+        // Services is a real localized page. D12 means there is still no
+        // contact page, so a localized contact URL must 404.
+        $this->get('/en/layanan')->assertOk()->assertSee('lang="en"', false);
         $this->get('/en/kontak')->assertNotFound();
     }
 }

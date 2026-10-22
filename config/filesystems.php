@@ -33,7 +33,11 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // The private disk must not have a public /storage route. Laravel
+            // would otherwise register a signed-URL endpoint that answers 403
+            // for direct requests in non-production environments and 404 only
+            // in production. No feature uses temporary URLs on this disk.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -73,6 +77,19 @@ return [
         'applications' => [
             'driver' => 'local',
             'root' => storage_path('app/private/applications'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /*
+         * Student assignment uploads. Deliberately outside the web root and
+         * separate from the public media disk; every read goes through
+         * AssignmentDownloadController after a policy check.
+         */
+        'submissions' => [
+            'driver' => 'local',
+            'root' => storage_path('app/submissions'),
             'visibility' => 'private',
             'throw' => false,
             'report' => false,

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\EventRegistrations\Tables;
 
 use App\Actions\Events\CancelEventRegistration;
 use App\Models\EventRegistration;
+use App\Support\AuditLogger;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -65,10 +66,21 @@ class EventRegistrationsTable
                     ->icon('heroicon-o-check-circle')
                     ->requiresConfirmation()
                     ->visible(fn (EventRegistration $record) => $record->status === EventRegistration::STATUS_CONFIRMED)
-                    ->action(fn (EventRegistration $record) => $record->forceFill([
-                        'status' => EventRegistration::STATUS_ATTENDED,
-                        'attended_at' => now(),
-                    ])->save()),
+                    ->action(function (EventRegistration $record) {
+                        $old = $record->status;
+
+                        $record->forceFill([
+                            'status' => EventRegistration::STATUS_ATTENDED,
+                            'attended_at' => now(),
+                        ])->save();
+
+                        app(AuditLogger::class)->statusChanged(
+                            $record,
+                            $old,
+                            EventRegistration::STATUS_ATTENDED,
+                            'registration.attended',
+                        );
+                    }),
 
                 Action::make('cancel')
                     ->label('Batalkan')

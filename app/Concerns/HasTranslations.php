@@ -116,9 +116,10 @@ trait HasTranslations
 
     public function setTranslations(string $key, array $translations): static
     {
-        if (filled($translations['id'] ?? null) && blank($translations['en'] ?? null)) {
-            $translations['en'] = \App\Support\AutoTranslator::translateToEnglish($translations['id']);
-        } elseif (blank($translations['id'] ?? null) && filled($translations['en'] ?? null)) {
+        // Admin content is authored in Indonesian only. Keep the legacy `en`
+        // column usable for old rows, but never call an external translator on
+        // save. New/edited Indonesian-only rows fall back to Indonesian on /en.
+        if (blank($translations['id'] ?? null) && filled($translations['en'] ?? null)) {
             $translations['id'] = $translations['en'];
         }
 

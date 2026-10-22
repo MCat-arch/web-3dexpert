@@ -2,49 +2,31 @@
 
 namespace App\Filament\Resources\SiteSettings;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\SiteSettings\Pages\CreateSiteSetting;
 use App\Filament\Resources\SiteSettings\Pages\EditSiteSetting;
 use App\Filament\Resources\SiteSettings\Pages\ListSiteSettings;
 use App\Filament\Resources\SiteSettings\Schemas\SiteSettingForm;
 use App\Filament\Resources\SiteSettings\Tables\SiteSettingsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\SiteSetting;
+use App\Models\User;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 
-class SiteSettingResource extends Resource
+class SiteSettingResource extends AdminResource
 {
     protected static ?string $model = SiteSetting::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::SYSTEM;
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->canManageSettings() ?? false;
-    }
+    protected static ?int $navigationSort = 92;
 
-    public static function canCreate(): bool
-    {
-        return auth()->user()?->canManageSettings() ?? false;
-    }
+    protected static string $accessArea = User::AREA_SETTINGS;
 
-    public static function canEdit(Model $record): bool
-    {
-        return auth()->user()?->canManageSettings() ?? false;
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return auth()->user()?->canManageSettings() ?? false;
-    }
-
-    public static function canDeleteAny(): bool
-    {
-        return auth()->user()?->canManageSettings() ?? false;
-    }
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     public static function form(Schema $schema): Schema
     {

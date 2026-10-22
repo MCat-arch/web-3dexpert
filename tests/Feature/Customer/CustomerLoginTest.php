@@ -16,6 +16,19 @@ class CustomerLoginTest extends TestCase
         $this->get('/en/masuk')->assertOk();
     }
 
+    public function test_auth_pages_do_not_show_a_back_to_home_arrow(): void
+    {
+        $this->get('/masuk')
+            ->assertOk()
+            ->assertDontSee('Kembali ke Beranda')
+            ->assertDontSee('auth-back', false);
+
+        $this->get('/daftar')
+            ->assertOk()
+            ->assertDontSee('Kembali ke Beranda')
+            ->assertDontSee('auth-back', false);
+    }
+
     public function test_a_customer_can_sign_in(): void
     {
         $customer = Customer::factory()->create(['password' => 'rahasia-yang-panjang']);

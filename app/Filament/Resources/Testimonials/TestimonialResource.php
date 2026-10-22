@@ -2,23 +2,31 @@
 
 namespace App\Filament\Resources\Testimonials;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\Testimonials\Pages\CreateTestimonial;
 use App\Filament\Resources\Testimonials\Pages\EditTestimonial;
 use App\Filament\Resources\Testimonials\Pages\ListTestimonials;
 use App\Filament\Resources\Testimonials\Schemas\TestimonialForm;
 use App\Filament\Resources\Testimonials\Tables\TestimonialsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\Testimonial;
+use App\Models\User;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
-class TestimonialResource extends Resource
+class TestimonialResource extends AdminResource
 {
     protected static ?string $model = Testimonial::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::CONTENT;
+
+    protected static ?int $navigationSort = 40;
+
+    protected static string $accessArea = User::AREA_CONTENT;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
     public static function form(Schema $schema): Schema
     {

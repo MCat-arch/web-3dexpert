@@ -2,16 +2,19 @@
 
 namespace App\Filament\Resources\JobApplications;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\JobApplications\Pages\ListJobApplications;
 use App\Filament\Resources\JobApplications\Pages\ViewJobApplication;
 use App\Filament\Resources\JobApplications\Schemas\JobApplicationInfolist;
 use App\Filament\Resources\JobApplications\Tables\JobApplicationsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\JobApplication;
+use App\Models\User;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * The hiring pipeline. Read + status changes only -- no create, no edit form.
@@ -24,9 +27,15 @@ use Filament\Tables\Table;
  * ApplicationDocumentController, never a public URL -- see
  * JobApplicationPolicy::viewDocuments.
  */
-class JobApplicationResource extends Resource
+class JobApplicationResource extends AdminResource
 {
     protected static ?string $model = JobApplication::class;
+
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::CAREER;
+
+    protected static ?int $navigationSort = 20;
+
+    protected static string $accessArea = User::AREA_HIRING;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 
@@ -45,6 +54,16 @@ class JobApplicationResource extends Resource
     }
 
     public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
     {
         return false;
     }

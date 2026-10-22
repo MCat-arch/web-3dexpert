@@ -262,16 +262,16 @@ class ApplicationDocumentSecurityTest extends TestCase
         $this->assertStringContainsString('cv-budi.pdf', $disposition);
     }
 
-    public function test_an_editor_can_download_but_a_deactivated_staff_member_cannot(): void
+    public function test_an_editor_cannot_download_and_a_deactivated_staff_member_cannot(): void
     {
         $document = JobApplicationDocument::factory()
             ->for(JobApplication::factory()->for($this->openVacancy(), 'vacancy')->create(), 'application')
             ->create();
 
-        // The file row exists but no file was written, so 404 proves it got
-        // past authorisation -- which is what this asserts.
+        // Hiring is admin+ only after the RBAC split, so an editor is denied
+        // before the missing file is ever touched.
         $this->assertSame(
-            404,
+            403,
             $this->actingAs($this->editor(), 'web')
                 ->get('/dokumen-lamaran/'.$document->getKey())->getStatusCode(),
         );

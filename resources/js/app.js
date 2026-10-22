@@ -79,9 +79,10 @@ Alpine.data('navMenu', () => ({
             }
         });
 
-        // Legacy closed the menu on resize past the desktop breakpoint.
+        // Close the menu when resizing past the desktop breakpoint.
+        // Keep 1121 in sync with the `max-width: 1120px` media queries in app.css.
         window.addEventListener('resize', () => {
-            if (window.innerWidth >= 1024 && this.open) {
+            if (window.innerWidth >= 1121 && this.open) {
                 this.setOpen(false);
             }
         });
@@ -420,6 +421,82 @@ Alpine.data('testimonialToggle', () => ({
                 block: 'start',
             });
         }
+    },
+}));
+
+/* ------------------------------------------------------------------ */
+/* Event registration confirmation dialog                             */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Native <dialog> plus plain listeners, for the same CSP reason as the rest
+ * of this file: no Alpine expressions, only `x-data="eventRegister"`.
+ *
+ * The server renders the attendee defaults (name, phone, locked email), so
+ * this component only opens and closes the dialog and gives the submit button
+ * a pending state. If JS is unavailable, the <noscript> form beside the
+ * dialog still allows registration.
+ */
+Alpine.data('eventRegister', () => ({
+    init() {
+        this.dialog = this.$el.querySelector('[data-event-register-dialog]');
+
+        if (!this.dialog) {
+            return;
+        }
+
+        this.$el.querySelectorAll('[data-event-register-open]').forEach((button) => {
+            button.addEventListener('click', () => this.open());
+        });
+
+        this.dialog.querySelectorAll('[data-event-register-close]').forEach((button) => {
+            button.addEventListener('click', () => this.close());
+        });
+
+        // Clicking the backdrop is a close gesture; clicks inside the panel
+        // bubble from a child, so checking the target is the dialog itself is
+        // enough to tell them apart.
+        this.dialog.addEventListener('click', (event) => {
+            if (event.target === this.dialog) {
+                this.close();
+            }
+        });
+
+        this.dialog.addEventListener('close', () => {
+            document.body.classList.remove('has-event-dialog');
+        });
+
+        const form = this.dialog.querySelector('form');
+
+        form?.addEventListener('submit', () => {
+            const submit = form.querySelector('[type="submit"]');
+
+            if (! submit) {
+                return;
+            }
+
+            submit.disabled = true;
+            submit.textContent = submit.dataset.loadingLabel || submit.textContent;
+        });
+
+        // After a failed validation the controller redirects back; reopen the
+        // dialog so the errors are not hidden behind a closed modal.
+        if (this.dialog.dataset.open === 'true') {
+            this.open();
+        }
+    },
+
+    open() {
+        if (! this.dialog.open) {
+            this.dialog.showModal();
+            document.body.classList.add('has-event-dialog');
+        }
+
+        this.dialog.querySelector('input:not([readonly])')?.focus();
+    },
+
+    close() {
+        this.dialog.close();
     },
 }));
 

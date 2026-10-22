@@ -88,6 +88,18 @@
                         {{ __('courses.section_count', ['count' => $sectionsPayload->count()]) }} &middot; {{ __('courses.lessons_count', ['count' => $course->lessons->count()]) }}
                     </p>
 
+                    @if ($isEnrolled && $progress)
+                        <div style="margin-bottom: 24px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">
+                                <span>{{ __('courses.your_progress') }}</span>
+                                <span>{{ $progress['completed'] }} / {{ $progress['total'] }} &middot; {{ $progress['percent'] }}%</span>
+                            </div>
+                            <div style="height: 8px; background: var(--line-light); border-radius: 999px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ $progress['percent'] }}%; background: var(--gold-hover);"></div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div style="display: flex; flex-direction: column; gap: 16px;">
                         @forelse ($sectionsPayload as $sectionIndex => $sec)
                             <div style="border: 1px solid var(--line-light); border-radius: var(--radius-card); overflow: hidden;">
@@ -100,6 +112,9 @@
                                     @foreach ($sec['lessons'] as $les)
                                         <div style="padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem;">
                                             <div style="display: flex; align-items: center; gap: 10px;">
+                                                @if (!empty($les['completed']))
+                                                    <span style="color: var(--gold-hover); font-weight: 700;" aria-label="{{ __('courses.completed') }}">&#10003;</span>
+                                                @endif
                                                 <span style="color: {{ $les['unlocked'] ? 'var(--text)' : 'var(--text-muted)' }}">
                                                     {{ $les['title'] }}
                                                 </span>

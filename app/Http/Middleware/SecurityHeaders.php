@@ -42,7 +42,7 @@ class SecurityHeaders
             // [FIXED] Semua frame: YouTube (ytFacade) + Instagram reel (order flow).
             // DITULIS SEBAGAI SATU STRING DENGAN NAMA DIREKTIF — bukan key array,
             // karena implode() mengabaikan key dan nama direktifnya hilang.
-            "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.instagram.com",
+            'frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.instagram.com',
             "connect-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",

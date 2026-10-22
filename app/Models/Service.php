@@ -54,11 +54,6 @@ class Service extends Model
         return $this->hasMany(ServiceFeature::class)->orderBy('sort_order');
     }
 
-    public function contactSubmissions(): HasMany
-    {
-        return $this->hasMany(ContactSubmission::class);
-    }
-
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);

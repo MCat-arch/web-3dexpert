@@ -5,27 +5,31 @@ use App\Http\Controllers\Career\JobApplicationController;
 use App\Http\Controllers\Career\MyApplicationsController;
 use App\Http\Controllers\Career\VacancyDetailController;
 use App\Http\Controllers\Career\VacancyListController;
+use App\Http\Controllers\Course\AssignmentDownloadController;
+use App\Http\Controllers\Course\AssignmentSubmissionController;
+use App\Http\Controllers\Course\CourseCatalogController;
+use App\Http\Controllers\Course\CourseCheckoutController;
+use App\Http\Controllers\Course\CourseDetailController;
+use App\Http\Controllers\Course\CoursePaymentController;
+use App\Http\Controllers\Course\CoursePlayerController;
+use App\Http\Controllers\Course\LessonCompletionController;
 use App\Http\Controllers\Customer\AccountController;
 use App\Http\Controllers\Customer\Auth\EmailVerificationController;
 use App\Http\Controllers\Customer\Auth\LoginController;
 use App\Http\Controllers\Customer\Auth\LogoutController;
 use App\Http\Controllers\Customer\Auth\PasswordResetController;
 use App\Http\Controllers\Customer\Auth\RegisterController;
+use App\Http\Controllers\Customer\MyCoursesController;
 use App\Http\Controllers\Event\EnrollmentController;
 use App\Http\Controllers\Event\EventDetailController;
 use App\Http\Controllers\Event\EventListController;
 use App\Http\Controllers\Event\MyEventsController;
-use App\Http\Controllers\Course\CourseCatalogController;
-use App\Http\Controllers\Course\CourseCheckoutController;
-use App\Http\Controllers\Course\CourseDetailController;
-use App\Http\Controllers\Course\CoursePaymentController;
-use App\Http\Controllers\Course\CoursePlayerController;
-use App\Http\Controllers\Customer\MyCoursesController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\Project\ProjectLookupController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Middleware\EnsureCustomerIsActive;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,7 +63,7 @@ Route::get('media/{path}', [MediaController::class, 'show'])
  * authorises through JobApplicationPolicy::viewDocuments before streaming.
  */
 Route::get('dokumen-lamaran/{document}', ApplicationDocumentController::class)
-    ->middleware(['auth', 'can-manage-content'])
+    ->middleware(['auth', 'can:viewAny,App\Models\JobApplication'])
     ->name('applications.document');
 
 /*
@@ -159,7 +163,7 @@ $publicRoutes = function (): void {
         ->middleware('signed')
         ->name('customer.verification.verify');
 
-    Route::middleware('auth:customer')->group(function () {
+    Route::middleware(['auth:customer', EnsureCustomerIsActive::class])->group(function () {
         Route::post('keluar', LogoutController::class)->name('customer.logout');
 
         Route::get('verifikasi-email', [EmailVerificationController::class, 'notice'])
@@ -205,6 +209,15 @@ $publicRoutes = function (): void {
                 ->name('courses.checkout.store');
             Route::get('akun/kursus', MyCoursesController::class)
                 ->name('customer.courses');
+
+            Route::post('kursus/{course:slug}/materi/{lesson}/selesai', [LessonCompletionController::class, 'store'])
+                ->name('courses.lesson.complete');
+
+            Route::post('kursus/{course:slug}/tugas/{assignment}/kumpul', [AssignmentSubmissionController::class, 'store'])
+                ->name('courses.assignment.submit');
+
+            Route::get('kursus/{course:slug}/tugas/{assignment}/berkas', [AssignmentDownloadController::class, 'download'])
+                ->name('courses.assignment.download');
         });
     });
 };
@@ -212,7 +225,7 @@ $publicRoutes = function (): void {
 $defaultLocale = config('site.default_locale');
 
 // Default locale: no prefix, canonical route names.
-Route::middleware('locale:' . $defaultLocale)->group($publicRoutes);
+Route::middleware('locale:'.$defaultLocale)->group($publicRoutes);
 
 // Every other locale: prefixed path, prefixed route names.
 foreach (array_keys(config('site.locales')) as $locale) {
@@ -221,7 +234,11 @@ foreach (array_keys(config('site.locales')) as $locale) {
     }
 
     Route::prefix($locale)
-        ->middleware('locale:' . $locale)
-        ->name($locale . '.')
+        ->middleware('locale:'.$locale)
+        ->name($locale.'.')
         ->group($publicRoutes);
 }
+
+Route::middleware('auth')
+    ->get('admin/tugas/{submission}/berkas', [AssignmentDownloadController::class, 'downloadStaff'])
+    ->name('admin.assignment-submissions.download');

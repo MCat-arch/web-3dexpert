@@ -3,10 +3,6 @@
 {{-- Shared frame for the customer auth forms --}}
 <div class="auth-wrapper">
     <section class="auth-card">
-        <div class="auth-back">
-            <a href="{{ $lroute('home') }}" class="auth-back-link">&larr; {{ __('customer.back_home') }}</a>
-        </div>
-
         <div class="auth-header">
             <div style="display: flex; justify-content: center; margin-bottom: 20px;">
                 <a href="{{ $lroute('home') }}">

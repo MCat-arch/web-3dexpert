@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Course extends Model
@@ -39,11 +40,11 @@ class Course extends Model
     protected function casts(): array
     {
         return [
-            'price'             => 'decimal:2',
-            'is_published'      => 'boolean',
-            'has_lms'           => 'boolean',
+            'price' => 'decimal:2',
+            'is_published' => 'boolean',
+            'has_lms' => 'boolean',
             'estimated_minutes' => 'integer',
-            'published_at'      => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 
@@ -71,6 +72,29 @@ class Course extends Model
             if (blank($course->slug)) {
                 $course->slug = $course->generateSlug();
             }
+
+            if ($course->is_published && blank($course->published_at)) {
+                $course->published_at = now();
+            }
+        });
+
+        static::deleting(function (self $course) {
+            // Submission files are private student work. They must not outlive
+            // the course just because the course row was soft-deleted.
+            $course->sections()
+                ->with('lessons.assignments.submissions')
+                ->get()
+                ->each(function (CourseSection $section) {
+                    $section->lessons->each(function (CourseLesson $lesson) {
+                        $lesson->assignments->each(function (Assignment $assignment) {
+                            $assignment->submissions->each(function (AssignmentSubmission $submission) {
+                                if (filled($submission->path)) {
+                                    Storage::disk($submission->disk)->delete($submission->path);
+                                }
+                            });
+                        });
+                    });
+                });
         });
     }
 

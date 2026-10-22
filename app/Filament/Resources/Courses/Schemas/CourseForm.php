@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Courses\Schemas;
 
 use App\Models\Course;
+use App\Models\User;
 use App\Support\MediaUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -38,23 +40,6 @@ class CourseForm
                         ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('description', 'id') ?? ''),
                 ]),
 
-            Section::make('Kustomisasi Bahasa Inggris (Opsional)')
-                ->collapsed()
-                ->description('Kosongkan bagian ini jika ingin sistem otomatis menerjemahkan dari Bahasa Indonesia.')
-                ->schema([
-                    TextInput::make('title.en')
-                        ->label('Title (English)')
-                        ->placeholder('Otomatis diterjemahkan jika kosong...')
-                        ->maxLength(255)
-                        ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('title', 'en') ?? ''),
-
-                    Textarea::make('description.en')
-                        ->label('Description (English)')
-                        ->placeholder('Otomatis diterjemahkan jika kosong...')
-                        ->rows(5)
-                        ->formatStateUsing(fn ($state, ?Course $record) => $record?->getTranslation('description', 'en') ?? ''),
-                ]),
-
             Section::make('Detail Kursus')
                 ->columns(2)
                 ->schema([
@@ -74,9 +59,9 @@ class CourseForm
                     Select::make('level')
                         ->label('Level')
                         ->options([
-                            'beginner'     => 'Pemula (Beginner)',
+                            'beginner' => 'Pemula (Beginner)',
                             'intermediate' => 'Menengah (Intermediate)',
-                            'advanced'     => 'Lanjutan / Mentoring (Advanced)',
+                            'advanced' => 'Lanjutan / Mentoring (Advanced)',
                         ])
                         ->nullable()
                         ->live(),
@@ -86,7 +71,9 @@ class CourseForm
                         ->numeric()
                         ->default(0)
                         ->prefix('Rp')
-                        ->helperText('0 = Gratis.'),
+                        ->disabled(fn () => ! auth()->user()?->can(User::AREA_PAYMENTS))
+                        ->dehydrated(fn () => (bool) auth()->user()?->can(User::AREA_PAYMENTS))
+                        ->helperText('0 = Gratis. Hanya admin yang dapat mengubah harga.'),
 
                     TextInput::make('estimated_minutes')
                         ->label('Estimasi Waktu (menit)')
@@ -105,11 +92,17 @@ class CourseForm
                         ->label('Terbit')
                         ->default(false)
                         ->helperText('Kursus hanya tampil di situs jika diterbitkan.'),
+
+                    Placeholder::make('curriculum_hint')
+                        ->label('Kurikulum')
+                        ->content('Simpan kursus ini, lalu kelola Bab dan Materi pada bagian Kurikulum di bawah formulir.')
+                        ->visible(fn ($get) => (bool) $get('has_lms'))
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Konfigurasi Mentoring (Advanced)')
                 ->description('Digunakan jika LMS tidak aktif. Peserta akan diarahkan ke WhatsApp untuk daftar.')
-                ->visible(fn ($get) => ! $get('has_lms'))
+                ->visible(fn ($get) => ! $get('has_lms') && auth()->user()?->can(User::AREA_CONTENT))
                 ->schema([
                     TextInput::make('whatsapp_cta')
                         ->label('Link WhatsApp Khusus')
@@ -122,4 +115,3 @@ class CourseForm
         ]);
     }
 }
-

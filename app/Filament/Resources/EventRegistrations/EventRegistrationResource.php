@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\EventRegistrations;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\EventRegistrations\Pages\ListEventRegistrations;
 use App\Filament\Resources\EventRegistrations\Tables\EventRegistrationsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\EventRegistration;
+use App\Models\User;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Read-only, with two actions: mark attended, and cancel.
@@ -18,9 +21,15 @@ use Filament\Tables\Table;
  * increment seats_taken, and an edited status would not release one. Both
  * actions below go through the same code paths the public flow uses.
  */
-class EventRegistrationResource extends Resource
+class EventRegistrationResource extends AdminResource
 {
     protected static ?string $model = EventRegistration::class;
+
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::PROGRAM;
+
+    protected static ?int $navigationSort = 20;
+
+    protected static string $accessArea = User::AREA_REGISTRATIONS;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
@@ -34,6 +43,16 @@ class EventRegistrationResource extends Resource
     }
 
     public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
     {
         return false;
     }

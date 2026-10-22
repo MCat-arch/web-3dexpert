@@ -104,12 +104,12 @@ class CourseFeatureTest extends TestCase
         $previewLesson = CourseLesson::factory()->preview()->create([
             'course_section_id' => $section->id,
             'title' => ['id' => 'Materi Pembuka Gratis', 'en' => 'Free Intro Lesson'],
-            'youtube_id' => 'PREVIEW_YT_11',
+            'youtube_url' => 'https://youtu.be/PREVIEW_YT1',
         ]);
 
         $response = $this->get('/kursus/'.$course->slug.'/belajar/'.$previewLesson->id);
         $response->assertStatus(200);
-        $response->assertSee('PREVIEW_YT_11');
+        $response->assertSee('PREVIEW_YT1');
     }
 
     public function test_verified_customer_can_checkout_and_simulate_payment(): void
@@ -126,7 +126,7 @@ class CourseFeatureTest extends TestCase
         $section = CourseSection::factory()->create(['course_id' => $course->id]);
         $lesson = CourseLesson::factory()->create([
             'course_section_id' => $section->id,
-            'youtube_id' => 'COURSE_PAID_VIDEO_88',
+            'youtube_url' => 'https://youtu.be/COURSE_PAID',
             'is_free_preview' => false,
         ]);
 
@@ -172,6 +172,6 @@ class CourseFeatureTest extends TestCase
         $playerResponse = $this->actingAs($customer, 'customer')
             ->get('/kursus/'.$course->slug.'/belajar/'.$lesson->id);
         $playerResponse->assertStatus(200);
-        $playerResponse->assertSee('COURSE_PAID_VIDEO_88');
+        $playerResponse->assertSee('COURSE_PAID');
     }
 }

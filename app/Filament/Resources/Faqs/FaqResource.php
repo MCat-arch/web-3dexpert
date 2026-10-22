@@ -2,23 +2,31 @@
 
 namespace App\Filament\Resources\Faqs;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\Faqs\Pages\CreateFaq;
 use App\Filament\Resources\Faqs\Pages\EditFaq;
 use App\Filament\Resources\Faqs\Pages\ListFaqs;
 use App\Filament\Resources\Faqs\Schemas\FaqForm;
 use App\Filament\Resources\Faqs\Tables\FaqsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\Faq;
+use App\Models\User;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
-class FaqResource extends Resource
+class FaqResource extends AdminResource
 {
     protected static ?string $model = Faq::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::CONTENT;
+
+    protected static ?int $navigationSort = 70;
+
+    protected static string $accessArea = User::AREA_CONTENT;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedQuestionMarkCircle;
 
     public static function form(Schema $schema): Schema
     {

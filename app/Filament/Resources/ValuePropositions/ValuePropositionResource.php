@@ -2,23 +2,31 @@
 
 namespace App\Filament\Resources\ValuePropositions;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\ValuePropositions\Pages\CreateValueProposition;
 use App\Filament\Resources\ValuePropositions\Pages\EditValueProposition;
 use App\Filament\Resources\ValuePropositions\Pages\ListValuePropositions;
 use App\Filament\Resources\ValuePropositions\Schemas\ValuePropositionForm;
 use App\Filament\Resources\ValuePropositions\Tables\ValuePropositionsTable;
+use App\Filament\Support\NavGroup;
+use App\Models\User;
 use App\Models\ValueProposition;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
-class ValuePropositionResource extends Resource
+class ValuePropositionResource extends AdminResource
 {
     protected static ?string $model = ValueProposition::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::CONTENT;
+
+    protected static ?int $navigationSort = 30;
+
+    protected static string $accessArea = User::AREA_CONTENT;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
     public static function form(Schema $schema): Schema
     {

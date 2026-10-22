@@ -26,10 +26,15 @@ use App\Models\User;
  */
 class JobApplicationPolicy
 {
+    public function viewAny(Customer|User $actor): bool
+    {
+        return $actor instanceof User && $actor->canManageHiring();
+    }
+
     public function view(Customer|User $actor, JobApplication $application): bool
     {
         if ($actor instanceof User) {
-            return $actor->canManageContent();
+            return $actor->canManageHiring();
         }
 
         return $this->owns($actor, $application);
@@ -45,18 +50,18 @@ class JobApplicationPolicy
      */
     public function viewDocuments(Customer|User $actor, JobApplication $application): bool
     {
-        return $actor instanceof User && $actor->canManageContent();
+        return $actor instanceof User && $actor->canManageHiring();
     }
 
     /** Staff-only free text about a candidate. Never applicant-visible. */
     public function viewNotes(Customer|User $actor, JobApplication $application): bool
     {
-        return $actor instanceof User && $actor->canManageContent();
+        return $actor instanceof User && $actor->canManageHiring();
     }
 
     public function updateStatus(Customer|User $actor, JobApplication $application): bool
     {
-        return $actor instanceof User && $actor->canManageContent();
+        return $actor instanceof User && $actor->canManageHiring();
     }
 
     public function withdraw(Customer|User $actor, JobApplication $application): bool

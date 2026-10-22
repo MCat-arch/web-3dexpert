@@ -3,7 +3,6 @@
 return [
     // Shared
     'greeting' => 'Hello :name,',
-    'back_home' => 'Back to Home',
     'name' => 'Full name',
     'email' => 'Email',
     'phone' => 'WhatsApp number',

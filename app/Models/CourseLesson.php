@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CourseLesson extends Model
 {
@@ -45,6 +46,16 @@ class CourseLesson extends Model
     public function attachmentMedia(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'attachment_media_id');
+    }
+
+    public function completions(): HasMany
+    {
+        return $this->hasMany(LessonCompletion::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class);
     }
 
     public function attachmentUrl(): ?string

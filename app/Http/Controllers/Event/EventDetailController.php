@@ -18,6 +18,7 @@ class EventDetailController extends Controller
 
         return view('events.show', [
             'event' => $event,
+            'customer' => $customer,
             // Drives the CTA state. Resolved here rather than in the view so
             // Blade stays free of queries (guide.md section 3).
             'registration' => $customer

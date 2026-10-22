@@ -24,6 +24,21 @@ class UserFactory extends Factory
         return $this->state(['role' => User::ROLE_SUPERADMIN]);
     }
 
+    public function admin(): static
+    {
+        return $this->state(['role' => User::ROLE_ADMIN]);
+    }
+
+    public function lmsAdmin(): static
+    {
+        return $this->state(['role' => User::ROLE_LMS_ADMIN]);
+    }
+
+    public function editor(): static
+    {
+        return $this->state(['role' => User::ROLE_EDITOR]);
+    }
+
     public function inactive(): static
     {
         return $this->state(['is_active' => false]);

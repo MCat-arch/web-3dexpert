@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Course;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
+use App\Support\CourseProgress;
 use App\Support\LessonPayload;
 use Illuminate\Contracts\View\View;
 
@@ -16,25 +17,41 @@ class CourseDetailController extends Controller
             abort(404);
         }
 
-        $course->loadMissing(['coverMedia', 'lessons', 'sections.lessons.attachmentMedia']);
+        $course->loadMissing(['coverMedia', 'lessons', 'sections.lessons.attachmentMedia'])->loadCount('lessons');
 
         $customer = auth('customer')->user();
         $isEnrolled = false;
         $enrollment = null;
+        $progress = null;
+        $completedLessonIds = [];
 
         if ($customer) {
-            $enrollment = CourseEnrollment::where('course_id', $course->id)
-                ->where('customer_id', $customer->id)
+            $enrollment = CourseEnrollment::query()
+                ->where('course_id', $course->getKey())
+                ->where('customer_id', $customer->getKey())
                 ->first();
-            $isEnrolled = $enrollment && $enrollment->isActive();
+
+            $isEnrolled = $enrollment?->isActive() ?? false;
+
+            if ($enrollment) {
+                $enrollment->loadMissing('completions');
+                $completedLessonIds = $enrollment->completions
+                    ->pluck('course_lesson_id')
+                    ->all();
+
+                $enrollment->setRelation('course', $course);
+                $progress = CourseProgress::for($enrollment);
+            }
         }
 
-        $sectionsPayload = $course->sections->map(function ($section) use ($isEnrolled) {
+        $sectionsPayload = $course->sections->map(function ($section) use ($isEnrolled, $completedLessonIds) {
             return [
                 'id' => $section->id,
                 'title' => $section->title,
-                'lessons' => $section->lessons->map(function ($lesson) use ($isEnrolled) {
-                    return LessonPayload::for($lesson, $isEnrolled || $lesson->is_free_preview);
+                'lessons' => $section->lessons->map(function ($lesson) use ($isEnrolled, $completedLessonIds) {
+                    return LessonPayload::for($lesson, $isEnrolled || $lesson->is_free_preview) + [
+                        'completed' => in_array($lesson->getKey(), $completedLessonIds, true),
+                    ];
                 }),
             ];
         });
@@ -55,6 +72,7 @@ class CourseDetailController extends Controller
             'sectionsPayload' => $sectionsPayload,
             'isEnrolled' => $isEnrolled,
             'enrollment' => $enrollment,
+            'progress' => $progress,
             'previewLesson' => $previewLesson,
         ]);
     }

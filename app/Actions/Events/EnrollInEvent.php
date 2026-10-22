@@ -34,7 +34,13 @@ use Illuminate\Support\Facades\DB;
  */
 class EnrollInEvent
 {
-    public function __invoke(Event $event, Customer $customer): EventRegistration
+    /**
+     * @param  array{name?: string, phone?: string}|null  $attendee
+     *         Details from the registration dialog. They apply to this event
+     *         only; the customer profile is never updated here. Email is not
+     *         accepted because it is always the account email.
+     */
+    public function __invoke(Event $event, Customer $customer, ?array $attendee = null): EventRegistration
     {
         // A20: verification gates enrollment. If that is relaxed for free
         // events to take the mail provider off the launch critical path, this
@@ -61,11 +67,11 @@ class EnrollInEvent
             throw EnrollmentException::alreadyRegistered();
         }
 
-        return DB::transaction(function () use ($event, $customer, $existing) {
+        return DB::transaction(function () use ($event, $customer, $existing, $attendee) {
             $this->claimSeat($event);
 
             try {
-                $registration = $this->record($event, $customer, $existing);
+                $registration = $this->record($event, $customer, $existing, $attendee);
             } catch (UniqueConstraintViolationException $e) {
                 /*
                  * The pre-check above and this insert are not atomic: two
@@ -137,12 +143,20 @@ class EnrollInEvent
             ->decrement('seats_taken');
     }
 
-    private function record(Event $event, Customer $customer, ?EventRegistration $existing): EventRegistration
+    /**
+     * @param  array{name?: string, phone?: string}|null  $attendee
+     */
+    private function record(Event $event, Customer $customer, ?EventRegistration $existing, ?array $attendee = null): EventRegistration
     {
+        $name = trim((string) ($attendee['name'] ?? ''));
+        $phone = trim((string) ($attendee['phone'] ?? ''));
+
         $attributes = [
-            'attendee_name' => $customer->name,
+            // Blank values fall back to the account so a caller that does not
+            // supply the dialog payload still produces a complete record.
+            'attendee_name' => $name !== '' ? $name : $customer->name,
             'attendee_email' => $customer->email,
-            'attendee_phone' => $customer->phone,
+            'attendee_phone' => $phone !== '' ? $phone : $customer->phone,
             'status' => EventRegistration::STATUS_PENDING,
             'registered_at' => now(),
             'cancelled_at' => null,

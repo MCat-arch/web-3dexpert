@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JobApplicationDocument;
+use App\Support\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -37,8 +38,10 @@ class ApplicationDocumentController extends Controller
 
         abort_unless($document->exists(), 404);
 
-        // P8 logs this: who downloaded whose CV, and when. Applicant documents
-        // are the densest PII in the application, so access is auditable.
+        // Who downloaded whose CV, and when. Applicant documents are the
+        // densest PII in the application, so access is auditable.
+        app(AuditLogger::class)->documentDownloaded($document);
+
         return $document->download();
     }
 }

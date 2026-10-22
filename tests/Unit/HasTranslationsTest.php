@@ -24,7 +24,8 @@ class HasTranslationsTest extends TestCase
         config(['app.fallback_locale' => 'id']);
 
         $portfolio = new Portfolio;
-        $portfolio->title = ['id' => 'Rumah Modern'];
+        // Raw attributes bypass the setter, so the fallback path is exercised.
+        $portfolio->setRawAttributes(['title' => json_encode(['id' => 'Rumah Modern'])], true);
 
         app()->setLocale('en');
         $this->assertSame('Rumah Modern', $portfolio->title);
@@ -66,6 +67,14 @@ class HasTranslationsTest extends TestCase
             ['id' => 'Rumah Modern', 'en' => 'Renamed House'],
             $portfolio->getTranslations('title'),
         );
+    }
+
+    public function test_it_does_not_auto_translate_english_when_only_indonesian_is_saved(): void
+    {
+        $portfolio = new Portfolio;
+        $portfolio->setTranslations('title', ['id' => 'Rumah Modern']);
+
+        $this->assertSame(['id' => 'Rumah Modern'], $portfolio->getTranslations('title'));
     }
 
     public function test_it_resolves_translatable_attributes_in_array_output(): void

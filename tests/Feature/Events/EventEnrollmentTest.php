@@ -8,7 +8,6 @@ use App\Models\EventRegistration;
 use App\Notifications\Events\RegistrationConfirmed;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -16,6 +15,15 @@ use Tests\TestCase;
 class EventEnrollmentTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** @return array<string, string> */
+    private function attendee(array $overrides = []): array
+    {
+        return array_merge([
+            'attendee_name' => 'Budi Santoso',
+            'attendee_phone' => '081234567890',
+        ], $overrides);
+    }
 
     public function test_the_event_list_renders_in_both_locales(): void
     {
@@ -38,6 +46,18 @@ class EventEnrollmentTest extends TestCase
         $response->assertDontSee($past->title);
     }
 
+    public function test_an_ongoing_event_remains_visible_until_it_ends(): void
+    {
+        $ongoing = Event::factory()->create([
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHour(),
+        ]);
+
+        $this->get('/acara')
+            ->assertOk()
+            ->assertSee($ongoing->getTranslation('title', 'id'));
+    }
+
     public function test_paid_events_remain_visible_but_cannot_be_enrolled_until_p5b(): void
     {
         $event = Event::factory()->paid()->create();
@@ -53,7 +73,7 @@ class EventEnrollmentTest extends TestCase
             ->assertDontSee(__('events.register'));
 
         $this->actingAs($customer, 'customer')
-            ->post('/acara/'.$event->slug.'/daftar')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
             ->assertRedirect('/acara/'.$event->slug)
             ->assertSessionHas('error', __('events.error_paid_unavailable'));
 
@@ -75,80 +95,77 @@ class EventEnrollmentTest extends TestCase
             ->assertDontSee(__('events.register', [], 'en'));
     }
 
-    public function test_event_list_cache_excludes_seat_availability_and_reads_it_live(): void
+    public function test_event_list_reads_seat_availability_live(): void
     {
         $event = Event::factory()->capacity(2)->create();
 
         $this->get('/acara')->assertSee('Sisa 2 kursi');
-
-        $cachedEvents = Cache::get(Event::listingCacheKey('id'));
-
-        $this->assertIsArray($cachedEvents);
-        $this->assertArrayNotHasKey('capacity', $cachedEvents[0]);
-        $this->assertArrayNotHasKey('seats_taken', $cachedEvents[0]);
 
         Event::query()->whereKey($event->getKey())->update(['seats_taken' => 2]);
 
         $this->get('/acara')->assertSee('Kuota penuh');
     }
 
-    public function test_saving_an_event_invalidates_the_cached_public_listing(): void
+    public function test_editing_an_event_is_visible_immediately(): void
     {
         $event = Event::factory()->create();
-        $idCacheKey = Event::listingCacheKey('id');
-        $enCacheKey = Event::listingCacheKey('en');
 
-        $this->get('/acara')->assertOk();
-        $this->get('/en/acara')->assertOk();
-        $this->assertTrue(Cache::has($idCacheKey));
-        $this->assertTrue(Cache::has($enCacheKey));
+        $this->get('/acara')->assertSee($event->getTranslation('title', 'id'));
 
         $event->setTranslation('title', 'id', 'Judul Diperbarui');
+        $event->setTranslation('title', 'en', 'Judul Diperbarui');
         $event->save();
 
-        $this->assertFalse(Cache::has($idCacheKey));
-        $this->assertFalse(Cache::has($enCacheKey));
         $this->get('/acara')->assertSee('Judul Diperbarui');
+        $this->get('/en/acara')->assertSee('Judul Diperbarui');
     }
 
-    public function test_deleting_and_restoring_an_event_invalidates_both_locale_listings(): void
+    public function test_publishing_and_unpublishing_an_event_is_visible_immediately(): void
+    {
+        $event = Event::factory()->unpublished()->create();
+
+        $this->get('/acara')->assertDontSee($event->getTranslation('title', 'id'));
+
+        $event->update(['is_published' => true]);
+        $this->get('/acara')->assertSee($event->getTranslation('title', 'id'));
+
+        $event->update(['is_published' => false]);
+        $this->get('/acara')->assertDontSee($event->getTranslation('title', 'id'));
+    }
+
+    public function test_deleting_and_restoring_an_event_is_visible_immediately(): void
     {
         $event = Event::factory()->create();
-        $idCacheKey = Event::listingCacheKey('id');
-        $enCacheKey = Event::listingCacheKey('en');
 
-        $this->get('/acara')->assertOk();
-        $this->get('/en/acara')->assertOk();
+        $this->get('/acara')->assertSee($event->getTranslation('title', 'id'));
+        $this->get('/en/acara')->assertSee($event->getTranslation('title', 'id'));
 
         $event->delete();
 
-        $this->assertFalse(Cache::has($idCacheKey));
-        $this->assertFalse(Cache::has($enCacheKey));
+        $this->get('/acara')->assertDontSee($event->getTranslation('title', 'id'));
+        $this->get('/en/acara')->assertDontSee($event->getTranslation('title', 'id'));
 
-        $this->get('/acara')->assertOk();
-        $this->get('/en/acara')->assertOk();
         $event->restore();
 
-        $this->assertFalse(Cache::has($idCacheKey));
-        $this->assertFalse(Cache::has($enCacheKey));
+        $this->get('/acara')->assertSee($event->getTranslation('title', 'id'));
+        $this->get('/en/acara')->assertSee($event->getTranslation('title', 'id'));
     }
 
     public function test_event_listing_query_count_does_not_grow_with_the_number_of_events(): void
     {
         Event::factory()->count(15)->create();
-        Cache::forget(Event::listingCacheKey('id'));
 
         $connection = DB::connection();
         $connection->enableQueryLog();
-        $connection->flushQueryLog();
 
         try {
+            $connection->flushQueryLog();
             $this->get('/acara')->assertOk();
-            $cacheMissQueries = $connection->getQueryLog();
+            $firstRequestQueries = $connection->getQueryLog();
 
             $connection->flushQueryLog();
             $this->get('/acara')->assertOk();
-            $cacheHitQueries = $connection->getQueryLog();
+            $secondRequestQueries = $connection->getQueryLog();
         } finally {
             $connection->disableQueryLog();
         }
@@ -157,8 +174,8 @@ class EventEnrollmentTest extends TestCase
             ->filter(fn (array $query): bool => preg_match('/\bfrom\s+[`"]?events\b/i', $query['query']) === 1)
             ->count();
 
-        $this->assertSame(2, $eventQueryCount($cacheMissQueries), 'A cache miss should query the catalog and live availability.');
-        $this->assertSame(1, $eventQueryCount($cacheHitQueries), 'A cache hit should query live availability only.');
+        $this->assertSame(2, $eventQueryCount($firstRequestQueries), 'One count query and one page query.');
+        $this->assertSame(2, $eventQueryCount($secondRequestQueries), 'The query count is fixed, not dependent on stored data.');
     }
 
     public function test_an_unpublished_event_detail_page_is_not_found(): void
@@ -188,7 +205,7 @@ class EventEnrollmentTest extends TestCase
         $customer = Customer::factory()->create();
 
         $this->actingAs($customer, 'customer')
-            ->post('/acara/'.$event->slug.'/daftar')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
             ->assertRedirect('/acara/'.$event->slug);
 
         $registration = EventRegistration::sole();
@@ -198,12 +215,77 @@ class EventEnrollmentTest extends TestCase
         $this->assertSame(1, $event->fresh()->seats_taken);
     }
 
-    public function test_enrolling_snapshots_the_attendee_identity(): void
+    public function test_enrolling_saves_the_attendee_identity_from_the_form(): void
     {
         Notification::fake();
 
-        // So the record stays readable after the account is deleted, and a
-        // later name change does not rewrite who attended.
+        // The registration record stays readable after the account is deleted,
+        // and a later name change does not rewrite who attended. The form is
+        // pre-filled from the account but the attendee may correct it, so the
+        // submitted values are what get stored.
+        $event = Event::factory()->create();
+        $customer = Customer::factory()->create([
+            'name' => 'Budi Santoso',
+            'email' => 'budi@example.test',
+            'phone' => '081111111111',
+        ]);
+
+        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar', $this->attendee([
+            'attendee_name' => 'Budi Santoso',
+            'attendee_phone' => '081234567890',
+        ]));
+
+        $registration = EventRegistration::sole();
+
+        $this->assertSame('Budi Santoso', $registration->attendee_name);
+        $this->assertSame('budi@example.test', $registration->attendee_email);
+        $this->assertSame('081234567890', $registration->attendee_phone);
+        $this->assertSame(
+            '081111111111',
+            $customer->fresh()->phone,
+            'Editing the event form must not change the account profile.',
+        );
+    }
+
+    public function test_the_attendee_email_cannot_be_overridden_from_the_request(): void
+    {
+        Notification::fake();
+
+        $event = Event::factory()->create();
+        $customer = Customer::factory()->create(['email' => 'akun@example.test']);
+
+        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar', $this->attendee([
+            'attendee_email' => 'lain@example.test',
+        ]));
+
+        $this->assertSame('akun@example.test', EventRegistration::sole()->attendee_email);
+    }
+
+    public function test_attendee_name_and_phone_are_required(): void
+    {
+        $event = Event::factory()->create();
+
+        $this->actingAs(Customer::factory()->create(), 'customer')
+            ->post('/acara/'.$event->slug.'/daftar')
+            ->assertSessionHasErrors(['attendee_name', 'attendee_phone']);
+
+        $this->assertSame(0, EventRegistration::count());
+        $this->assertSame(0, $event->fresh()->seats_taken);
+    }
+
+    public function test_an_invalid_phone_number_is_rejected(): void
+    {
+        $event = Event::factory()->create();
+
+        $this->actingAs(Customer::factory()->create(), 'customer')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee(['attendee_phone' => 'bukan-nomor']))
+            ->assertSessionHasErrors('attendee_phone');
+
+        $this->assertSame(0, EventRegistration::count());
+    }
+
+    public function test_the_registration_dialog_is_rendered_for_a_signed_in_customer(): void
+    {
         $event = Event::factory()->create();
         $customer = Customer::factory()->create([
             'name' => 'Budi Santoso',
@@ -211,13 +293,29 @@ class EventEnrollmentTest extends TestCase
             'phone' => '081234567890',
         ]);
 
-        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar');
+        $response = $this->actingAs($customer, 'customer')->get('/acara/'.$event->slug);
 
-        $registration = EventRegistration::sole();
+        $response->assertOk()
+            ->assertSee('data-event-register-dialog', false)
+            ->assertSee('name="attendee_name"', false)
+            ->assertSee('name="attendee_phone"', false)
+            ->assertSee('value="budi@example.test"', false)
+            ->assertSee('readonly', false)
+            ->assertSee(__('events.confirm_register'))
+            ->assertDontSee('name="attendee_email"', false);
+    }
 
-        $this->assertSame('Budi Santoso', $registration->attendee_name);
-        $this->assertSame('budi@example.test', $registration->attendee_email);
-        $this->assertSame('081234567890', $registration->attendee_phone);
+    public function test_the_success_message_is_visible_after_enrolling(): void
+    {
+        Notification::fake();
+
+        $event = Event::factory()->create();
+
+        $this->actingAs(Customer::factory()->create(), 'customer')
+            ->followingRedirects()
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
+            ->assertOk()
+            ->assertSee('Pendaftaran berhasil');
     }
 
     public function test_the_confirmation_notification_is_queued_and_sent(): void
@@ -227,7 +325,7 @@ class EventEnrollmentTest extends TestCase
         $event = Event::factory()->create();
         $customer = Customer::factory()->create();
 
-        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar');
+        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar', $this->attendee());
 
         Notification::assertSentTo($customer, RegistrationConfirmed::class);
 
@@ -246,7 +344,7 @@ class EventEnrollmentTest extends TestCase
         $event = Event::factory()->create();
 
         $this->actingAs(Customer::factory()->create(), 'customer')
-            ->post('/acara/'.$event->slug.'/daftar');
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee());
 
         $registration = EventRegistration::sole();
 
@@ -284,8 +382,8 @@ class EventEnrollmentTest extends TestCase
         $event = Event::factory()->capacity(10)->create();
         $customer = Customer::factory()->create();
 
-        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar');
-        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar');
+        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar', $this->attendee());
+        $this->actingAs($customer, 'customer')->post('/acara/'.$event->slug.'/daftar', $this->attendee());
 
         $this->assertSame(1, EventRegistration::count());
         $this->assertSame(1, $event->fresh()->seats_taken);
@@ -296,7 +394,7 @@ class EventEnrollmentTest extends TestCase
         $event = Event::factory()->capacity(1)->full()->create();
 
         $this->actingAs(Customer::factory()->create(), 'customer')
-            ->post('/acara/'.$event->slug.'/daftar')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
             ->assertSessionHas('error', __('events.error_full'));
 
         $this->assertSame(0, EventRegistration::count());
@@ -310,7 +408,7 @@ class EventEnrollmentTest extends TestCase
 
         foreach (range(1, 5) as $i) {
             $this->actingAs(Customer::factory()->create(), 'customer')
-                ->post('/acara/'.$event->slug.'/daftar');
+                ->post('/acara/'.$event->slug.'/daftar', $this->attendee());
         }
 
         $this->assertSame(5, EventRegistration::count());
@@ -322,7 +420,7 @@ class EventEnrollmentTest extends TestCase
         $event = Event::factory()->registrationClosed()->create();
 
         $this->actingAs(Customer::factory()->create(), 'customer')
-            ->post('/acara/'.$event->slug.'/daftar')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
             ->assertSessionHas('error', __('events.error_closed'));
 
         $this->assertSame(0, EventRegistration::count());
@@ -333,7 +431,7 @@ class EventEnrollmentTest extends TestCase
         $event = Event::factory()->past()->create();
 
         $this->actingAs(Customer::factory()->create(), 'customer')
-            ->post('/acara/'.$event->slug.'/daftar')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
             ->assertSessionHas('error', __('events.error_closed'));
 
         $this->assertSame(0, EventRegistration::count());

@@ -130,6 +130,20 @@ Tambah worker hanya setelah p95, CPU, memory, dan queue depth terukur.
 `deploy/3dexpert-queue-worker.service` memakai `--max-jobs` dan `--max-time`
 agar worker direcycle secara berkala.
 
+Email bukti pendaftaran acara (`App\Notifications\Events\RegistrationConfirmed`)
+dikirim lewat queue yang sama. Setelah deploy atau setelah `config:cache`,
+selalu jalankan:
+
+```bash
+php artisan queue:restart
+sudo systemctl status 3dexpert-queue-worker --no-pager
+```
+
+Verifikasi dengan mendaftar satu acara di `/acara`, lalu periksa
+`journalctl -u 3dexpert-queue-worker -n 100 --no-pager` dan
+`php artisan queue:failed`. Di lokal, `.env.local` memakai
+`QUEUE_CONNECTION=sync`, jadi email terkirim langsung tanpa worker.
+
 ## O1 - Measurement Baseline
 
 ### Sudah ada

@@ -81,6 +81,19 @@
                                 @endif
                             </div>
                         </div>
+
+                        @php($courseProgress = $progress[$enrollment->getKey()] ?? null)
+                        @if ($courseProgress && $enrollment->isActive())
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">
+                                    <span>{{ __('courses.your_progress') }}</span>
+                                    <span>{{ $courseProgress['completed'] }} / {{ $courseProgress['total'] }} &middot; {{ $courseProgress['percent'] }}%</span>
+                                </div>
+                                <div style="height: 7px; background: var(--line-light); border-radius: 999px; overflow: hidden;">
+                                    <div style="height: 100%; width: {{ $courseProgress['percent'] }}%; background: var(--gold-hover);"></div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>

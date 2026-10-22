@@ -5,7 +5,9 @@ use App\Http\Middleware\EnsureUserCanManageContent;
 use App\Http\Middleware\HandleLegacyRedirects;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Support\AuditLogger;
 use App\Support\Locale;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -94,5 +96,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => Locale::route('customer.login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (AuthorizationException $exception, Request $request) {
+            if ($request->is('admin') || $request->is('admin/*')) {
+                app(AuditLogger::class)->log('authorization.denied', null, [], [
+                    'method' => $request->method(),
+                    'path' => $request->path(),
+                ]);
+            }
+
+            return null;
+        });
     })->create();

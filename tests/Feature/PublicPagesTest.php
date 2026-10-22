@@ -42,9 +42,8 @@ class PublicPagesTest extends TestCase
     public function test_it_does_not_expose_standalone_content_or_form_pages(): void
     {
         foreach ([
-            '/layanan',
-            // '/karir' is a real page as of P6 -- see
-            // test_it_serves_the_careers_index_in_both_locales below.
+            // '/layanan' and '/karir' are real pages -- see the dedicated
+            // index tests below.
             '/kontak',
             // A slug that does not exist still 404s via route model binding.
             '/portofolio/example',
@@ -94,6 +93,12 @@ class PublicPagesTest extends TestCase
 
         $this->get('/karir')->assertOk()->assertSee('lang="id"', false);
         $this->get('/en/karir')->assertOk()->assertSee('lang="en"', false);
+    }
+
+    public function test_it_serves_the_services_index_in_both_locales(): void
+    {
+        $this->get('/layanan')->assertOk()->assertSee('lang="id"', false);
+        $this->get('/en/layanan')->assertOk()->assertSee('lang="en"', false);
     }
 
     public function test_it_sends_security_headers_on_every_response(): void

@@ -14,9 +14,11 @@ storage/app/media/*
 /vendor
 .env
 .env.backup
+.env.local
 .env.local.backup
 .env.example
 .env.production
+.env.*.local
 .phpactor.json
 .phpunit.result.cache
 3dexpert-web.rar

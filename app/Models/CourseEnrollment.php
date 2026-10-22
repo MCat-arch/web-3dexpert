@@ -3,17 +3,22 @@
 namespace App\Models;
 
 use App\Contracts\Payable;
+use App\Support\CourseProgress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class CourseEnrollment extends Model implements Payable
 {
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_REVOKED = 'revoked';
 
     protected $fillable = [
@@ -51,6 +56,35 @@ class CourseEnrollment extends Model implements Payable
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function completions(): HasMany
+    {
+        return $this->hasMany(LessonCompletion::class);
+    }
+
+    /**
+     * @return array{completed: int, total: int, percent: int, last_completed_at: ?Carbon}
+     */
+    public function progress(): array
+    {
+        return CourseProgress::for($this);
+    }
+
+    /**
+     * Set completed_at exactly once when every lesson has been completed.
+     */
+    public function markCompletedIfFinished(): void
+    {
+        if ($this->completed_at !== null) {
+            return;
+        }
+
+        $progress = $this->progress();
+
+        if ($progress['total'] > 0 && $progress['completed'] >= $progress['total']) {
+            $this->forceFill(['completed_at' => now()])->saveQuietly();
+        }
     }
 
     public function isActive(): bool

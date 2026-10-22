@@ -4,6 +4,7 @@ namespace App\Filament\Resources\JobApplications\Tables;
 
 use App\Models\JobApplication;
 use App\Notifications\Careers\ApplicationStatusChanged;
+use App\Support\AuditLogger;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
@@ -97,12 +98,21 @@ class JobApplicationsTable
                             ->helperText('Hanya terlihat oleh staf. Tidak dikirim ke pelamar.'),
                     ])
                     ->action(function (JobApplication $record, array $data) {
+                        $oldStatus = $record->status;
+
                         $record->forceFill([
                             'status' => $data['status'],
                             'status_changed_at' => now(),
                             'internal_notes' => $data['internal_notes'] ?? $record->internal_notes,
                             'reviewed_by' => auth()->id(),
                         ])->save();
+
+                        app(AuditLogger::class)->statusChanged(
+                            $record,
+                            $oldStatus,
+                            (string) $record->status,
+                            'application.status_changed',
+                        );
 
                         // Carries the status only, never the notes.
                         $record->customer?->notify(new ApplicationStatusChanged($record->fresh(['vacancy'])));

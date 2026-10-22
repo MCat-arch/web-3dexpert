@@ -2,15 +2,17 @@
 
 namespace App\Filament\Resources\Projects;
 
+use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
 use App\Filament\Resources\Projects\RelationManagers\UpdatesRelationManager;
 use App\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Filament\Resources\Projects\Tables\ProjectsTable;
+use App\Filament\Support\NavGroup;
 use App\Models\Project;
+use App\Models\User;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -24,9 +26,15 @@ use Filament\Tables\Table;
  * and its columns first, then add a CSV importer matched to that shape. Do not
  * build one against a guessed layout.
  */
-class ProjectResource extends Resource
+class ProjectResource extends AdminResource
 {
     protected static ?string $model = Project::class;
+
+    protected static string|\UnitEnum|null $navigationGroup = NavGroup::CUSTOMER;
+
+    protected static ?int $navigationSort = 20;
+
+    protected static string $accessArea = User::AREA_PROJECTS;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 

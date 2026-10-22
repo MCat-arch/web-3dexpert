@@ -2,12 +2,19 @@
 
 namespace App\Providers;
 
+use App\Listeners\LogStaffAuthentication;
+use App\Models\Assignment;
+use App\Models\AssignmentSubmission;
+use App\Models\Course;
+use App\Models\CourseLesson;
+use App\Models\CourseSection;
 use App\Models\DesignReview;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Faq;
 use App\Models\HeroSlide;
 use App\Models\JobApplication;
+use App\Models\JobVacancy;
 use App\Models\MediaAsset;
 use App\Models\Portfolio;
 use App\Models\PortfolioImage;
@@ -16,13 +23,21 @@ use App\Models\Service;
 use App\Models\ServiceFeature;
 use App\Models\SiteSetting;
 use App\Models\Testimonial;
+use App\Models\User;
 use App\Models\ValueProposition;
+use App\Observers\AdminAuditObserver;
 use App\Observers\ContentObserver;
-use App\Observers\EventObserver;
+use App\Observers\CourseContentObserver;
+use App\Policies\AssignmentSubmissionPolicy;
+use App\Policies\CourseLessonPolicy;
 use App\Policies\EventRegistrationPolicy;
 use App\Policies\JobApplicationPolicy;
 use App\Support\Locale;
 use App\Support\Settings;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -58,16 +73,61 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useTailwind();
 
+        /*
+         * Admin content is Indonesian-only. The public /en layer still uses the
+         * existing server-side locale routes and legacy `en` values, falling
+         * back to Indonesian when no English value exists, so the old per-field
+         * English inputs are no longer part of the workflow. Keep the legacy
+         * `en` JSON values for existing rows, but do not render or dehydrate
+         * these fields -- otherwise a required `title.en` would block an
+         * Indonesian-only save with no visible field to fill in.
+         */
+        $hideLegacyEnglishField = function (TextInput|Textarea $component): void {
+            if (str_ends_with((string) $component->getName(), '.en')) {
+                $component
+                    ->hidden()
+                    ->dehydrated(false);
+            }
+        };
+
+        TextInput::configureUsing($hideLegacyEnglishField);
+        Textarea::configureUsing($hideLegacyEnglishField);
+
         $this->registerRateLimiters();
 
         // Customers are authorised by ownership, never by role (D1).
         Gate::policy(EventRegistration::class, EventRegistrationPolicy::class);
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);
-        Gate::policy(\App\Models\CourseLesson::class, \App\Policies\CourseLessonPolicy::class);
-        Event::observe(EventObserver::class);
-        \App\Models\Course::observe(\App\Observers\CourseContentObserver::class);
-        \App\Models\CourseSection::observe(\App\Observers\CourseContentObserver::class);
-        \App\Models\CourseLesson::observe(\App\Observers\CourseContentObserver::class);
+        Gate::policy(AssignmentSubmission::class, AssignmentSubmissionPolicy::class);
+        Gate::policy(CourseLesson::class, CourseLessonPolicy::class);
+        Course::observe(CourseContentObserver::class);
+        CourseSection::observe(CourseContentObserver::class);
+        CourseLesson::observe(CourseContentObserver::class);
+
+        /*
+         * Audit hooks. Registered on every model whose state is reviewed in
+         * the audit log; business actions use AuditLogger explicitly.
+         */
+        foreach ([
+            Course::class,
+            Event::class,
+            JobVacancy::class,
+            SiteSetting::class,
+            User::class,
+            MediaAsset::class,
+            Assignment::class,
+        ] as $auditedModel) {
+            $auditedModel::observe(AdminAuditObserver::class);
+        }
+
+        \Illuminate\Support\Facades\Event::listen(
+            Login::class,
+            [LogStaffAuthentication::class, 'handleLogin'],
+        );
+        \Illuminate\Support\Facades\Event::listen(
+            Logout::class,
+            [LogStaffAuthentication::class, 'handleLogout'],
+        );
 
         /*
          * Every model the homepage payload reads must be here, or editing it
