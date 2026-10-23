@@ -1036,6 +1036,29 @@ Jika login berhasil tetapi langsung kembali ke halaman login, periksa
 `SESSION_SECURE_COOKIE=true`, `APP_URL=https://3dexpert.pro`, dan
 `TRUSTED_PROXIES`. Jalankan `php artisan optimize:clear` setelah mengubahnya.
 
+### 11.5 Scheduler pembayaran
+
+Order yang ditinggalkan harus kedaluwarsa otomatis. Tanpa cron, kursi acara
+tetap tertahan melewati `PAYMENT_EXPIRY_MINUTES`.
+
+```bash
+crontab -e
+```
+
+Tambahkan satu baris (user harus anggota group `docker`):
+
+```cron
+* * * * * cd /var/www/3dexpert-web && docker compose exec -T app php artisan schedule:run >> /var/log/3dexpert-schedule.log 2>&1
+```
+
+Verifikasi:
+
+```bash
+docker compose exec -T app php artisan schedule:list
+docker compose exec -T app php artisan payments:expire
+tail -n 20 /var/log/3dexpert-schedule.log
+```
+
 ---
 
 # Tahap 2 - GitHub Actions untuk deployment otomatis
