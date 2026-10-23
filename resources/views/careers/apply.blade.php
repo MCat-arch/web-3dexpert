@@ -55,6 +55,19 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="portfolio_url" class="form-label">
+                        {{ __('careers.portfolio_url') }}
+                    </label>
+                    <input id="portfolio_url" name="portfolio_url" type="url" inputmode="url"
+                        class="form-input" value="{{ old('portfolio_url') }}"
+                        placeholder="https://">
+                    <p class="form-help">{{ __('careers.portfolio_url_hint') }}</p>
+                    @error('portfolio_url')
+                        <p class="form-error">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="form-group">
                     <label for="documents" class="form-label">
                         {{ __('careers.documents') }}<span style="color: var(--gold-hover);" aria-hidden="true">*</span>
                     </label>

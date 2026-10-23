@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Payments\Tables;
 
 use App\Actions\Payments\RefundPayment;
+use App\Models\CourseEnrollment;
+use App\Models\EventRegistration;
 use App\Models\Payment;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -13,6 +15,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class PaymentsTable
 {
@@ -20,12 +23,36 @@ class PaymentsTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('payable.course'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                // A morphTo cannot eager-load a child relation that only exists
+                // on one payable class; morphWith dispatches by actual type.
+                'payable' => fn (MorphTo $morphTo) => $morphTo->morphWith([
+                    CourseEnrollment::class => ['course'],
+                    EventRegistration::class => ['event'],
+                ]),
+            ]))
             ->columns([
                 TextColumn::make('order_id')->label('Order ID')->searchable()->copyable(),
-                TextColumn::make('course_title')
-                    ->label('Kursus')
-                    ->state(fn (Payment $record) => $record->payable?->course?->getTranslation('title', 'id') ?? '-')
+                TextColumn::make('payable_kind')
+                    ->label('Jenis')
+                    ->badge()
+                    ->state(fn (Payment $record) => match ($record->payable_type) {
+                        CourseEnrollment::class => 'Kursus',
+                        EventRegistration::class => 'Acara',
+                        default => '-',
+                    })
+                    ->color(fn (string $state) => match ($state) {
+                        'Kursus' => 'info',
+                        'Acara' => 'warning',
+                        default => 'gray',
+                    }),
+                TextColumn::make('payable_item')
+                    ->label('Item')
+                    ->state(fn (Payment $record) => match (true) {
+                        $record->payable instanceof CourseEnrollment => $record->payable->course?->getTranslation('title', 'id') ?? '-',
+                        $record->payable instanceof EventRegistration => $record->payable->event?->getTranslation('title', 'id') ?? '-',
+                        default => '-',
+                    })
                     ->wrap(),
                 TextColumn::make('gross_amount')
                     ->label('Nominal')
@@ -87,7 +114,7 @@ class PaymentsTable
                     ->visible(fn (Payment $record) => $record->isSettled())
                     ->requiresConfirmation()
                     ->modalHeading('Refund pembayaran')
-                    ->modalDescription('Status pembayaran akan menjadi refunded dan akses kursus terkait akan dicabut. Tindakan ini tidak dapat dibatalkan.')
+                    ->modalDescription('Status pembayaran akan menjadi refunded dan akses kursus atau pendaftaran acara terkait akan dicabut. Tindakan ini tidak dapat dibatalkan.')
                     ->action(function (Payment $record) {
                         app(RefundPayment::class)($record);
 

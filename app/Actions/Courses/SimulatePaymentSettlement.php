@@ -2,16 +2,16 @@
 
 namespace App\Actions\Courses;
 
+use App\Actions\Payments\SettlePayment;
 use App\Models\Payment;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
+/**
+ * Local/testing convenience only. It is never rendered as a public button;
+ * production payments settle through a signed Midtrans notification.
+ */
 class SimulatePaymentSettlement
 {
-    /**
-     * Simulates successful payment settlement for development / testing
-     * without requiring external Midtrans webhooks or gateway credentials.
-     */
     public function __invoke(Payment $payment): Payment
     {
         if ($payment->isSettled()) {
@@ -22,22 +22,11 @@ class SimulatePaymentSettlement
             throw new InvalidArgumentException(__('courses.payment_cannot_settle'));
         }
 
-        return DB::transaction(function () use ($payment) {
-            $payment->status = Payment::STATUS_SETTLEMENT;
-            $payment->paid_at = now();
-            $payment->raw_response = [
-                'simulation' => true,
-                'simulated_at' => now()->toIso8601String(),
-                'status_message' => 'Simulated settlement approved',
-            ];
-            $payment->save();
-
-            // Call polymorphic Payable contract method to grant active entitlement
-            if ($payment->payable) {
-                $payment->payable->fulfilPayment($payment);
-            }
-
-            return $payment;
-        });
+        return app(SettlePayment::class)($payment, [
+            'simulation' => true,
+            'simulated_at' => now()->toIso8601String(),
+            'transaction_status' => 'settlement',
+            'status_message' => 'Simulated settlement approved',
+        ]);
     }
 }

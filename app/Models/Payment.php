@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class Payment extends Model
 {
@@ -61,6 +63,14 @@ class Payment extends Model
         return $this->status === self::STATUS_PENDING;
     }
 
+    /** A pending payment whose deadline has passed. */
+    public function isDueForExpiry(?Carbon $at = null): bool
+    {
+        return $this->isPending()
+            && $this->expires_at !== null
+            && $this->expires_at->lessThanOrEqualTo($at ?? now());
+    }
+
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PENDING);
@@ -69,5 +79,54 @@ class Payment extends Model
     public function scopeSettled(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_SETTLEMENT);
+    }
+
+    public function scopeDueForExpiry(Builder $query): Builder
+    {
+        return $query->pending()
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now());
+    }
+
+    /**
+     * The QR image URL returned by Midtrans. Stored inside raw_response so no
+     * extra columns are needed and the original gateway payload stays intact.
+     */
+    public function qrUrl(): ?string
+    {
+        $url = data_get($this->raw_response, 'qr_url')
+            ?? data_get($this->raw_response, 'charge.actions');
+
+        if (is_array($url)) {
+            foreach ($url as $action) {
+                if (($action['name'] ?? null) === 'generate-qr-code') {
+                    return $action['url'] ?? null;
+                }
+            }
+
+            return null;
+        }
+
+        return filled($url) ? (string) $url : null;
+    }
+
+    public function qrString(): ?string
+    {
+        return data_get($this->raw_response, 'qr_string')
+            ?? data_get($this->raw_response, 'charge.qr_string');
+    }
+
+    public function chargeError(): ?string
+    {
+        return data_get($this->raw_response, 'charge_error');
+    }
+
+    /**
+     * Random, date-prefixed order id. Not sequential: it appears on the public
+     * payment page and in emails.
+     */
+    public static function generateOrderId(string $prefix): string
+    {
+        return $prefix.'-'.date('Ymd').'-'.Str::upper(Str::random(8));
     }
 }

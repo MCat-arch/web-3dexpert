@@ -90,6 +90,50 @@ class JobApplicationTest extends TestCase
         $this->assertSame(1, $application->documents()->count());
     }
 
+    public function test_a_portfolio_link_is_saved_with_the_application(): void
+    {
+        $vacancy = $this->openVacancy();
+        $customer = Customer::factory()->create();
+
+        $this->apply($customer, $vacancy, [
+            'cover_letter' => 'Saya tertarik.',
+            'portfolio_url' => 'https://www.behance.net/budi',
+        ])->assertRedirect('/akun/lamaran');
+
+        $this->assertSame(
+            'https://www.behance.net/budi',
+            JobApplication::sole()->portfolio_url,
+        );
+    }
+
+    public function test_a_non_http_portfolio_link_is_rejected(): void
+    {
+        $vacancy = $this->openVacancy();
+
+        $this->apply(Customer::factory()->create(), $vacancy, [
+            'portfolio_url' => 'javascript:alert(1)',
+        ])->assertSessionHasErrors('portfolio_url');
+
+        $this->assertSame(0, JobApplication::count());
+    }
+
+    public function test_the_portfolio_field_renders_in_both_locales(): void
+    {
+        $vacancy = $this->openVacancy();
+        $customer = Customer::factory()->create();
+
+        $this->actingAs($customer, 'customer')
+            ->get('/karir/'.$vacancy->slug.'/lamar')
+            ->assertOk()
+            ->assertSee('name="portfolio_url"', false)
+            ->assertSee(__('careers.portfolio_url'));
+
+        $this->actingAs($customer, 'customer')
+            ->get('/en/karir/'.$vacancy->slug.'/lamar')
+            ->assertOk()
+            ->assertSee(__('careers.portfolio_url', [], 'en'));
+    }
+
     public function test_the_first_document_is_recorded_as_the_cv(): void
     {
         $this->apply(Customer::factory()->create(), $this->openVacancy(), [

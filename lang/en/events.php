@@ -66,6 +66,13 @@ return [
     'past' => 'This event has passed',
 
     'enrolled' => 'You are registered. Your ticket code: :code',
+    'payment_required' => 'Registration received. Complete payment within :minutes minutes so your seat is not released.',
+    'payment_pending' => 'Awaiting Payment',
+    'payment_pending_note' => 'Your seat is held until the payment deadline. Complete it now before time runs out.',
+    'continue_payment' => 'Complete Payment',
+    'payment_expired' => 'The payment expired and the seat has been released.',
+    'register_and_pay' => 'Register & Pay',
+    'paid_hold_note' => 'The seat is held for :minutes minutes while QRIS payment is completed.',
     'cancelled' => 'Registration cancelled.',
 
     'error_full' => 'This event is fully booked.',
@@ -92,4 +99,11 @@ return [
     'mail_where' => 'Where: :where',
     'mail_ticket' => 'Your ticket code: :code',
     'mail_action' => 'View My Events',
+
+    'mail_pending_subject' => 'Complete your event payment: :event',
+    'mail_pending_intro' => 'We are holding your seat for :event temporarily.',
+    'mail_pending_expiry' => 'Please complete payment within :minutes minutes. Otherwise the seat is released automatically.',
+    'mail_pending_order' => 'Order ID: :order',
+    'mail_pending_total' => 'Payment total: :amount',
+    'mail_pending_action' => 'Complete Payment',
 ];

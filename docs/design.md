@@ -126,7 +126,7 @@ Feature pages (`/portofolio`, `/acara`, `/karir`, `/kursus`, `/lacak-proyek`, `/
 4. `resources/js/app.js` — no structural change (components toggle semantic classes, not utilities); verify after CSS rewrite.
 
 ### Layout & shared
-5. `resources/views/layouts/app.blade.php` — swap Inter→Montserrat font link; body class → bg `var(--paper)` text `var(--text)`… (plain CSS: `class="page"` styled in `app.css`).
+5. `resources/views/layouts/app.blade.php` — swap Inter→Montserrat font link; body class → bg `var(--paper)` text `var(--text)`… (plain CSS: `class="page"` styled in `app.css`). Brand icons (`favicon.ico`, PNG favicons, Apple/Android icons, and `site.webmanifest`) are linked from this layout; regenerate them with `php deploy/generate-brand-icons.php`.
 6. `resources/views/partials/header.blade.php`, `partials/footer.blade.php` — restyle per §4.
 7. **Components**: `section-heading`, `nav-link`, `language-switcher`, `alert`, `empty-state`, `floating-whatsapp`, `star-rating`, `faq-accordion`, `course-card`, `event-card`, `portfolio-card`, `service-card`, `benefit-tile`, `video-facade`, `video-embed`, `customer-field`, `customer-auth-card`.
 
@@ -137,7 +137,7 @@ Feature pages (`/portofolio`, `/acara`, `/karir`, `/kursus`, `/lacak-proyek`, `/
 9. `views/portfolio/index.blade.php`, `views/portfolio/show.blade.php`
 10. `views/events/index.blade.php`, `show`, `mine`
 11. `views/careers/index.blade.php`, `show`, `apply`, `mine`
-12. `views/courses/index.blade.php`, `show`, `checkout`, `payment`, `player`
+12. `views/courses/index.blade.php`, `show`, `checkout`, `player`; shared payment page in `views/payments/show.blade.php` (courses and paid events)
 13. `views/tracker/index.blade.php`
 14. `views/customer/account.blade.php`, `views/customer/courses.blade.php`, `customer/auth/{login,register,forgot-password,reset-password,verify-email}.blade.php`
 15. `views/errors/404.blade.php`, `errors/500.blade.php`

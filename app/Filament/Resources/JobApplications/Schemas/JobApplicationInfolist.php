@@ -48,6 +48,14 @@ class JobApplicationInfolist
                         ->hiddenLabel()
                         ->placeholder('Tidak ada surat lamaran.')
                         ->columnSpanFull(),
+
+                    TextEntry::make('portfolio_url')
+                        ->label('Link portofolio')
+                        ->placeholder('Tidak dicantumkan.')
+                        // Rendered as a real link, but only http/https URLs
+                        // pass validation on submission.
+                        ->url(fn (?string $state) => $state, shouldOpenInNewTab: true)
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Dokumen')

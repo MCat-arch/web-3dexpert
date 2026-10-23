@@ -171,7 +171,37 @@
                         </div>
                     </dl>
 
-                    @if ($registration && $registration->occupiesSeat())
+                    @if ($registration && $registration->isPending())
+                        <div class="event-register-box event-register-pending">
+                            <span class="event-register-icon">
+                                <x-ui-icon name="clock" :size="24" />
+                            </span>
+                            <p class="event-register-title">{{ __('events.payment_pending') }}</p>
+                            <p class="event-register-note">{{ __('events.payment_pending_note') }}</p>
+
+                            @if ($registration->payment)
+                                <p class="event-register-note event-register-deadline">
+                                    {{ __('payments.expires_at') }}:
+                                    <strong>{{ $registration->payment->expires_at?->translatedFormat('j M Y, H:i') }} WIB</strong>
+                                </p>
+
+                                <a href="{{ $lroute('payments.show', ['order_id' => $registration->payment->order_id]) }}"
+                                   class="btn btn-primary btn-block">
+                                    {{ __('events.continue_payment') }}
+                                </a>
+                            @endif
+
+                            @if ($customerCan('cancel', $registration))
+                                <form method="POST" action="{{ $lroute('events.registration.cancel', ['registration' => $registration->id]) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-secondary btn-block btn-sm event-cancel-button">
+                                        {{ __('events.cancel') }}
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    @elseif ($registration && $registration->occupiesSeat())
                         <div class="event-register-box event-register-success">
                             <span class="event-register-icon">
                                 <x-ui-icon name="check-circle" :size="24" />
@@ -204,30 +234,20 @@
                         <div class="event-register-box event-register-message event-register-message-danger">
                             <p>{{ __('events.full') }}</p>
                         </div>
-                    @elseif (! $event->isFree())
-                        <div class="event-register-box">
-                            <p class="event-register-title">{{ __('events.paid_unavailable') }}</p>
-                            <p class="event-register-note">
-                                {{ __('events.paid_price', ['price' => number_format((float) $event->price, 0, ',', '.')]) }}
-                            </p>
-
-                            @if ($wa = $settings('company_whatsapp'))
-                                <a href="{{ $wa }}?text={{ urlencode('Halo 3D Experts, saya ingin mendaftar acara: ' . $event->title) }}"
-                                   target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">
-                                    {{ __('events.whatsapp_register') }}
-                                </a>
-                            @endif
-                        </div>
                     @elseif (auth('customer')->check())
                         <div class="event-register-box" x-data="eventRegister">
                             <button type="button"
                                     class="btn btn-primary btn-block btn-lg"
                                     data-event-register-open>
-                                {{ __('events.register') }}
+                                {{ $event->isFree() ? __('events.register') : __('events.register_and_pay') }}
                             </button>
 
                             <p class="event-register-note event-register-note-center">
-                                {{ __('events.register_note') }}
+                                @if ($event->isFree())
+                                    {{ __('events.register_note') }}
+                                @else
+                                    {{ __('events.paid_hold_note', ['minutes' => (int) config('payments.expiry_minutes', 15)]) }}
+                                @endif
                             </p>
 
                             <dialog class="event-dialog"
@@ -265,6 +285,15 @@
                                                 {{ __('events.tbd') }}
                                             @endif
                                         </p>
+
+                                        @if (! $event->isFree())
+                                            <p class="event-dialog-price">
+                                                {{ __('events.paid_price', ['price' => number_format((float) $event->price, 0, ',', '.')]) }}
+                                            </p>
+                                            <p class="event-dialog-payment-note">
+                                                {{ __('events.paid_hold_note', ['minutes' => (int) config('payments.expiry_minutes', 15)]) }}
+                                            </p>
+                                        @endif
                                     </div>
 
                                     <form method="POST" action="{{ $lroute('events.enroll', ['event' => $event->slug]) }}">
@@ -312,7 +341,7 @@
                                             <button type="submit"
                                                     class="btn btn-primary"
                                                     data-loading-label="{{ __('events.submitting') }}">
-                                                {{ __('events.confirm_register') }}
+                                                {{ $event->isFree() ? __('events.confirm_register') : __('events.register_and_pay') }}
                                             </button>
                                         </div>
                                     </form>

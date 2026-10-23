@@ -10,7 +10,6 @@ use App\Http\Controllers\Course\AssignmentSubmissionController;
 use App\Http\Controllers\Course\CourseCatalogController;
 use App\Http\Controllers\Course\CourseCheckoutController;
 use App\Http\Controllers\Course\CourseDetailController;
-use App\Http\Controllers\Course\CoursePaymentController;
 use App\Http\Controllers\Course\CoursePlayerController;
 use App\Http\Controllers\Course\LessonCompletionController;
 use App\Http\Controllers\Customer\AccountController;
@@ -26,6 +25,8 @@ use App\Http\Controllers\Event\EventListController;
 use App\Http\Controllers\Event\MyEventsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\Payment\MidtransNotificationController;
+use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\Project\ProjectLookupController;
 use App\Http\Controllers\ServiceController;
@@ -110,9 +111,13 @@ $publicRoutes = function (): void {
     Route::get('kursus/{course:slug}', CourseDetailController::class)->name('courses.show');
     Route::get('kursus/{course:slug}/belajar/{lesson?}', [CoursePlayerController::class, 'show'])->name('courses.player.show');
 
-    // Payment instruction & simulated checkout
-    Route::get('pembayaran/{order_id}', [CoursePaymentController::class, 'show'])->name('courses.payment.show');
-    Route::post('pembayaran/{order_id}/simulasi', [CoursePaymentController::class, 'simulate'])->name('courses.payment.simulate');
+    // Shared payment page (courses + paid events). Owner-only: the page shows
+    // the customer's name, order, and a payable QR. The simulation POST exists
+    // only for local/testing and is never rendered as a public button.
+    Route::middleware(['auth:customer', EnsureCustomerIsActive::class, 'verified.customer'])->group(function () {
+        Route::get('pembayaran/{order_id}', [PaymentController::class, 'show'])->name('payments.show');
+        Route::post('pembayaran/{order_id}/simulasi', [PaymentController::class, 'simulate'])->name('payments.simulate');
+    });
 
     /*
      * Progress tracker (P7). No account required (A6).
@@ -238,6 +243,16 @@ foreach (array_keys(config('site.locales')) as $locale) {
         ->name($locale.'.')
         ->group($publicRoutes);
 }
+
+/*
+ * Midtrans HTTP notification.
+ *
+ * Deliberately not locale-prefixed and outside the customer auth groups: this
+ * is a server-to-server callback. CSRF is excepted in bootstrap/app.php; the
+ * SHA-512 signature check in the controller is the authentication.
+ */
+Route::post('pembayaran/notifikasi', MidtransNotificationController::class)
+    ->name('payments.notification');
 
 Route::middleware('auth')
     ->get('admin/tugas/{submission}/berkas', [AssignmentDownloadController::class, 'downloadStaff'])

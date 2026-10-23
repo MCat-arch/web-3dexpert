@@ -24,6 +24,7 @@ class EventDetailController extends Controller
             'registration' => $customer
                 ? EventRegistration::where('event_id', $event->getKey())
                     ->where('customer_id', $customer->getKey())
+                    ->with('payment')
                     ->first()
                 : null,
         ]);

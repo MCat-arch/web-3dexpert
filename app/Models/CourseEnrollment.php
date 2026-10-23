@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Contracts\Payable;
 use App\Notifications\Courses\CourseEnrollmentActivated;
 use App\Support\CourseProgress;
+use App\Support\Locale;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -113,17 +114,47 @@ class CourseEnrollment extends Model implements Payable
 
     public function payableAmount(): string
     {
+        $this->loadMissing('course');
+
         return (string) $this->course->price;
     }
 
     public function payableDescription(): string
     {
+        $this->loadMissing('course');
+
         return 'Pendaftaran Kursus: '.$this->course->getTranslation('title', config('app.fallback_locale'));
     }
 
     public function payableExpiryProfile(): string
     {
         return 'course';
+    }
+
+    public function payableCustomer(): ?Customer
+    {
+        $this->loadMissing('customer');
+
+        return $this->customer;
+    }
+
+    public function payableTitle(): string
+    {
+        $this->loadMissing('course');
+
+        return $this->course->getTranslation('title', config('app.fallback_locale'));
+    }
+
+    public function payableSuccessUrl(): string
+    {
+        return Locale::route('customer.courses');
+    }
+
+    public function payableRetryUrl(): string
+    {
+        $this->loadMissing('course');
+
+        return Locale::route('courses.show', ['course' => $this->course->slug]);
     }
 
     public function fulfilPayment(Payment $payment): void
@@ -137,6 +168,8 @@ class CourseEnrollment extends Model implements Payable
         $this->activated_at = now();
         $this->save();
 
+        $this->loadMissing('customer');
+
         DB::afterCommit(fn () => $this->customer?->notify(
             new CourseEnrollmentActivated($this->fresh(['course', 'payment']))
         ));
@@ -144,6 +177,18 @@ class CourseEnrollment extends Model implements Payable
 
     public function revokePayment(Payment $payment): void
     {
+        $this->status = self::STATUS_REVOKED;
+        $this->save();
+    }
+
+    public function expirePayment(Payment $payment): void
+    {
+        // Only an unpaid enrollment is released. A concurrent staff grant may
+        // already have activated it; do not revoke access they just gave.
+        if (! $this->isPending()) {
+            return;
+        }
+
         $this->status = self::STATUS_REVOKED;
         $this->save();
     }

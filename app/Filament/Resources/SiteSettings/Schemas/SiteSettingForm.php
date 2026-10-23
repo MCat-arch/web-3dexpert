@@ -34,6 +34,7 @@ class SiteSettingForm
                             ->label('Terjemahan')
                             ->keyLabel('Kode bahasa (id/en)')
                             ->valueLabel('Nilai')
+                            ->default([])
                             ->formatStateUsing(fn ($state, ?SiteSetting $record) => $record?->getTranslations('value_translations') ?? [])
                             ->columnSpanFull(),
                     ]),

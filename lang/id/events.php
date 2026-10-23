@@ -66,6 +66,13 @@ return [
     'past' => 'Acara sudah berlalu',
 
     'enrolled' => 'Pendaftaran berhasil. Kode tiket Anda: :code',
+    'payment_required' => 'Pendaftaran diterima. Selesaikan pembayaran dalam :minutes menit agar kursi Anda tidak dilepas.',
+    'payment_pending' => 'Menunggu Pembayaran',
+    'payment_pending_note' => 'Kursi Anda ditahan sampai batas pembayaran. Selesaikan sekarang sebelum waktu habis.',
+    'continue_payment' => 'Selesaikan Pembayaran',
+    'payment_expired' => 'Pembayaran kedaluwarsa dan kursi sudah dilepas.',
+    'register_and_pay' => 'Daftar & Bayar',
+    'paid_hold_note' => 'Kursi ditahan :minutes menit selama proses pembayaran QRIS.',
     'cancelled' => 'Pendaftaran dibatalkan.',
 
     'error_full' => 'Kuota acara ini sudah penuh.',
@@ -92,4 +99,11 @@ return [
     'mail_where' => 'Lokasi: :where',
     'mail_ticket' => 'Kode tiket Anda: :code',
     'mail_action' => 'Lihat Acara Saya',
+
+    'mail_pending_subject' => 'Selesaikan pembayaran acara: :event',
+    'mail_pending_intro' => 'Kursi Anda untuk :event sudah kami tahan sementara.',
+    'mail_pending_expiry' => 'Selesaikan pembayaran dalam :minutes menit. Jika tidak, kursi akan dilepas otomatis.',
+    'mail_pending_order' => 'Order ID: :order',
+    'mail_pending_total' => 'Total pembayaran: :amount',
+    'mail_pending_action' => 'Selesaikan Pembayaran',
 ];

@@ -1712,7 +1712,35 @@ p:last-child { margin-bottom: 0; }
 }
 
 [data-nav-panel] > * {
+    min-height: 0;
     overflow: hidden;
+}
+
+.mobile-nav-clip {
+    overflow: hidden;
+}
+
+.mobile-nav-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+    background: var(--ink-900);
+    border-top: 1px solid var(--line-dark);
+}
+
+/*
+ * The mobile navigation links are anchors that already carry both classes.
+ * The legacy selector targeted a nested anchor (`.mobile-nav-item a`), so the
+ * intended mobile size was never applied and the tight line box could clip
+ * ascenders/descenders ("Portofolio").
+ */
+.mobile-nav-item.nav-link {
+    display: block;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.5;
 }
 
 @media (max-width: 1120px) {
@@ -1836,6 +1864,17 @@ p:last-child { margin-bottom: 0; }
 
     .header-container {
         height: 65px;
+    }
+
+    /*
+     * Logo + language switcher + consultation CTA + hamburger needs ~427px of
+     * content width. On a 390px phone that pushed the hamburger past the
+     * viewport and added a horizontal scrollbar. The consultation CTA is
+     * repeated at the bottom of the opened mobile panel, so hide only the
+     * compact-header copy where it cannot fit.
+     */
+    .header-actions > .btn-primary {
+        display: none;
     }
 
     .hero-section {
@@ -2544,4 +2583,291 @@ body.has-event-dialog {
     .event-card-footer {
         flex-wrap: wrap;
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared payment page (courses + paid events)                         */
+/* ------------------------------------------------------------------ */
+
+.payment-page {
+    max-width: 1040px;
+    padding-top: 32px;
+    padding-bottom: 72px;
+}
+
+.payment-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.payment-summary,
+.payment-action {
+    padding: 30px;
+}
+
+.payment-eyebrow {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: var(--gold-hover);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.payment-heading {
+    margin: 0 0 10px;
+    color: var(--text);
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.payment-description,
+.payment-instruction {
+    margin: 0 0 22px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+.payment-details {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    border-top: 1px solid var(--line-light);
+}
+
+.payment-detail {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1fr);
+    gap: 16px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line-light);
+}
+
+.payment-detail dt {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.payment-detail dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.payment-amount {
+    color: var(--text) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+}
+
+.payment-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.84rem;
+    letter-spacing: 0.02em;
+}
+
+.payment-qr-frame {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 18px;
+    padding: 16px;
+    border: 1px solid var(--line-light);
+    border-radius: 14px;
+    background: #ffffff;
+    max-width: 300px;
+}
+
+.payment-qr-frame img {
+    display: block;
+    width: 100%;
+    max-width: 264px;
+    height: auto;
+}
+
+.payment-alert {
+    margin-bottom: 18px;
+    padding: 20px;
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 12px;
+    background: #fffbeb;
+}
+
+.payment-alert h3 {
+    margin: 0 0 6px;
+    color: #92400e;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.payment-alert p {
+    margin: 0 0 8px;
+    color: #78350f;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.payment-alert-detail {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.76rem !important;
+    overflow-wrap: anywhere;
+}
+
+.payment-alert-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.payment-countdown {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 13px 16px;
+    border: 1px solid rgba(254, 202, 7, 0.45);
+    border-radius: 10px;
+    background: rgba(254, 202, 7, 0.12);
+    color: var(--text);
+    font-size: 0.88rem;
+}
+
+.payment-countdown .icon {
+    flex: 0 0 auto;
+    color: var(--gold-hover);
+}
+
+.payment-countdown strong {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.payment-countdown-note {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.payment-state {
+    text-align: center;
+}
+
+.payment-state > .icon {
+    margin: 4px auto 14px;
+    color: var(--danger);
+}
+
+.payment-state-success > .icon {
+    color: var(--success);
+}
+
+.payment-state p {
+    margin: 0 0 22px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.payment-state-note {
+    font-size: 0.8rem !important;
+}
+
+.payment-secure {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 22px 0 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+@media (max-width: 860px) {
+    .payment-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-summary,
+    .payment-action {
+        padding: 24px;
+    }
+}
+
+@media (max-width: 479px) {
+    .payment-detail {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .payment-amount {
+        font-size: 1.15rem !important;
+    }
+
+    .payment-alert-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Paid-event pending state */
+.event-register-pending {
+    border-color: rgba(254, 202, 7, 0.55);
+    background: #fffbeb;
+    text-align: center;
+}
+
+.event-register-pending .event-register-icon {
+    color: var(--gold-hover);
+}
+
+.event-register-pending .event-register-title {
+    color: #92400e;
+}
+
+.event-register-deadline {
+    margin: 8px 0 14px !important;
+}
+
+.event-register-pending .btn-block + .event-cancel-button,
+.event-register-pending .event-cancel-button {
+    margin-top: 10px;
+}
+
+.event-dialog-price {
+    margin: 10px 0 2px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.event-dialog-payment-note {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.event-mine-payment {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line-light);
+}
+
+.event-mine-payment .event-register-note {
+    flex: 1 1 260px;
+    margin: 0;
 }

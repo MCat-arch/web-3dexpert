@@ -46,9 +46,13 @@
                                             <span class="badge badge-success">
                                                 {{ __('courses.active') }}
                                             </span>
-                                        @else
+                                        @elseif ($enrollment->isPending() && $enrollment->payment?->isPending())
                                             <span class="badge badge-amber">
                                                 {{ __('courses.pending_payment') }}
+                                            </span>
+                                        @else
+                                            <span class="badge badge-danger">
+                                                {{ __('courses.payment_expired') }}
                                             </span>
                                         @endif
 
@@ -73,10 +77,15 @@
                                        class="btn btn-primary btn-sm">
                                         {{ __('courses.resume_learning') }}
                                     </a>
-                                @elseif ($enrollment->payment)
-                                    <a href="{{ $lroute('courses.payment.show', ['order_id' => $enrollment->payment->order_id]) }}"
-                                       class="btn btn-outline btn-sm" style="color: var(--gold-hover); border-color: var(--gold-hover);">
-                                        Lihat Instruksi Bayar
+                                @elseif ($enrollment->isPending() && $enrollment->payment?->isPending())
+                                    <a href="{{ $lroute('payments.show', ['order_id' => $enrollment->payment->order_id]) }}"
+                                       class="btn btn-primary btn-sm">
+                                        {{ __('courses.complete_payment') }}
+                                    </a>
+                                @elseif ($enrollment->course)
+                                    <a href="{{ $lroute('courses.show', ['course' => $enrollment->course->slug]) }}"
+                                       class="btn btn-outline btn-sm">
+                                        {{ __('courses.retry_purchase') }}
                                     </a>
                                 @endif
                             </div>

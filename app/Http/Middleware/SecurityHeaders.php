@@ -38,7 +38,11 @@ class SecurityHeaders
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com data:",
             "script-src 'self'",
-            "img-src 'self' data: https://i.ytimg.com https://images.unsplash.com",
+            // Midtrans returns the QRIS image from its API host; both the
+            // sandbox and production hosts are allowed so the same code works
+            // before and after go-live. The image is only a QR code, no
+            // third-party script is loaded.
+            "img-src 'self' data: https://i.ytimg.com https://images.unsplash.com https://api.sandbox.midtrans.com https://api.midtrans.com",
             // [FIXED] Semua frame: YouTube (ytFacade) + Instagram reel (order flow).
             // DITULIS SEBAGAI SATU STRING DENGAN NAMA DIREKTIF — bukan key array,
             // karena implode() mengabaikan key dan nama direktifnya hilang.

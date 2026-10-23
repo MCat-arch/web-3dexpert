@@ -313,3 +313,110 @@ the client can review real progress rather than a half-built shell.
 **Weeks 18–20:** phase 8, then cutover.
 
 **Then stop, watch it for two weeks, and only then open phase 9.**
+
+---
+
+## Implementation change log — 2026-10-23
+
+This section records the five-item follow-up batch after the main plan. It is kept here,
+next to the original tasks, so the plan and the actual implementation do not drift into
+separate documents.
+
+| # | Area | What was implemented | Regression evidence |
+|---|---|---|---|
+| 1 | Site settings | `HasTranslations::getTranslations()` now treats SQL `NULL`, JSON `null`, and legacy plain strings as empty/fallback translation maps. `EditSiteSetting` normalises the form state before Filament fills it. The settings edit page no longer crashes on old rows. | `tests/Feature/Admin/SiteSettingAdminTest.php` covers SQL `NULL`, `"null"`, plain text, a normal map, and the create page. |
+| 2 | Non-desktop header | The mobile panel now has a clipping grid child and an inner element that owns padding and the border. The actual mobile anchors are styled with `.mobile-nav-item.nav-link`, so `Portofolio` is no longer clipped and no border line remains while the panel is collapsed. Below 768px the compact-header consultation CTA is hidden because logo + language switcher + CTA + hamburger needed about 427px; the same CTA remains at the bottom of the opened panel. | Browser checks at 390/768/1024/1440 px confirmed no horizontal overflow, a zero-height collapsed panel, and a fully visible `Portofolio` link. Header markup is in `resources/views/partials/header.blade.php`. |
+| 3 | Site icons | Added 3D Expert-branded `favicon.ico`, 16/32/48 px PNGs, Apple touch icon, 192/512 px Android icons, and `site.webmanifest`. The public layout and Filament panel both use the new icon. The generator is `deploy/generate-brand-icons.php`, using the existing logo/mark. | `tests/Feature/PublicPagesTest.php` checks the files, links, and manifest; layout and `AdminPanelProvider` wiring verified in the browser. |
+| 4 | Payments | One polymorphic `Payment` flow now serves **courses and paid events**. `EventRegistration` implements the same `Payable` contract as `CourseEnrollment`. The generic page is `payments.show` (`/pembayaran/{order_id}`); the old fake QR page and `CoursePaymentController` were removed. | `tests/Feature/Payments/PaymentFlowTest.php`, plus updated event/course feature tests. |
+| 5 | Career form | Added optional `portfolio_url` after the motivation/cover letter, validated as `http`/`https` only, persisted on `job_applications`, shown in the admin application detail, and translated for ID/EN. | `tests/Feature/Careers/JobApplicationTest.php`: save, reject `javascript:`, render both locales. |
+
+### Payment gateway behavior
+
+- **One settlement path.** `SettlePayment` locks the payment row, marks it `settlement`,
+  calls `fulfilPayment()` on the payable, and writes an audit entry. Duplicate Midtrans
+  notifications therefore cannot grant access twice.
+- **One expiry path.** `ExpirePayment` locks the row and calls `expirePayment()` on the
+  payable. Events release the held seat through `CancelEventRegistration`; courses mark
+  a still-pending enrollment as `revoked`.
+- **Real QRIS only.** `MidtransQrisService` calls the Core API `/charge` endpoint with
+  `payment_type=qris` and the customer's stored profile. The UI renders the QR image URL
+  returned by Midtrans. There is no generated fallback QR, no emoji, no hardcoded NMID,
+  and no public simulation button.
+- **Signed webhook.** `POST /pembayaran/notifikasi` is not locale-prefixed and is excluded
+  from CSRF. The controller verifies
+  `SHA512(order_id + status_code + gross_amount + server_key)`, rejects amount mismatches,
+  and is idempotent.
+- **Local testing route.** `POST /pembayaran/{order_id}/simulasi` remains only for
+  `local`/`testing` and returns 404 in production or when `MIDTRANS_IS_PRODUCTION=true`.
+  It is never rendered as a button.
+- **No gateway keys.** Checkout still creates the pending order and holds the seat. The
+  payment page shows a contact-admin message instead of inventing a QR code.
+
+### 15-minute payment expiry
+
+`config/payments.php` defines:
+
+```dotenv
+PAYMENT_EXPIRY_MINUTES=15
+```
+
+When a payment is created, `expires_at = now() + PAYMENT_EXPIRY_MINUTES`. The same value
+is sent to Midtrans as `custom_expiry` so the gateway and the application agree. Expiry
+is enforced from three places:
+
+1. `php artisan payments:expire`, scheduled every minute in `routes/console.php`.
+2. The payment page itself, so opening an overdue order renders the expired state even
+   if the scheduler is briefly behind.
+3. Midtrans `expire`, `cancel`, `deny`, and `failure` notifications.
+
+For **paid events**, the pending registration counts toward `seats_taken` from the moment
+it is created. This is deliberate: otherwise two people could pay for the same last seat.
+The seat is released only by `CancelEventRegistration`, which is also called by the expiry
+path. The sweep is idempotent, so running it twice cannot release two seats. When a customer
+cancels a pending registration manually, the pending payment attempt is marked `cancelled`
+at the same time, so an old QR cannot be scanned into a seat that has already been released.
+
+If Midtrans settles **after** the local expiry/cancel, the webhook records
+`raw_response.late_settlement = true` and returns HTTP 200 without confirming the
+registration or activating the course. Staff must reconcile/refund that payment from the
+admin panel; a non-200 response would only make Midtrans retry forever.
+
+**Operational requirement:** the scheduler cron must be running. Without it, expiry still
+happens lazily when the customer opens the payment page, but an abandoned order could hold
+an event seat longer than 15 minutes.
+
+### Midtrans sandbox test guide
+
+1. Create a sandbox account at <https://dashboard.sandbox.midtrans.com> and copy the
+   **Server Key**, **Client Key**, and **Merchant ID** from *Settings → Access Keys*.
+2. Set these in `.env` (never commit real keys):
+
+   ```dotenv
+   MIDTRANS_SERVER_KEY=SB-Mid-server-...
+   MIDTRANS_CLIENT_KEY=SB-Mid-client-...
+   MIDTRANS_MERCHANT_ID=...
+   MIDTRANS_IS_PRODUCTION=false
+   PAYMENT_EXPIRY_MINUTES=15
+   ```
+
+3. Expose the local app with a tunnel (ngrok, Cloudflare Tunnel, or similar). In the
+   Midtrans sandbox dashboard set **Payment Notification URL** to:
+
+   ```text
+   https://<your-tunnel-host>/pembayaran/notifikasi
+   ```
+
+4. Register for a paid event or buy a course. The payment page should show a real QRIS
+   image from `api.sandbox.midtrans.com`. If it shows the contact-admin panel instead,
+   check the server key, the tunnel, and `storage/logs/laravel.log`.
+5. Simulate payment with the Midtrans QRIS sandbox simulator:
+   <https://simulator.sandbox.midtrans.com/qris/index>. Use the order ID and amount shown
+   on the payment page. A successful simulation posts a signed `settlement` notification.
+6. Confirm the event registration becomes `confirmed` (seat stays occupied) or the course
+   enrollment becomes `active`. Check `Program → Pembayaran` in the admin panel for the
+   settlement and raw gateway payload.
+7. Test expiry with `PAYMENT_EXPIRY_MINUTES=1`, create another order, wait, then run
+   `php artisan payments:expire`. The pending registration must become `cancelled` and the
+   event's `seats_taken` must decrease. For a course, the enrollment must become `revoked`.
+8. Do not enable a public "simulate payment" button for production. The route above is
+   testing-only and already self-disables outside `local`/`testing`.

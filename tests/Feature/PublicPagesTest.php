@@ -29,6 +29,39 @@ class PublicPagesTest extends TestCase
             ->assertSee('csrf-token', false);
     }
 
+    public function test_it_links_the_brand_icons_and_web_manifest(): void
+    {
+        $assets = [
+            'favicon.ico',
+            'favicon-16x16.png',
+            'favicon-32x32.png',
+            'favicon-48x48.png',
+            'apple-touch-icon.png',
+            'android-chrome-192x192.png',
+            'android-chrome-512x512.png',
+            'site.webmanifest',
+        ];
+
+        foreach ($assets as $asset) {
+            $this->assertFileExists(public_path($asset));
+        }
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('favicon.ico')
+            ->assertSee('favicon-32x32.png')
+            ->assertSee('apple-touch-icon.png')
+            ->assertSee('site.webmanifest');
+
+        $manifest = json_decode(
+            (string) file_get_contents(public_path('site.webmanifest')),
+            true,
+        );
+
+        $this->assertSame('3D Expert', $manifest['name']);
+        $this->assertSame('3D Expert', $manifest['short_name']);
+    }
+
     public function test_it_renders_the_homepage_in_english_under_the_en_prefix(): void
     {
         $this->get('/en')->assertOk()->assertSee('lang="en"', false);

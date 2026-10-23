@@ -29,7 +29,7 @@ class JobApplication extends Model
     protected $fillable = [
         'job_vacancy_id', 'customer_id',
         'applicant_name', 'applicant_email', 'applicant_phone',
-        'cover_letter', 'status', 'status_changed_at',
+        'cover_letter', 'portfolio_url', 'status', 'status_changed_at',
         'reviewed_by', 'internal_notes', 'submitted_at',
     ];
 

@@ -185,9 +185,22 @@ Course enrollment emails are automatic:
 Open **Program → Pembayaran** (admin/superadmin only).
 
 - Payments are read-only in the panel.
+- The list covers **both course enrollments and paid event registrations**. The **Jenis**
+  column says `Kursus` or `Acara`; **Item** shows the course/event and **Referensi** shows
+  the enrollment number or event ticket code.
+- A pending order has a 15-minute payment window. For paid events that window also holds
+  the seat. When it closes, the scheduled `payments:expire` command cancels the pending
+  registration and returns the seat; a pending course enrollment becomes `revoked`.
+- Midtrans QR codes are issued on the customer's payment page the first time it is opened.
+  The panel stores the gateway payload, order ID, transaction ID, status, and timestamps.
 - Refunds are available only for settled payments.
-- A refund revokes the related course entitlement and records an audit entry.
+- A refund revokes the related course entitlement or event registration and records an
+  audit entry. Revoking a paid event also releases its seat.
 - LMS admins cannot see payments or customer financial data.
+
+If a customer paid after the local 15-minute window had already expired, the notification
+is stored with a `late_settlement` marker and does **not** restore the seat or course
+access. Reconcile or refund that payment from this screen.
 
 ### 3.6 Assignments and grading
 
@@ -231,12 +244,19 @@ Open **Karier → Lamaran Kerja** to review applications.
 - Vacancies and applications are admin/superadmin only.
 - Applicant documents are private and access is logged.
 - Editors and LMS admins receive 403 responses, even if they know the URL.
+- The applicant may add an optional **Link portofolio** after the cover letter. It is
+  validated as an `http`/`https` URL and appears as a clickable link in the application
+  detail. The value is optional, so older applications simply show “Tidak dicantumkan.”
 
 ### 3.9 Site settings
 
 Open **Sistem → Pengaturan Situs** (admin/superadmin only).
 
 Settings cover company details, contact links, homepage copy, SEO defaults, and video URLs. Changes are audited.
+
+The edit form also accepts older rows whose translation value is SQL `NULL`, JSON `null`,
+a plain string from before the ID/EN map existed, or an empty map. These rows open normally
+instead of producing a server error; saving converts them to the current translation map.
 
 ### 3.10 Audit logs
 

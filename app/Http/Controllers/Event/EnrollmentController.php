@@ -26,6 +26,14 @@ class EnrollmentController extends Controller
             return back()->with('error', $e->userMessage());
         }
 
+        if (! $event->isFree() && $registration->payment !== null) {
+            return redirect()
+                ->to(Locale::route('payments.show', ['order_id' => $registration->payment->order_id]))
+                ->with('status', __('events.payment_required', [
+                    'minutes' => (int) config('payments.expiry_minutes', 15),
+                ]));
+        }
+
         return redirect()
             ->to(Locale::route('events.show', ['event' => $event->slug]))
             ->with('status', __('events.enrolled', ['code' => $registration->ticket_code]));

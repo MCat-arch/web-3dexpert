@@ -4,6 +4,7 @@ namespace App\Actions\Events;
 
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -33,6 +34,21 @@ class CancelEventRegistration
                 ->whereKey($registration->event_id)
                 ->where('seats_taken', '>', 0)
                 ->decrement('seats_taken');
+
+            /*
+             * A customer who cancels while checkout is still open must not be
+             * able to scan the old QR and settle into a seat that has already
+             * been released. Mark only PENDING attempts; settled payments stay
+             * visible to staff for refund.
+             */
+            Payment::query()
+                ->where('payable_type', EventRegistration::class)
+                ->where('payable_id', $registration->getKey())
+                ->pending()
+                ->update([
+                    'status' => Payment::STATUS_CANCELLED,
+                    'updated_at' => now(),
+                ]);
 
             return $registration;
         });

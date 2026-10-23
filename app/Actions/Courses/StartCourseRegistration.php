@@ -2,6 +2,7 @@
 
 namespace App\Actions\Courses;
 
+use App\Actions\Payments\ExpirePayment;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\Customer;
@@ -10,7 +11,6 @@ use App\Notifications\Courses\CourseEnrollmentActivated;
 use App\Notifications\Courses\CourseRegistrationReceived;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class StartCourseRegistration
@@ -31,7 +31,7 @@ class StartCourseRegistration
             throw new InvalidArgumentException(__('courses.not_published'));
         }
 
-        // Entitlement pre-check: prevent buying a course already owned
+        // Entitlement pre-check: prevent buying a course already owned.
         $existing = CourseEnrollment::query()
             ->where('course_id', $course->id)
             ->where('customer_id', $customer->id)
@@ -64,37 +64,55 @@ class StartCourseRegistration
                 ];
             }
 
-            // Create Pending Payment record
-            $orderId = 'CRS-'.date('Ymd').'-'.strtoupper(Str::random(6));
+            /*
+             * Reuse an unexpired pending payment. Otherwise a student who
+             * refreshes checkout would orphan the first order and create a
+             * second QR for the same course.
+             */
+            if ($existing && $existing->isPending()) {
+                $existing->loadMissing('payment');
+                $pending = $existing->payment;
 
-            $payment = Payment::create([
-                'payable_type' => CourseEnrollment::class,
-                'payable_id' => 0, // temporary, updated right after
-                'order_id' => $orderId,
-                'gross_amount' => $course->price,
-                'status' => Payment::STATUS_PENDING,
-                'payment_type' => $paymentMethod,
-                'expires_at' => now()->addHours(24),
-            ]);
+                if ($pending && $pending->isDueForExpiry()) {
+                    app(ExpirePayment::class)($pending);
+                    $pending = null;
+                }
+
+                if ($pending && $pending->isPending()) {
+                    $enrollment->save();
+
+                    return [
+                        'enrollment' => $enrollment,
+                        'payment' => $pending,
+                    ];
+                }
+            }
+
+            $enrollment->status = CourseEnrollment::STATUS_PENDING;
+            $enrollment->activated_at = null;
 
             try {
-                $enrollment->payment_id = $payment->id;
-                $enrollment->status = CourseEnrollment::STATUS_PENDING;
                 $enrollment->save();
-            } catch (UniqueConstraintViolationException $e) {
-                // In case of double-click race, reload existing
+            } catch (UniqueConstraintViolationException) {
+                // A double-click raced us. Re-read the winner and attach the
+                // new payment to that row rather than failing with a 500.
                 $enrollment = CourseEnrollment::where('course_id', $course->id)
                     ->where('customer_id', $customer->id)
                     ->firstOrFail();
-
-                $enrollment->payment_id = $payment->id;
-                $enrollment->save();
             }
 
-            // Bind polymorphic relationship back
-            $payment->update([
-                'payable_id' => $enrollment->id,
+            $payment = Payment::create([
+                'payable_type' => CourseEnrollment::class,
+                'payable_id' => $enrollment->getKey(),
+                'order_id' => Payment::generateOrderId('CRS'),
+                'gross_amount' => $course->price,
+                'status' => Payment::STATUS_PENDING,
+                'payment_type' => $paymentMethod,
+                'expires_at' => now()->addMinutes((int) config('payments.expiry_minutes', 15)),
             ]);
+
+            $enrollment->payment_id = $payment->getKey();
+            $enrollment->save();
 
             DB::afterCommit(fn () => $customer->notify(
                 new CourseRegistrationReceived($enrollment->fresh(['course', 'payment']))

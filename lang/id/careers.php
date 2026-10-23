@@ -29,6 +29,8 @@ return [
     'form_title' => 'Lamar: :position',
     'cover_letter' => 'Surat lamaran',
     'cover_letter_hint' => 'Opsional. Ceritakan singkat mengapa Anda cocok untuk posisi ini.',
+    'portfolio_url' => 'Link Portofolio',
+    'portfolio_url_hint' => 'Opsional. Tautan portofolio, website pribadi, GitHub, atau Behance (https://...).',
     'documents' => 'Dokumen',
     'document' => 'Dokumen',
     'documents_hint' => 'CV wajib (PDF, maksimal :mb MB). Dokumen pertama dianggap sebagai CV.',

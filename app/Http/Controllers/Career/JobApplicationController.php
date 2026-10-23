@@ -36,6 +36,7 @@ class JobApplicationController extends Controller
                 $request->user('customer'),
                 $request->file('documents', []),
                 $request->input('cover_letter'),
+                $request->input('portfolio_url'),
             );
         } catch (JobApplicationException $e) {
             // Expected business outcomes -- closed, already applied -- are

@@ -50,8 +50,6 @@ return [
     'payment_pending_title' => 'Waiting for Payment',
     'order_id' => 'Order ID',
     'payment_due' => 'Payment Due Date',
-    'simulation_badge' => 'Sandbox / Simulation Mode',
-    'simulate_success' => 'Simulate Successful Payment',
     'payment_success_message' => 'Payment confirmed successfully! Course access is now active.',
     'payment_cannot_settle' => 'This payment status cannot be settled.',
     'back_to_course' => 'Back to Course',
@@ -67,6 +65,9 @@ return [
     'browse_catalog' => 'Browse Course Catalog',
     'active' => 'Active',
     'pending_payment' => 'Pending Payment',
+    'payment_expired' => 'Payment expired',
+    'complete_payment' => 'Complete Payment',
+    'retry_purchase' => 'Try Again',
 
     // --- show.blade.php ---
     'mentoring_direct' => 'Direct Mentoring',

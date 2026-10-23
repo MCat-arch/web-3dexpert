@@ -16,7 +16,7 @@ class MyEventsController extends Controller
                 ->where('customer_id', $request->user('customer')->getKey())
                 // Eager-loaded: this list renders event titles and dates, and
                 // preventLazyLoading() would throw outside production.
-                ->with('event')
+                ->with(['event', 'payment'])
                 ->latest('registered_at')
                 ->get(),
         ]);

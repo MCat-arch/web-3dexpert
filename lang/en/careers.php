@@ -29,6 +29,8 @@ return [
     'form_title' => 'Apply: :position',
     'cover_letter' => 'Cover letter',
     'cover_letter_hint' => 'Optional. Briefly tell us why you are a good fit.',
+    'portfolio_url' => 'Portfolio Link',
+    'portfolio_url_hint' => 'Optional. A link to your portfolio, personal site, GitHub, or Behance (https://...).',
     'documents' => 'Documents',
     'document' => 'Document',
     'documents_hint' => 'CV required (PDF, max :mb MB). The first document is treated as your CV.',

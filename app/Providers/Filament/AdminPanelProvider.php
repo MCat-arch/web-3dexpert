@@ -36,6 +36,9 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->favicon(asset('favicon.ico'))
+            ->brandLogo(asset('images/logo.png'))
+            ->brandLogoHeight('2.25rem')
             // Pinned explicitly rather than inheriting auth.defaults.guard.
             // The point of D1 is that staff and public auth cannot touch; a
             // future change to the default guard must not silently widen who

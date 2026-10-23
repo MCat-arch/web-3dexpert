@@ -25,6 +25,10 @@ class JobApplicationRequest extends FormRequest
         return [
             'cover_letter' => ['nullable', 'string', 'max:5000'],
 
+            // Links only. Restricting schemes avoids javascript:/data: URLs
+            // being rendered as clickable links in the staff panel later.
+            'portfolio_url' => ['nullable', 'string', 'max:255', 'url:http,https'],
+
             'documents' => ['required', 'array', 'min:1', 'max:'.self::MAX_FILES],
 
             /*
@@ -55,6 +59,7 @@ class JobApplicationRequest extends FormRequest
     {
         return [
             'cover_letter' => __('careers.cover_letter'),
+            'portfolio_url' => __('careers.portfolio_url'),
             'documents' => __('careers.documents'),
             'documents.*' => __('careers.document'),
         ];

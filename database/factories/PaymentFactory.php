@@ -20,7 +20,7 @@ class PaymentFactory extends Factory
             'gross_amount' => 350000.00,
             'status' => Payment::STATUS_PENDING,
             'payment_type' => 'qris',
-            'expires_at' => now()->addHours(24),
+            'expires_at' => now()->addMinutes((int) config('payments.expiry_minutes', 15)),
         ];
     }
 

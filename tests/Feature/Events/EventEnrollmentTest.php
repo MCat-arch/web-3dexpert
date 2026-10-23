@@ -5,6 +5,8 @@ namespace Tests\Feature\Events;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Models\Payment;
+use App\Notifications\Events\EventRegistrationReceived;
 use App\Notifications\Events\RegistrationConfirmed;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,41 +60,66 @@ class EventEnrollmentTest extends TestCase
             ->assertSee($ongoing->getTranslation('title', 'id'));
     }
 
-    public function test_paid_events_remain_visible_but_cannot_be_enrolled_until_p5b(): void
+    public function test_a_paid_event_holds_a_seat_and_opens_the_shared_payment_page(): void
     {
-        $event = Event::factory()->paid()->create();
+        Notification::fake();
+
+        $event = Event::factory()->paid()->capacity(2)->create();
         $customer = Customer::factory()->create();
 
         $this->get('/acara')
             ->assertOk()
             ->assertSee(__('events.paid'));
 
-        $this->get('/acara/'.$event->slug)
+        $this->actingAs($customer, 'customer')
+            ->get('/acara/'.$event->slug)
             ->assertOk()
-            ->assertSee(__('events.paid_unavailable'))
-            ->assertDontSee(__('events.register'));
+            ->assertSee(__('events.register_and_pay'))
+            ->assertSee(__('events.paid_price', [
+                'price' => number_format((float) $event->price, 0, ',', '.'),
+            ]))
+            ->assertDontSee(__('events.paid_unavailable'));
+
+        $response = $this->actingAs($customer, 'customer')
+            ->post('/acara/'.$event->slug.'/daftar', $this->attendee());
+
+        $response->assertRedirect();
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('/pembayaran/', $location);
+
+        $registration = EventRegistration::sole();
+        $payment = $registration->payment;
+
+        $this->assertSame(EventRegistration::STATUS_PENDING, $registration->status);
+        $this->assertSame(1, $event->fresh()->seats_taken);
+        $this->assertNotNull($payment);
+        $this->assertSame(Payment::STATUS_PENDING, $payment->status);
+        $this->assertSame((float) $event->price, (float) $payment->gross_amount);
+        $this->assertTrue($payment->expires_at->between(now()->addMinutes(14), now()->addMinutes(16)));
+
+        Notification::assertSentTo($customer, EventRegistrationReceived::class);
 
         $this->actingAs($customer, 'customer')
-            ->post('/acara/'.$event->slug.'/daftar', $this->attendee())
-            ->assertRedirect('/acara/'.$event->slug)
-            ->assertSessionHas('error', __('events.error_paid_unavailable'));
-
-        $this->assertSame(0, EventRegistration::count());
-        $this->assertSame(0, $event->fresh()->seats_taken);
+            ->get($location)
+            ->assertOk()
+            ->assertSee($payment->order_id)
+            ->assertSee(__('payments.countdown_label'))
+            ->assertSee(__('payments.qr_unavailable_title'))
+            ->assertDontSee('NMID')
+            ->assertDontSee('api.qrserver.com')
+            ->assertDontSee('Simulasi Pembayaran');
     }
 
-    public function test_paid_event_unavailable_message_is_translated_on_english_routes(): void
+    public function test_paid_event_checkout_is_translated_on_english_routes(): void
     {
         $event = Event::factory()->paid()->create();
+        $customer = Customer::factory()->create();
 
-        $this->get('/en/acara')
+        $this->actingAs($customer, 'customer')
+            ->get('/en/acara/'.$event->slug)
             ->assertOk()
-            ->assertSee(__('events.paid', [], 'en'));
-
-        $this->get('/en/acara/'.$event->slug)
-            ->assertOk()
-            ->assertSee(__('events.paid_unavailable', [], 'en'))
-            ->assertDontSee(__('events.register', [], 'en'));
+            ->assertSee(__('events.register_and_pay', [], 'en'))
+            ->assertDontSee(__('events.paid_unavailable', [], 'en'));
     }
 
     public function test_event_list_reads_seat_availability_live(): void

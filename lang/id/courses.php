@@ -50,8 +50,6 @@ return [
     'payment_pending_title' => 'Menunggu Pembayaran',
     'order_id' => 'ID Pesanan',
     'payment_due' => 'Batas Waktu Pembayaran',
-    'simulation_badge' => 'Mode Sandbox / Simulasi',
-    'simulate_success' => 'Simulasikan Pembayaran Berhasil',
     'payment_success_message' => 'Pembayaran berhasil dikonfirmasi! Akses kursus telah dibuka.',
     'payment_cannot_settle' => 'Status pembayaran ini tidak dapat diselesaikan.',
     'back_to_course' => 'Kembali ke Kursus',
@@ -67,6 +65,9 @@ return [
     'browse_catalog' => 'Jelajahi Katalog Kursus',
     'active' => 'Aktif',
     'pending_payment' => 'Menunggu Bayar',
+    'payment_expired' => 'Pembayaran kedaluwarsa',
+    'complete_payment' => 'Selesaikan Pembayaran',
+    'retry_purchase' => 'Coba Lagi',
 
     // --- show.blade.php ---
     'mentoring_direct' => 'Mentoring Langsung',

@@ -63,6 +63,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // admin form and every ?hapus= link was forgeable.
         $middleware->web(append: [SecurityHeaders::class]);
 
+        // Midtrans posts server-to-server; it cannot carry a Laravel CSRF
+        // token. The notification controller authenticates with Midtrans'
+        // SHA-512 signature instead.
+        $middleware->validateCsrfTokens(except: [
+            'pembayaran/notifikasi',
+        ]);
+
         /*
          * HandleLegacyRedirects must stay GLOBAL. It works by inspecting the
          * response for a 404, and the URLs it exists to rescue -- detail.php,

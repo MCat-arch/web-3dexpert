@@ -65,29 +65,34 @@
 
     {{-- Mobile Dropdown Accordion Panel --}}
     <nav id="mobile-nav" data-nav-panel aria-label="{{ __('nav.main') }}">
-        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; background: var(--ink-900); border-top: 1px solid var(--line-dark);">
-            @foreach ($sections as $section)
-                <x-nav-link :href="$section['href']" :active="$section['active']" mobile>{{ $section['label'] }}</x-nav-link>
-            @endforeach
+        {{-- The grid row animates from 0fr to 1fr. Padding and borders live on
+             the inner element so the direct grid child has no intrinsic height
+             (and no stray border line while collapsed). --}}
+        <div class="mobile-nav-clip">
+            <div class="mobile-nav-inner">
+                @foreach ($sections as $section)
+                    <x-nav-link :href="$section['href']" :active="$section['active']" mobile>{{ $section['label'] }}</x-nav-link>
+                @endforeach
 
-            <x-nav-link :href="$lroute('events.index')" :active="request()->routeIs('*events*')" mobile>
-                {{ __('nav.events') }}
-            </x-nav-link>
+                <x-nav-link :href="$lroute('events.index')" :active="request()->routeIs('*events*')" mobile>
+                    {{ __('nav.events') }}
+                </x-nav-link>
 
-            <x-nav-link :href="$lroute('courses.index')" :active="request()->routeIs('*courses*')" mobile>
-                {{ __('nav.courses') }}
-            </x-nav-link>
+                <x-nav-link :href="$lroute('courses.index')" :active="request()->routeIs('*courses*')" mobile>
+                    {{ __('nav.courses') }}
+                </x-nav-link>
 
-            <x-nav-link :href="$lroute('careers.index')" :active="request()->routeIs('*careers*')" mobile>
-                {{ __('nav.careers') }}
-            </x-nav-link>
+                <x-nav-link :href="$lroute('careers.index')" :active="request()->routeIs('*careers*')" mobile>
+                    {{ __('nav.careers') }}
+                </x-nav-link>
 
-            @if ($whatsapp)
-                <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
-                   class="btn btn-primary btn-block" style="margin-top: 10px;">
-                    {{ __('nav.consultation') }}
-                </a>
-            @endif
+                @if ($whatsapp)
+                    <a href="{{ $whatsapp }}" target="_blank" rel="noopener noreferrer"
+                       class="btn btn-primary btn-block" style="margin-top: 10px;">
+                        {{ __('nav.consultation') }}
+                    </a>
+                @endif
+            </div>
         </div>
     </nav>
 </header>

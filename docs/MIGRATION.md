@@ -86,6 +86,25 @@ Two things are deliberately *not* overwritten on re-run, so your editorial choic
 survive: `is_featured` (skipped if any portfolio already has it) and any user row
 that already exists.
 
+## Schema additions after the initial import
+
+Run the normal migration step after pulling a newer application version:
+
+```bash
+php artisan migrate --force
+```
+
+The 2026-10-23 batch adds two nullable/backfill-free schema changes:
+
+- `job_applications.portfolio_url` — optional `http`/`https` link from the public career
+  form. Existing applications keep `NULL` and display as “Tidak dicantumkan.”
+- `payments(status, expires_at)` index — supports the once-per-minute `payments:expire`
+  sweep for the 15-minute course/event payment window.
+
+No legacy data needs to be remapped for either change. The public career form, admin
+application detail, and payment pages read the new columns directly. If the scheduler is
+enabled, confirm `php artisan schedule:list` includes `payments:expire`.
+
 ## Verify before cutover
 
 ```bash

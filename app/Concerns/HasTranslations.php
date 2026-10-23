@@ -72,6 +72,13 @@ trait HasTranslations
         if (is_string($raw) && $raw !== '') {
             $decoded = json_decode($raw, true);
 
+            // A JSON null is not legacy text: it is an empty translation map.
+            // Filament's KeyValue state cast calls array_key_first() on this
+            // value, so returning null here used to crash the settings editor.
+            if ($decoded === null && json_last_error() === JSON_ERROR_NONE) {
+                return [];
+            }
+
             // A plain string in a translatable column means legacy data that
             // predates translation. Treat it as the fallback locale.
             if (! is_array($decoded)) {

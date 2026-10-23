@@ -48,6 +48,21 @@
                             </span>
                         </div>
 
+                        @if ($registration->isPending() && $registration->payment)
+                            <div class="event-mine-payment">
+                                <p class="event-register-note">
+                                    {{ __('events.payment_pending_note') }}
+                                    @if ($registration->payment->expires_at)
+                                        <strong>{{ $registration->payment->expires_at->translatedFormat('j M Y, H:i') }} WIB</strong>
+                                    @endif
+                                </p>
+                                <a href="{{ $lroute('payments.show', ['order_id' => $registration->payment->order_id]) }}"
+                                   class="btn btn-primary btn-sm">
+                                    {{ __('events.continue_payment') }}
+                                </a>
+                            </div>
+                        @endif
+
                         @if ($customerCan('cancel', $registration))
                             <form method="POST"
                                 action="{{ $lroute('events.registration.cancel', ['registration' => $registration->id]) }}"

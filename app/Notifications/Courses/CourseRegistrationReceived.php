@@ -53,7 +53,7 @@ class CourseRegistrationReceived extends Notification implements ShouldQueue
         }
 
         $url = $payment
-            ? Locale::route('courses.payment.show', ['order_id' => $payment->order_id])
+            ? Locale::route('payments.show', ['order_id' => $payment->order_id])
             : ($course ? Locale::route('courses.show', ['course' => $course->slug]) : url('/'));
 
         return $message->action(__('courses.mail_registration_action'), $url);

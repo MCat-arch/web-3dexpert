@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Payments\Schemas;
 use App\Filament\Resources\CourseEnrollments\CourseEnrollmentResource;
 use App\Models\AuditLog;
 use App\Models\CourseEnrollment;
+use App\Models\EventRegistration;
 use App\Models\Payment;
 use App\Models\User;
 use Filament\Infolists\Components\TextEntry;
@@ -41,27 +42,28 @@ class PaymentInfolist
                     TextEntry::make('created_at')->label('Dibuat')->dateTime('d M Y H:i'),
                 ]),
 
-            Section::make('Payable')
+            Section::make('Pembelian')
+                ->columns(3)
                 ->schema([
+                    TextEntry::make('payable_kind')
+                        ->label('Jenis')
+                        ->badge()
+                        ->state(fn (Payment $record) => self::payableKind($record))
+                        ->color(fn (Payment $record) => match (self::payableKind($record)) {
+                            'Kursus' => 'info',
+                            'Acara' => 'warning',
+                            default => 'gray',
+                        }),
+                    TextEntry::make('payable_item')
+                        ->label('Item')
+                        ->state(fn (Payment $record) => self::payableItem($record))
+                        ->columnSpan(2),
                     TextEntry::make('payable_reference')
-                        ->label('Pendaftaran Kursus')
-                        ->state(function (Payment $record) {
-                            $enrollment = CourseEnrollment::query()->find($record->payable_id);
-
-                            return $enrollment
-                                ? 'Enrollment #'.$enrollment->getKey()
-                                : 'Payable #'.$record->payable_id;
-                        })
+                        ->label('Referensi')
+                        ->state(fn (Payment $record) => self::payableReference($record))
                         ->url(fn (Payment $record) => $record->payable_type === CourseEnrollment::class
                             ? CourseEnrollmentResource::getUrl('view', ['record' => $record->payable_id])
                             : null),
-                    TextEntry::make('course_title')
-                        ->label('Kursus')
-                        ->state(function (Payment $record) {
-                            $enrollment = CourseEnrollment::query()->with('course')->find($record->payable_id);
-
-                            return $enrollment?->course?->getTranslation('title', 'id') ?? '-';
-                        }),
                 ]),
 
             Section::make('Respons Midtrans')
@@ -90,6 +92,51 @@ class PaymentInfolist
                 })
                 ->columnSpanFull(),
         ]);
+    }
+
+    private static function payableKind(Payment $payment): string
+    {
+        return match ($payment->payable_type) {
+            CourseEnrollment::class => 'Kursus',
+            EventRegistration::class => 'Acara',
+            default => '-',
+        };
+    }
+
+    private static function payableItem(Payment $payment): string
+    {
+        $payment->loadMissing('payable');
+        $payable = $payment->payable;
+
+        if ($payable instanceof CourseEnrollment) {
+            $payable->loadMissing('course');
+
+            return $payable->course?->getTranslation('title', 'id') ?? 'Kursus #'.$payment->payable_id;
+        }
+
+        if ($payable instanceof EventRegistration) {
+            $payable->loadMissing('event');
+
+            return $payable->event?->getTranslation('title', 'id') ?? 'Acara #'.$payment->payable_id;
+        }
+
+        return class_basename((string) $payment->payable_type).' #'.$payment->payable_id;
+    }
+
+    private static function payableReference(Payment $payment): string
+    {
+        $payment->loadMissing('payable');
+        $payable = $payment->payable;
+
+        if ($payable instanceof CourseEnrollment) {
+            return 'Enrollment #'.$payable->getKey();
+        }
+
+        if ($payable instanceof EventRegistration) {
+            return 'Tiket '.$payable->ticket_code;
+        }
+
+        return 'Payable #'.$payment->payable_id;
     }
 
     private static function statusLabel(string $status): string

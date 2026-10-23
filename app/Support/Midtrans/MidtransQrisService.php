@@ -8,33 +8,26 @@ use Illuminate\Support\Facades\Log;
 
 class MidtransQrisService
 {
-    /**
-     * Memeriksa apakah Server Key sudah diisi di .env
-     */
     public function isConfigured(): bool
     {
         return filled(config('midtrans.server_key'));
     }
 
     /**
-     * Request generate QRIS ke Midtrans Core API (/v2/charge)
+     * Request a QRIS charge from the Midtrans Core API.
      *
-     * @return array{qr_url: ?string, qr_string: ?string, transaction_id: ?string, raw: array}
+     * @return array{qr_url: ?string, qr_string: ?string, transaction_id: ?string, raw: array<string, mixed>, error: ?string}
      */
     public function createCharge(Payment $payment, array $customerData = []): array
     {
         if (! $this->isConfigured()) {
-            // Fallback mode jika API Key belum diisi di .env agar aplikasi tidak error
-            return [
-                'qr_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='.urlencode(url('/kursus/pembayaran/'.$payment->order_id)),
-                'qr_string' => null,
-                'transaction_id' => null,
-                'raw' => ['mode' => 'sandbox_simulated'],
-            ];
+            return $this->failure('Midtrans belum dikonfigurasi (MIDTRANS_SERVER_KEY kosong).');
         }
 
-        $serverKey = config('midtrans.server_key');
-        $endpoint = rtrim(config('midtrans.api_url'), '/').'/charge';
+        $serverKey = (string) config('midtrans.server_key');
+        $endpoint = rtrim((string) config('midtrans.api_url'), '/').'/charge';
+
+        $minutes = $this->remainingMinutes($payment);
 
         $payload = [
             'payment_type' => 'qris',
@@ -44,6 +37,12 @@ class MidtransQrisService
             ],
             'qris' => [
                 'acquirer' => 'gopay',
+            ],
+            // Keep Midtrans' own expiry aligned with the local 15-minute
+            // window. The local job is still authoritative.
+            'custom_expiry' => [
+                'expiry_duration' => $minutes,
+                'unit' => 'minute',
             ],
             'customer_details' => array_filter([
                 'first_name' => $customerData['name'] ?? null,
@@ -63,12 +62,10 @@ class MidtransQrisService
                 $body = $response->json();
                 $qrUrl = null;
 
-                if (! empty($body['actions'])) {
-                    foreach ($body['actions'] as $action) {
-                        if (($action['name'] ?? '') === 'generate-qr-code') {
-                            $qrUrl = $action['url'];
-                            break;
-                        }
+                foreach ((array) ($body['actions'] ?? []) as $action) {
+                    if (($action['name'] ?? null) === 'generate-qr-code') {
+                        $qrUrl = $action['url'] ?? null;
+                        break;
                     }
                 }
 
@@ -76,31 +73,67 @@ class MidtransQrisService
                     'qr_url' => $qrUrl,
                     'qr_string' => $body['qr_string'] ?? null,
                     'transaction_id' => $body['transaction_id'] ?? null,
-                    'raw' => $body,
+                    'raw' => is_array($body) ? $body : [],
+                    'error' => null,
                 ];
             }
 
-            Log::error('Midtrans QRIS Charge Failed', ['response' => $response->body()]);
+            Log::error('Midtrans QRIS charge failed', [
+                'order_id' => $payment->order_id,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return $this->failure('Midtrans menolak permintaan pembayaran (HTTP '.$response->status().').');
         } catch (\Throwable $e) {
-            Log::error('Midtrans Connection Error: '.$e->getMessage());
+            Log::error('Midtrans connection error', [
+                'order_id' => $payment->order_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->failure('Tidak dapat terhubung ke Midtrans.');
+        }
+    }
+
+    /**
+     * Midtrans signs webhook notifications with:
+     * sha512(order_id + status_code + gross_amount + server_key)
+     */
+    public function verifySignature(string $orderId, string $statusCode, string $grossAmount, string $signatureKey): bool
+    {
+        $serverKey = (string) config('midtrans.server_key');
+
+        if ($serverKey === '' || $signatureKey === '') {
+            return false;
         }
 
+        $expected = hash('sha512', $orderId.$statusCode.$grossAmount.$serverKey);
+
+        return hash_equals($expected, $signatureKey);
+    }
+
+    private function remainingMinutes(Payment $payment): int
+    {
+        if ($payment->expires_at === null) {
+            return max(1, (int) config('payments.expiry_minutes', 15));
+        }
+
+        $seconds = $payment->expires_at->getTimestamp() - now()->getTimestamp();
+
+        return max(1, (int) ceil($seconds / 60));
+    }
+
+    /**
+     * @return array{qr_url: null, qr_string: null, transaction_id: null, raw: array<string, mixed>, error: string}
+     */
+    private function failure(string $message): array
+    {
         return [
             'qr_url' => null,
             'qr_string' => null,
             'transaction_id' => null,
             'raw' => [],
+            'error' => $message,
         ];
-    }
-
-    /**
-     * Verifikasi keamanan webhook notifikasi dari Midtrans (SHA-512)
-     */
-    public function verifySignature(string $orderId, string $statusCode, string $grossAmount, string $signatureKey): bool
-    {
-        $serverKey = config('midtrans.server_key');
-        $expected = hash('sha512', $orderId.$statusCode.$grossAmount.$serverKey);
-
-        return hash_equals($expected, $signatureKey);
     }
 }

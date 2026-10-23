@@ -500,6 +500,48 @@ Alpine.data('eventRegister', () => ({
     },
 }));
 
+/* ------------------------------------------------------------------ */
+/* Payment countdown                                                   */
+/* ------------------------------------------------------------------ */
+
+Alpine.data('paymentCountdown', () => ({
+    init() {
+        const output = this.$el.querySelector('[data-payment-countdown]');
+        const target = Date.parse(this.$el.dataset.expiresAt || '');
+
+        if (! output || ! Number.isFinite(target)) {
+            return;
+        }
+
+        let reloading = false;
+
+        const tick = () => {
+            const remaining = Math.max(0, target - Date.now());
+            const totalSeconds = Math.ceil(remaining / 1000);
+            const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
+
+            output.textContent = `${minutes}:${seconds}`;
+
+            if (remaining <= 0 && ! reloading) {
+                reloading = true;
+                output.textContent = this.$el.dataset.expiredLabel || '00:00';
+
+                // The server is the authority: reload so the page renders the
+                // expired state and any released seat is visible.
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        };
+
+        tick();
+        this.timer = setInterval(tick, 1000);
+    },
+
+    destroy() {
+        clearInterval(this.timer);
+    },
+}));
+
 window.Alpine = Alpine;
 Alpine.start();
 

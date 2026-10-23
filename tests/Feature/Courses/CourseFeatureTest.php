@@ -120,7 +120,7 @@ class CourseFeatureTest extends TestCase
         $response->assertSee('PREVIEW_YT1');
     }
 
-    public function test_verified_customer_can_checkout_and_simulate_payment(): void
+    public function test_verified_customer_can_checkout_and_settle_payment(): void
     {
         $customer = Customer::factory()->create([
             'email_verified_at' => now(),
@@ -154,20 +154,30 @@ class CourseFeatureTest extends TestCase
 
         $payment = Payment::where('status', Payment::STATUS_PENDING)->first();
         $this->assertNotNull($payment);
+        $this->assertTrue($payment->expires_at->between(now()->addMinutes(14), now()->addMinutes(16)));
 
         $checkoutResponse->assertRedirect('/pembayaran/'.$payment->order_id);
 
-        // Payment Instruction page renders
+        // Payment page renders the real order, not a generated placeholder QR.
         $paymentPage = $this->actingAs($customer, 'customer')
             ->get('/pembayaran/'.$payment->order_id);
-        $paymentPage->assertStatus(200);
-        $paymentPage->assertSee($payment->order_id);
+        $paymentPage->assertStatus(200)
+            ->assertSee($payment->order_id)
+            ->assertSee(__('payments.countdown_label'))
+            ->assertDontSee('NMID')
+            ->assertDontSee('api.qrserver.com')
+            ->assertDontSee('Simulasi Pembayaran');
 
-        // Simulate successful payment
+        // Testing-only settlement endpoint; no public button renders this.
         $simulateResponse = $this->actingAs($customer, 'customer')
             ->post('/pembayaran/'.$payment->order_id.'/simulasi');
 
-        $simulateResponse->assertRedirect('/kursus/'.$course->slug.'/belajar');
+        $simulateResponse->assertRedirect('/pembayaran/'.$payment->order_id);
+
+        $this->actingAs($customer, 'customer')
+            ->get('/pembayaran/'.$payment->order_id)
+            ->assertOk()
+            ->assertSee(__('payments.settled_title'));
 
         // Enrollment is now active
         $this->assertDatabaseHas('course_enrollments', [

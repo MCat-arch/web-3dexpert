@@ -6,6 +6,8 @@ use App\Exceptions\EnrollmentException;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Models\Payment;
+use App\Notifications\Events\EventRegistrationReceived;
 use App\Notifications\Events\RegistrationConfirmed;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -53,12 +55,6 @@ class EnrollInEvent
             throw EnrollmentException::closed();
         }
 
-        // P5a ships the free path only. Never leave a paid event with an
-        // unpaid pending registration while checkout is deferred to P5b.
-        if (! $event->isFree()) {
-            throw EnrollmentException::paidUnavailable();
-        }
-
         $existing = EventRegistration::where('event_id', $event->getKey())
             ->where('customer_id', $customer->getKey())
             ->first();
@@ -89,13 +85,15 @@ class EnrollInEvent
                 throw EnrollmentException::alreadyRegistered();
             }
 
-            // Free events confirm immediately. P5b routes paid events through
-            // the payment flow and leaves them pending.
+            // Free events confirm immediately. Paid events stay pending and
+            // hold their seat for the payment window.
             if ($event->isFree()) {
                 $registration->forceFill([
                     'status' => EventRegistration::STATUS_CONFIRMED,
                     'confirmed_at' => now(),
                 ])->save();
+            } else {
+                $this->createPendingPayment($registration, $event);
             }
 
             /*
@@ -104,14 +102,33 @@ class EnrollInEvent
              * remove, and holding the event row while waiting on a mail
              * provider is how lock-wait timeouts happen under load.
              */
+            $registration->load('payment');
+
             if ($registration->status === EventRegistration::STATUS_CONFIRMED) {
                 DB::afterCommit(fn () => $customer->notify(
                     new RegistrationConfirmed($registration->fresh(['event']))
+                ));
+            } else {
+                DB::afterCommit(fn () => $customer->notify(
+                    new EventRegistrationReceived($registration->fresh(['event', 'payment']))
                 ));
             }
 
             return $registration;
         });
+    }
+
+    private function createPendingPayment(EventRegistration $registration, Event $event): Payment
+    {
+        return Payment::create([
+            'payable_type' => EventRegistration::class,
+            'payable_id' => $registration->getKey(),
+            'order_id' => Payment::generateOrderId('EVT'),
+            'gross_amount' => $event->price,
+            'status' => Payment::STATUS_PENDING,
+            'payment_type' => 'qris',
+            'expires_at' => now()->addMinutes((int) config('payments.expiry_minutes', 15)),
+        ]);
     }
 
     /**

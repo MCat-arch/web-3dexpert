@@ -74,6 +74,13 @@ REDIS_DB=0
 REDIS_CACHE_DB=1
 REDIS_QUEUE=default
 REDIS_QUEUE_RETRY_AFTER=120
+
+# QRIS Midtrans. Isi hanya di server. Sandbox memakai dashboard.sandbox.midtrans.com.
+MIDTRANS_SERVER_KEY=
+MIDTRANS_CLIENT_KEY=
+MIDTRANS_MERCHANT_ID=
+MIDTRANS_IS_PRODUCTION=true
+PAYMENT_EXPIRY_MINUTES=15
 ```
 
 Jalankan instalasi dependency, migration, dan cache setelah `.env` valid:
@@ -143,6 +150,79 @@ Verifikasi dengan mendaftar satu acara di `/acara`, lalu periksa
 `journalctl -u 3dexpert-queue-worker -n 100 --no-pager` dan
 `php artisan queue:failed`. Di lokal, `.env.local` memakai
 `QUEUE_CONNECTION=sync`, jadi email terkirim langsung tanpa worker.
+
+## Midtrans, expiry pembayaran, dan scheduler (2026-10-23)
+
+Pembayaran kursus dan acara berbayar sekarang memakai satu alur `payments` polimorfik.
+Setiap order mendapat batas waktu dari `PAYMENT_EXPIRY_MINUTES` (default **15 menit**).
+Untuk acara berbayar, kursi ditahan sejak pendaftaran sampai pembayaran selesai atau
+kedaluwarsa.
+
+Sebelum deploy:
+
+- [ ] Isi `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, dan `MIDTRANS_MERCHANT_ID` di
+      `.env` server. Jangan pernah commit nilai asli.
+- [ ] Set `MIDTRANS_IS_PRODUCTION=false` untuk sandbox dan `true` untuk production.
+- [ ] Daftarkan **Payment Notification URL** di dashboard Midtrans:
+
+      ```text
+      https://domain-anda.example/pembayaran/notifikasi
+      ```
+
+      Endpoint ini tidak memakai prefix locale dan dikecualikan dari CSRF karena dipanggil
+      server-to-server. Autentikasinya adalah signature SHA-512 Midtrans.
+- [ ] Jalankan migration baru setelah source diperbarui:
+
+      ```bash
+      php artisan migrate --force
+      ```
+
+      Migration ini menambah `job_applications.portfolio_url` dan index
+      `payments(status, expires_at)`. Keduanya aman untuk data lama.
+- [ ] Pastikan scheduler benar-benar berjalan. Tanpa cron ini, order yang ditinggalkan
+      bisa menahan kursi acara lebih dari 15 menit:
+
+      ```cron
+      * * * * * cd /var/www/3dexpert-web && php artisan schedule:run >> /dev/null 2>&1
+      ```
+
+      `routes/console.php` menjadwalkan `payments:expire` setiap menit.
+- [ ] Setelah `config:cache` atau deploy, restart worker:
+
+      ```bash
+      php artisan queue:restart
+      ```
+
+Uji manual di server:
+
+```bash
+php artisan schedule:list
+php artisan payments:expire
+php artisan queue:failed
+tail -n 100 storage/logs/laravel.log
+```
+
+Uji sandbox end-to-end:
+
+1. Pastikan `.env` memakai key sandbox dan `MIDTRANS_IS_PRODUCTION=false`.
+2. Buka aplikasi lewat tunnel publik, lalu set Payment Notification URL di dashboard
+   sandbox ke `https://<tunnel>/pembayaran/notifikasi`.
+3. Daftar acara berbayar atau beli kursus. Halaman `/pembayaran/{order_id}` harus
+   menampilkan QR asli dari `api.sandbox.midtrans.com`.
+4. Simulasikan pembayaran di <https://simulator.sandbox.midtrans.com/qris/index> memakai
+   Order ID dan nominal dari halaman pembayaran.
+5. Cek **Program → Pembayaran**: status harus `settlement`, lalu pendaftaran acara menjadi
+   `confirmed` atau enrollment kursus menjadi `active`.
+6. Untuk menguji expiry, set `PAYMENT_EXPIRY_MINUTES=1`, buat order baru, lalu jalankan
+   `php artisan payments:expire`. Kursi acara harus kembali dan enrollment kursus harus
+   `revoked`.
+
+Route simulasi `POST /pembayaran/{order_id}/simulasi` hanya untuk `local`/`testing` dan
+mengembalikan 404 di production. Tidak ada tombol simulasi di UI publik.
+
+Jika settlement Midtrans datang setelah order lokal kedaluwarsa, webhook tetap membalas
+HTTP 200 tetapi mencatat `raw_response.late_settlement`. Akses tidak dipulihkan; admin harus
+melakukan rekonsiliasi/refund dari panel.
 
 ## O1 - Measurement Baseline
 

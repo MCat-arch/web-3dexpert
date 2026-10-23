@@ -48,6 +48,7 @@ class SubmitJobApplication
         Customer $customer,
         array $documents,
         ?string $coverLetter = null,
+        ?string $portfolioUrl = null,
     ): JobApplication {
         if (! $customer->canEnroll()) {
             throw JobApplicationException::notVerified();
@@ -68,8 +69,8 @@ class SubmitJobApplication
         $this->written = [];
 
         try {
-            $application = DB::transaction(function () use ($vacancy, $customer, $documents, $coverLetter, $existing) {
-                $application = $this->record($vacancy, $customer, $coverLetter, $existing);
+            $application = DB::transaction(function () use ($vacancy, $customer, $documents, $coverLetter, $portfolioUrl, $existing) {
+                $application = $this->record($vacancy, $customer, $coverLetter, $portfolioUrl, $existing);
 
                 // A reapply replaces the previous attempt's documents rather
                 // than accumulating both sets.
@@ -110,6 +111,7 @@ class SubmitJobApplication
         JobVacancy $vacancy,
         Customer $customer,
         ?string $coverLetter,
+        ?string $portfolioUrl,
         ?JobApplication $existing,
     ): JobApplication {
         $attributes = [
@@ -126,6 +128,7 @@ class SubmitJobApplication
             'applicant_phone' => $customer->phone,
 
             'cover_letter' => $coverLetter,
+            'portfolio_url' => $portfolioUrl,
             'status' => JobApplication::STATUS_SUBMITTED,
             'status_changed_at' => now(),
             'submitted_at' => now(),

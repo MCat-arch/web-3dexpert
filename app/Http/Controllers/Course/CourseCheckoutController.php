@@ -51,6 +51,6 @@ class CourseCheckoutController extends Controller
                 ->with('status', __('courses.enrolled_successfully'));
         }
 
-        return redirect(Locale::route('courses.payment.show', ['order_id' => $result['payment']->order_id]));
+        return redirect(Locale::route('payments.show', ['order_id' => $result['payment']->order_id]));
     }
 }
