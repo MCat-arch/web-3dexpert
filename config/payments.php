@@ -12,5 +12,5 @@ return [
     | notifications all enforce the same value.
     |
     */
-    'expiry_minutes' => (int) env('PAYMENT_EXPIRY_MINUTES', 60),
+    'expiry_minutes' => (int) env('PAYMENT_EXPIRY_MINUTES', 15),
 ];

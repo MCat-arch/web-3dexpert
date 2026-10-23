@@ -36,6 +36,7 @@ Pastikan hal berikut sudah benar:
   - `docker-compose.yml`
   - `docker/nginx/Dockerfile`
   - `docker/nginx/default.conf`
+  - `docker/php/production.ini`
   - `.dockerignore`
   - `.env.example`
   - `.github/workflows/ci.yml`
@@ -247,13 +248,9 @@ SESSION_SECURE_COOKIE=false
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 
-MAIL_MAILER=smtp
-MAIL_HOST=HOST_SMTP
-MAIL_PORT=587
-MAIL_SCHEME=smtp
-MAIL_USERNAME=USERNAME_SMTP
-MAIL_PASSWORD=PASSWORD_SMTP
-MAIL_FROM_ADDRESS=ALAMAT_EMAIL
+MAIL_MAILER=resend
+RESEND_API_KEY=re_API_KEY_DARI_DASHBOARD_RESEND
+MAIL_FROM_ADDRESS=info@3dexpert.pro
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
@@ -370,8 +367,17 @@ docker compose logs --tail=100 app
 docker compose logs --tail=100 worker
 ```
 
-Compose sudah menjalankan Nginx di port 80. Karena itu, jangan menjalankan
-Nginx host pada port 80 secara bersamaan sebelum arsitekturnya diubah.
+Compose mempublikasikan Nginx container pada `127.0.0.1:8080`, bukan `80:80`,
+karena port 80/443 dipakai host Nginx reverse proxy (bagian 11.4). Selama host
+Nginx belum dipasang, aplikasi hanya dapat diuji dari dalam VPS:
+
+```bash
+curl -I http://127.0.0.1:8080
+```
+
+Akses dari luar melalui IP/domain baru tersedia setelah host Nginx aktif. Jika
+masih memakai mapping `80:80` dari deployment lama, jangan menjalankan host
+Nginx sebelum container dipindahkan ke `127.0.0.1:8080`.
 
 ## 8. Inisialisasi Laravel, database, dan metadata media
 
@@ -581,39 +587,44 @@ Periksa:
 
 ### Verifikasi email dan autentikasi customer
 
-Email verifikasi tidak akan masuk inbox jika `MAIL_MAILER=log`, host SMTP
-salah, password SMTP kosong, atau worker belum memproses queue `mail`.
+Email verifikasi tidak akan masuk inbox jika `MAIL_MAILER=log`, domain Resend
+belum berstatus `Verified`, API key salah/tidak punya izin kirim, atau worker
+belum memproses queue `mail`.
 Saat masih mengakses IP VPS melalui HTTP, pastikan cookie session tidak
 ditandai secure:
 
 ```dotenv
-MAIL_MAILER=smtp
-MAIL_SCHEME=smtp
-MAIL_HOST=HOST_SMTP
-MAIL_PORT=587
-MAIL_USERNAME=ALAMAT_EMAIL_SMTP
-MAIL_PASSWORD=PASSWORD_SMTP
-MAIL_EHLO_DOMAIN=DOMAIN_EMAIL
-MAIL_FROM_ADDRESS=ALAMAT_EMAIL_SMTP
+MAIL_MAILER=resend
+RESEND_API_KEY=re_API_KEY_DARI_DASHBOARD_RESEND
+MAIL_FROM_ADDRESS=info@3dexpert.pro
 MAIL_FROM_NAME="3D Expert"
 SESSION_SECURE_COOKIE=false
 ```
 
-Jangan menyalin contoh di atas secara literal. Gunakan host, alamat, dan
-password SMTP dari provider email atau cPanel. Setelah `.env` diperbarui,
-jalankan:
+Lihat bagian **Resend** di dokumen ini untuk membuat domain dan API key.
+Jangan menyalin nilai API key ke repository atau GitHub Actions.
+
+Setelah `.env` diperbarui, jalankan:
 
 ```bash
+docker compose up -d --force-recreate app worker
 docker compose exec -T app php artisan optimize:clear
-docker compose restart worker
+docker compose exec -T app php artisan optimize
+docker compose exec -T app php artisan queue:restart
 docker compose logs --tail=100 -f worker
 ```
 
 Daftarkan customer baru dengan alamat email yang dapat diakses, lalu periksa
 log worker. Job yang berhasil diproses akan keluar dari queue. Jika muncul
-`535`, `authentication failed`, atau `Connection refused`, perbaiki kredensial,
-port, atau skema TLS SMTP; masalah tersebut bukan masalah pada form
-verifikasi.
+`401`/`403` dari Resend, periksa `RESEND_API_KEY`. Jika muncul
+`domain is not verified`, selesaikan verifikasi DNS di dashboard Resend.
+Masalah tersebut bukan masalah pada form verifikasi.
+
+Uji kirim langsung tanpa queue:
+
+```bash
+docker compose exec -T app php artisan tinker --execute="Mail::raw('Tes email 3D Expert', fn (\$m) => \$m->to('ALAMAT_TUJUAN@gmail.com')->subject('Tes Resend'));"
+```
 
 Periksa status queue dan autentikasi dengan:
 
@@ -780,6 +791,8 @@ Ubah:
 APP_URL=https://domain-anda.example
 SESSION_SECURE_COOKIE=true
 FORCE_HTTPS=true
+SESSION_DOMAIN=.domain-anda.example
+TRUSTED_PROXIES=127.0.0.1,172.16.0.0/12
 ```
 
 Recreate app agar environment terbaca:
@@ -789,22 +802,239 @@ docker compose up -d --force-recreate app worker
 docker compose exec app php artisan optimize
 ```
 
-### 11.3 HTTPS
+### 11.3 Resend (email production)
 
-Untuk konfigurasi saat ini, Nginx container hanya mendengarkan HTTP. Sebelum
-production menggunakan HTTPS, tambahkan reverse proxy host atau ubah container
-Nginx untuk menangani TLS. Jangan menjalankan host Nginx dan container Nginx
-secara bersamaan pada port yang sama.
+Email verifikasi, reset password, dan notifikasi pendaftaran dikirim melalui
+Resend. Package yang dipakai adalah `resend/resend-laravel` (sudah ada di
+`composer.json`).
 
-Pilihan yang disarankan:
+#### a. Verifikasi domain di Resend
 
-1. Host Nginx menangani port 80/443 dan meneruskan ke container pada port lokal.
-2. Container Nginx menangani port 80/443 dan sertifikat dikelola di Docker.
+1. Buka <https://resend.com/domains> lalu **Add Domain**.
+2. Isi `3dexpert.pro`, pilih region terdekat, lalu simpan.
+3. Resend menampilkan tiga record. Nilainya wajib disalin persis dari dashboard:
 
-Untuk VPS kecil, host Nginx sebagai reverse proxy biasanya lebih mudah untuk
-Let's Encrypt, tetapi membutuhkan perubahan port mapping Compose dari `80:80`
-ke port lokal seperti `127.0.0.1:8080:80`. Lakukan perubahan ini hanya ketika
-domain akan diaktifkan.
+   | Type | Name | Value |
+   |---|---|---|
+   | MX | `send` | `feedback-smtp.<region>.amazonses.com` (priority 10) |
+   | TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+   | TXT | `resend._domainkey` | `p=...` (DKIM, nilainya panjang) |
+
+4. Tambahkan record tersebut pada DNS zone `3dexpert.pro`.
+5. Opsional tetapi disarankan, tambahkan DMARC:
+
+   ```text
+   Type: TXT
+   Name: _dmarc
+   Value: v=DMARC1; p=none; rua=mailto:info@3dexpert.pro
+   ```
+
+6. Verifikasi propagasi dari komputer lokal:
+
+   ```powershell
+   Resolve-DnsName send.3dexpert.pro -Type MX
+   Resolve-DnsName send.3dexpert.pro -Type TXT
+   Resolve-DnsName resend._domainkey.3dexpert.pro -Type TXT
+   Resolve-DnsName _dmarc.3dexpert.pro -Type TXT
+   ```
+
+7. Klik **Verify** di Resend sampai status domain menjadi `Verified`.
+
+Jangan menambah record SPF kedua di `3dexpert.pro`. Kalau nanti domain ini juga
+memakai Google Workspace atau provider lain, gabungkan isinya ke satu record
+`v=spf1 ...`.
+
+#### b. Buat API key
+
+1. Buka <https://resend.com/api-keys> lalu **Create API Key**.
+2. Permission: **Sending access**, batasi ke domain `3dexpert.pro`.
+3. Salin key (`re_...`) langsung ke `.env` VPS. Jangan commit, jangan taruh di
+   GitHub Actions secrets, dan jangan tempel di dokumen.
+
+#### c. Set environment VPS
+
+```dotenv
+MAIL_MAILER=resend
+RESEND_API_KEY=re_API_KEY_DARI_DASHBOARD_RESEND
+MAIL_FROM_ADDRESS=info@3dexpert.pro
+MAIL_FROM_NAME="3D Expert"
+```
+
+Baris `MAIL_HOST`, `MAIL_PORT`, `MAIL_SCHEME`, `MAIL_USERNAME`, dan
+`MAIL_PASSWORD` tidak dipakai lagi dan boleh dihapus.
+
+#### d. Terapkan dan uji
+
+```bash
+cd /var/www/3dexpert-web
+docker compose up -d --force-recreate app worker
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan optimize
+docker compose exec -T app php artisan queue:restart
+```
+
+Uji kirim langsung:
+
+```bash
+docker compose exec -T app php artisan tinker --execute="Mail::raw('Tes email 3D Expert', fn (\$m) => \$m->to('ALAMAT_TUJUAN@gmail.com')->subject('Tes Resend'));"
+```
+
+Periksa inbox dan menu **Emails** di dashboard Resend. Setelah itu uji jalur
+queue: daftar akun baru di `/daftar`, lalu pastikan email verifikasi masuk dan
+`docker compose exec -T app php artisan queue:failed` kosong.
+
+Batasan paket gratis Resend: 100 email per hari, 3.000 per bulan, dan sekitar
+2 request per detik. Karena pengiriman lewat queue, batas ini tidak membebani
+request HTTP pengguna.
+
+### 11.4 HTTPS dengan host Nginx dan Certbot
+
+Container Nginx hanya mendengarkan HTTP. Host Nginx menjadi reverse proxy pada
+port 80/443, menangani sertifikat Let's Encrypt, dan meneruskan request ke
+`127.0.0.1:8080`. Compose sudah diubah ke `127.0.0.1:8080:80`; jangan
+mengembalikannya ke `80:80`.
+
+Urutan berikut meminimalkan downtime. Jangan menjalankan dua Nginx pada port
+yang sama.
+
+#### a. Buka port dan siapkan DNS
+
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw status
+dig +short 3dexpert.pro
+dig +short www.3dexpert.pro
+```
+
+Kedua `dig` harus mengembalikan IP VPS sebelum Certbot dijalankan.
+
+#### b. Pindahkan container Nginx ke loopback
+
+```bash
+cd /var/www/3dexpert-web
+git pull --ff-only origin main
+docker compose stop nginx
+docker compose up -d nginx
+curl -I http://127.0.0.1:8080
+```
+
+`curl` harus menghasilkan `200 OK`. Situs melalui IP/domain akan berhenti
+sementara sampai langkah berikut selesai.
+
+#### c. Pasang host Nginx dan Certbot
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+sudo systemctl status nginx --no-pager
+```
+
+Jika instalasi gagal karena port 80 masih dipakai, pastikan langkah b sudah
+selesai dan `ss -ltnp | grep ':80 '` tidak menunjuk ke proses Docker.
+
+#### d. Konfigurasi reverse proxy
+
+```bash
+sudo tee /etc/nginx/sites-available/3dexpert.pro > /dev/null <<'NGINX'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name 3dexpert.pro www.3dexpert.pro;
+
+    # Upload lamaran: 5 berkas x 5 MB ditambah overhead form.
+    client_max_body_size 30m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_read_timeout 90s;
+        proxy_send_timeout 90s;
+    }
+}
+NGINX
+
+sudo ln -sf /etc/nginx/sites-available/3dexpert.pro /etc/nginx/sites-enabled/3dexpert.pro
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I http://3dexpert.pro
+```
+
+#### e. Terbitkan sertifikat
+
+```bash
+sudo certbot --nginx -d 3dexpert.pro -d www.3dexpert.pro --redirect
+sudo certbot renew --dry-run
+sudo systemctl list-timers | grep certbot
+```
+
+Certbot menambahkan blok `listen 443 ssl` dan redirect HTTP ke HTTPS. Pastikan
+perintah `renew --dry-run` berhasil agar perpanjangan otomatis tidak gagal 60
+hari kemudian.
+
+#### f. Ubah environment ke HTTPS
+
+```bash
+cd /var/www/3dexpert-web
+nano .env
+```
+
+```dotenv
+APP_URL=https://3dexpert.pro
+FORCE_HTTPS=true
+SESSION_SECURE_COOKIE=true
+SESSION_DOMAIN=.3dexpert.pro
+TRUSTED_PROXIES=127.0.0.1,172.16.0.0/12
+LOG_CHANNEL=stderr
+LOG_STACK=stderr
+```
+
+`TRUSTED_PROXIES` wajib berisi alamat proxy. Host Nginx meneruskan request ke
+container melalui gateway Docker, sehingga CIDR `172.16.0.0/12` ikut di-trust.
+Jangan memakai `*`: tanpa proxy tepercaya, `X-Forwarded-For` bisa dipalsukan dan
+rate limiter dapat dilewati. `LOG_CHANNEL=stderr` membuat log muncul di
+`docker compose logs` dan tidak hilang saat container dibuat ulang.
+
+```bash
+docker compose up -d --force-recreate app worker
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan optimize
+docker compose exec -T app php artisan queue:restart
+```
+
+#### g. Verifikasi HTTPS
+
+```bash
+curl -I https://3dexpert.pro
+curl -I http://3dexpert.pro
+curl -I https://www.3dexpert.pro
+curl -sI https://3dexpert.pro | grep -i strict-transport-security
+dig +short 3dexpert.pro
+```
+
+Yang diharapkan:
+
+- `https://3dexpert.pro` → `200 OK`.
+- `http://3dexpert.pro` → `301`/`308` ke HTTPS.
+- `https://www.3dexpert.pro` → halaman yang sama atau redirect ke apex.
+- Header `Strict-Transport-Security` muncul.
+
+Buka `/admin`, login, lalu ulangi smoke test pada bagian 10 memakai domain.
+Setelah HTTPS aktif, perbarui **Payment Notification URL** Midtrans menjadi:
+
+```text
+https://3dexpert.pro/pembayaran/notifikasi
+```
+
+Jika login berhasil tetapi langsung kembali ke halaman login, periksa
+`SESSION_SECURE_COOKIE=true`, `APP_URL=https://3dexpert.pro`, dan
+`TRUSTED_PROXIES`. Jalankan `php artisan optimize:clear` setelah mengubahnya.
 
 ---
 
@@ -985,8 +1215,19 @@ docker compose logs --tail=100 worker
 - [ ] `APP_URL` diubah ke domain.
 - [ ] HTTPS aktif.
 - [ ] `SESSION_SECURE_COOKIE=true`.
-- [ ] Nginx tidak mengalami konflik port.
+- [ ] `TRUSTED_PROXIES` berisi proxy host, bukan `*`.
+- [ ] Nginx tidak mengalami konflik port (container di `127.0.0.1:8080`).
 - [ ] Smoke test diulang melalui domain.
+- [ ] `certbot renew --dry-run` berhasil.
+
+### Tahap email (Resend)
+
+- [ ] Domain `3dexpert.pro` berstatus `Verified` di Resend.
+- [ ] Record MX/TXT `send` dan TXT `resend._domainkey` aktif.
+- [ ] `RESEND_API_KEY` hanya ada di `.env` VPS.
+- [ ] Email verifikasi customer diterima di inbox.
+- [ ] `queue:failed` kosong setelah pengiriman.
+- [ ] Email reset password diterima.
 
 ### Tahap 2
 

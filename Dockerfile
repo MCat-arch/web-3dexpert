@@ -44,6 +44,8 @@ COPY --from=vendor /app/vendor ./vendor
 COPY . .
 COPY --from=assets /app/public/build ./public/build
 
+COPY docker/php/production.ini /usr/local/etc/php/conf.d/zz-production.ini
+
 RUN rm -f bootstrap/cache/*.php \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R ug+rwX storage bootstrap/cache
