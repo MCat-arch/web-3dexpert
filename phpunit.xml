@@ -21,6 +21,10 @@
         <env name="APP_ENV" value="testing"/>
         <!-- Fixed key so the suite also runs in CI where no .env exists. -->
         <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
+        <!-- The suite asserts Indonesian routes and messages. -->
+        <env name="APP_LOCALE" value="id"/>
+        <env name="APP_FALLBACK_LOCALE" value="id"/>
+        <env name="APP_FAKER_LOCALE" value="id_ID"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
