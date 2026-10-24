@@ -276,6 +276,21 @@ docker compose logs --tail=200 worker
 Cari `Midtrans QRIS charge failed`, `order_id`, dan HTTP status dari Midtrans.
 Jangan menyalin server key ke tiket, chat, atau issue GitHub.
 
+Jika Midtrans mengembalikan HTTP `401` dengan pesan
+`Unknown Merchant server_key/id`:
+
+- Format key bisa terlihat benar, tetapi key tidak terdaftar di environment
+  yang dipanggil.
+- Penyebab umum: key sudah dirotasi/dicabut, key dari akun Midtrans lain, atau
+  key sandbox dipakai di production (atau sebaliknya).
+- Ambil ulang **Server Key** dan **Client Key** dari dashboard Midtrans
+  production, bagian **Settings > Access Keys**.
+- Jangan hanya mengandalkan prefix `Mid-server-...`; prefix yang benar belum
+  tentu berarti key masih aktif.
+- Setelah mengganti key, jalankan ulang recreate `app` dan `worker`, lalu
+  `optimize:clear` dan `optimize`.
+- Uji lagi dengan nominal kecil setelah key benar.
+
 Jika aplikasi bank menampilkan kode seperti `THIMP`:
 
 - `THIMP` bukan status Midtrans dan tidak ada di kode aplikasi. Itu biasanya kode
@@ -302,4 +317,5 @@ Jangan menebak penyebab hanya dari kode `THIMP`.
 - [ ] queue worker berjalan
 - [ ] homepage, `/admin`, `/acara`, checkout, dan halaman pembayaran lolos smoke test
 - [ ] konfigurasi Midtrans memakai key dan mode yang sama
+- [ ] key Midtrans valid (charge tidak menghasilkan HTTP 401)
 - [ ] notifikasi Midtrans diterima dan status order berubah
