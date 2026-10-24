@@ -2425,11 +2425,18 @@ body.has-event-dialog {
 }
 
 .event-dialog {
-    width: min(560px, calc(100vw - 32px));
-    max-height: calc(100vh - 48px);
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(560px, 100vw);
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
     padding: 0;
+    overflow: hidden;
     border: 0;
-    border-radius: var(--radius-lg);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     background: var(--card);
     color: var(--text);
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
@@ -2441,9 +2448,18 @@ body.has-event-dialog {
 }
 
 .event-dialog-inner {
-    max-height: calc(100vh - 48px);
+    height: 100%;
+    max-height: none;
     padding: clamp(20px, 4vw, 28px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 640px) {
+    .event-dialog {
+        width: 100vw;
+        border-radius: 0;
+    }
 }
 
 .event-dialog-header {

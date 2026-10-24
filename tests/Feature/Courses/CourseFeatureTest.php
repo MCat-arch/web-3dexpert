@@ -50,6 +50,30 @@ class CourseFeatureTest extends TestCase
         $response->assertDontSee('Draft Rahasia');
     }
 
+    public function test_paid_course_checkout_button_uses_the_continue_label(): void
+    {
+        $customer = Customer::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $course = Course::factory()->create([
+            'is_published' => true,
+            'price' => 150000.00,
+        ]);
+
+        $this->actingAs($customer, 'customer')
+            ->get('/kursus/'.$course->slug.'/checkout')
+            ->assertOk()
+            ->assertSee('Lanjutkan')
+            ->assertDontSee('courses.continue_payment');
+
+        $this->actingAs($customer, 'customer')
+            ->get('/en/kursus/'.$course->slug.'/checkout')
+            ->assertOk()
+            ->assertSee(__('courses.continue_payment', [], 'en'))
+            ->assertDontSee('courses.continue_payment');
+    }
+
     public function test_course_detail_renders_with_syllabus(): void
     {
         $course = Course::factory()->create([

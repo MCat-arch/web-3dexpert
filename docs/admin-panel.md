@@ -105,6 +105,12 @@ If a saved event does not appear on `/acara`:
 
 Deleting content is a destructive action. Prefer unpublishing when the content may be referenced elsewhere.
 
+### 3.1a Event registrations
+
+Open **Acara > Pendaftaran Acara** for the global registration list. It is grouped by event by default, and the event filter and status filter remain available.
+
+On an event's edit page, the **Pendaftaran Peserta** tab shows only that event's registrations. Both views use the same registration rows and the same mark-attended/cancel actions; the per-event tab is the place where attendance export and certificate upload/send will be added, so those features stay scoped to the selected event.
+
 ### 3.2 Manage staff accounts (superadmin only)
 
 Open **Sistem → Pengguna Staf**.

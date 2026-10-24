@@ -74,6 +74,22 @@ class JobApplicationTest extends TestCase
         $this->get('/karir/'.$vacancy->slug)->assertNotFound();
     }
 
+    public function test_requirement_line_breaks_are_preserved_on_the_detail_page(): void
+    {
+        $vacancy = JobVacancy::factory()->create([
+            'is_published' => true,
+            'requirement' => [
+                'id' => "Syarat pertama\nSyarat kedua",
+                'en' => "First requirement\nSecond requirement",
+            ],
+        ]);
+
+        $this->get('/karir/'.$vacancy->slug)
+            ->assertOk()
+            ->assertSee('Syarat pertama<br', false)
+            ->assertSee('Syarat kedua');
+    }
+
     public function test_a_verified_customer_can_apply(): void
     {
         $vacancy = $this->openVacancy();

@@ -318,7 +318,7 @@ the client can review real progress rather than a half-built shell.
 
 ## Implementation change log — 2026-10-23
 
-This section records the five-item follow-up batch after the main plan. It is kept here,
+This section records the follow-up batches after the main plan. It is kept here,
 next to the original tasks, so the plan and the actual implementation do not drift into
 separate documents.
 
@@ -329,6 +329,9 @@ separate documents.
 | 3 | Site icons | Added 3D Expert-branded `favicon.ico`, 16/32/48 px PNGs, Apple touch icon, 192/512 px Android icons, and `site.webmanifest`. The public layout and Filament panel both use the new icon. The generator is `deploy/generate-brand-icons.php`, using the existing logo/mark. | `tests/Feature/PublicPagesTest.php` checks the files, links, and manifest; layout and `AdminPanelProvider` wiring verified in the browser. |
 | 4 | Payments | One polymorphic `Payment` flow now serves **courses and paid events**. `EventRegistration` implements the same `Payable` contract as `CourseEnrollment`. The generic page is `payments.show` (`/pembayaran/{order_id}`); the old fake QR page and `CoursePaymentController` were removed. | `tests/Feature/Payments/PaymentFlowTest.php`, plus updated event/course feature tests. |
 | 5 | Career form | Added optional `portfolio_url` after the motivation/cover letter, validated as `http`/`https` only, persisted on `job_applications`, shown in the admin application detail, and translated for ID/EN. | `tests/Feature/Careers/JobApplicationTest.php`: save, reject `javascript:`, render both locales. |
+| 6 | Event registration dialog | The native `<dialog>` is now a left-anchored, full-height drawer (`100dvh`, no max-height) with its own scroll container; it becomes full-width with square corners below 640px. Open/close behavior and the no-JS form are unchanged. | Browser geometry check at 1440x900 and 390x844; `EventAdminTest` and the public event tests. |
+| 7 | Public copy and navigation | The paid checkout button uses `courses.continue_payment` (`Lanjutkan` / `Continue`), career requirements preserve single line breaks with escaped `nl2br`, and the footer links to `/acara` in both locales. | `CourseFeatureTest`, `JobApplicationTest`, and `PublicPagesTest`. |
+| 8 | Event registrations admin | Added a per-event **Pendaftaran Peserta** relation manager on the event edit page and grouped the global registration list by event by default. Both surfaces share one row set, columns, filters, and mark-attended/cancel actions; the relation manager is guarded by registration access. | `EventAdminTest`: relation-manager scoping, shared action behavior, authorization, and default global grouping. |
 
 ### Payment gateway behavior
 

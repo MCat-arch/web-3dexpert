@@ -6,6 +6,7 @@ use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\Events\Pages\CreateEvent;
 use App\Filament\Resources\Events\Pages\EditEvent;
 use App\Filament\Resources\Events\Pages\ListEvents;
+use App\Filament\Resources\Events\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\Events\Schemas\EventForm;
 use App\Filament\Resources\Events\Tables\EventsTable;
 use App\Filament\Support\NavGroup;
@@ -44,7 +45,9 @@ class EventResource extends AdminResource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RegistrationsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -46,6 +46,7 @@ return [
     'gopay' => 'GoPay / GoPay Later',
     'shopeepay' => 'ShopeePay',
     'proceed_payment' => 'Proceed to Payment',
+    'continue_payment' => 'Continue',
     'payment_instruction_title' => 'Payment Instructions',
     'payment_pending_title' => 'Waiting for Payment',
     'order_id' => 'Order ID',

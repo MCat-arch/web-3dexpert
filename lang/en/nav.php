@@ -8,6 +8,7 @@ return [
     'services' => 'Services',
     'careers' => 'Careers',
     'courses' => 'Courses',
+    'events' => 'Events',
     'contact' => 'Contact',
     'free_consultation' => 'Free Consultation',
     'toggle_menu' => 'Toggle menu',

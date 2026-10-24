@@ -45,3 +45,6 @@ error_log
 *.log
 Kredensial*.txt
 credentials*.txt
+
+# admin.md berisi kredensial admin produksi -- jangan di-commit.
+/admin.md

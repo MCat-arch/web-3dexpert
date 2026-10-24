@@ -2,6 +2,9 @@
 
 Tanggal audit: 2026-10-11
 
+Panduan operasional untuk update rutin dan perbaikan Midtrans ada di
+[update-vps-and-midtrans.md](update-vps-and-midtrans.md).
+
 Dokumen ini membandingkan kondisi repository dengan acceptance criteria pada
 `docs/plans/O1` sampai `docs/plans/O7`. Status `partial` berarti sebagian
 implementasi sudah ada, tetapi belum ada bukti operasional atau pengukuran yang
@@ -162,7 +165,19 @@ Sebelum deploy:
 
 - [ ] Isi `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, dan `MIDTRANS_MERCHANT_ID` di
       `.env` server. Jangan pernah commit nilai asli.
+- [ ] Jangan memakai server key sebagai client key. Client key diawali
+      `SB-Mid-client-` (sandbox) atau `Mid-client-` (production); server key diawali
+      `SB-Mid-server-` atau `Mid-server-`.
 - [ ] Set `MIDTRANS_IS_PRODUCTION=false` untuk sandbox dan `true` untuk production.
+      Nilai ini harus cocok dengan jenis key; production key + endpoint sandbox akan
+      ditolak oleh Midtrans.
+- [ ] Setelah mengubah `.env`, bersihkan cache konfigurasi agar nilai lama tidak dipakai:
+
+      ```bash
+      php artisan config:clear
+      php artisan config:cache
+      ```
+
 - [ ] Daftarkan **Payment Notification URL** di dashboard Midtrans:
 
       ```text
@@ -216,6 +231,19 @@ Uji sandbox end-to-end:
 6. Untuk menguji expiry, set `PAYMENT_EXPIRY_MINUTES=1`, buat order baru, lalu jalankan
    `php artisan payments:expire`. Kursi acara harus kembali dan enrollment kursus harus
    `revoked`.
+
+QR sandbox hanya bisa dibayar lewat
+<https://simulator.sandbox.midtrans.com/qris/index>, bukan aplikasi mobile banking.
+Jika aplikasi bank menolak QR dengan kode seperti `THIMP`:
+
+- Pastikan QR berasal dari production (`MIDTRANS_IS_PRODUCTION=true` dan key production),
+  bukan QR sandbox.
+- `THIMP` bukan status Midtrans dan tidak muncul di kode aplikasi; biasanya itu kode
+  penolakan internal aplikasi bank/acquirer. Cek status order di dashboard Midtrans:
+  `pending` berarti Midtrans menerima charge dan penolakan terjadi di sisi bank.
+- Kumpulkan nama bank/aplikasi, `order_id`, waktu percobaan, nominal, dan screenshot,
+  lalu cocokkan dengan log charge dan notifikasi Midtrans sebelum menghubungi support
+  Midtrans atau bank. Jangan menebak dari kode `THIMP` saja.
 
 Route simulasi `POST /pembayaran/{order_id}/simulasi` hanya untuk `local`/`testing` dan
 mengembalikan 404 di production. Tidak ada tombol simulasi di UI publik.

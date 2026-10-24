@@ -63,7 +63,7 @@
                     <div
                         style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; line-height: 1.7; color: var(--text);">
                         @foreach (preg_split('/\R{2,}/', (string) $vacancy->requirement) as $paragraph)
-                            <p>{{ $paragraph }}</p>
+                            <p>{!! nl2br(e($paragraph)) !!}</p>
                         @endforeach
                     </div>
                 </div>

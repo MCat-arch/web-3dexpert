@@ -46,6 +46,7 @@ return [
     'gopay' => 'GoPay / GoPay Later',
     'shopeepay' => 'ShopeePay',
     'proceed_payment' => 'Lanjutkan Pembayaran',
+    'continue_payment' => 'Lanjutkan',
     'payment_instruction_title' => 'Instruksi Pembayaran',
     'payment_pending_title' => 'Menunggu Pembayaran',
     'order_id' => 'ID Pesanan',

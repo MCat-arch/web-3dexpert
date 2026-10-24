@@ -67,6 +67,19 @@ class PublicPagesTest extends TestCase
         $this->get('/en')->assertOk()->assertSee('lang="en"', false);
     }
 
+    public function test_the_footer_links_to_events_in_both_locales(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('href="'.route('events.index').'"', false)
+            ->assertSee('Kegiatan');
+
+        $this->get('/en')
+            ->assertOk()
+            ->assertSee('href="'.route('en.events.index').'"', false)
+            ->assertSee('Events');
+    }
+
     public function test_it_serves_the_default_locale_without_a_prefix(): void
     {
         $this->get('/')->assertOk()->assertSee('lang="id"', false);

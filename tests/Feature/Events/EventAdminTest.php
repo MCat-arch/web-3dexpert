@@ -3,8 +3,11 @@
 namespace Tests\Feature\Events;
 
 use App\Filament\Resources\EventRegistrations\EventRegistrationResource;
+use App\Filament\Resources\EventRegistrations\Pages\ListEventRegistrations;
 use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Events\Pages\CreateEvent;
+use App\Filament\Resources\Events\Pages\EditEvent;
+use App\Filament\Resources\Events\RelationManagers\RegistrationsRelationManager;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventRegistration;
@@ -196,6 +199,86 @@ class EventAdminTest extends TestCase
         $this->actingAs($this->staff())
             ->get(EventRegistrationResource::getUrl('index'))
             ->assertOk();
+    }
+
+    public function test_registration_list_groups_by_event_by_default(): void
+    {
+        EventRegistration::factory()
+            ->for(Event::factory()->create())
+            ->for(Customer::factory()->create())
+            ->create();
+
+        $this->actingAs($this->staff());
+
+        Livewire::test(ListEventRegistrations::class)
+            ->assertSet('tableGrouping', 'event_id:asc');
+    }
+
+    public function test_event_edit_page_shows_registrations_for_that_event_only(): void
+    {
+        $event = Event::factory()->create();
+        $otherEvent = Event::factory()->create();
+
+        $registration = EventRegistration::factory()
+            ->for($event)
+            ->for(Customer::factory()->create())
+            ->create(['attendee_name' => 'Peserta Acara Ini']);
+
+        $otherRegistration = EventRegistration::factory()
+            ->for($otherEvent)
+            ->for(Customer::factory()->create())
+            ->create(['attendee_name' => 'Peserta Acara Lain']);
+
+        $this->actingAs($this->staff());
+
+        $this->get(EventResource::getUrl('edit', ['record' => $event]))
+            ->assertOk()
+            // Filament lazy-loads relation managers, so the initial HTML
+            // contains the placeholder rather than the table heading.
+            ->assertSee(RegistrationsRelationManager::class);
+
+        Livewire::test(RegistrationsRelationManager::class, [
+            'ownerRecord' => $event,
+            'pageClass' => EditEvent::class,
+        ])
+            ->assertSee('Pendaftaran Peserta')
+            ->assertCanSeeTableRecords([$registration])
+            ->assertCanNotSeeTableRecords([$otherRegistration]);
+    }
+
+    public function test_the_per_event_registration_table_keeps_the_shared_actions(): void
+    {
+        $event = Event::factory()->create();
+        $registration = EventRegistration::factory()
+            ->for($event)
+            ->for(Customer::factory()->create())
+            ->create();
+
+        $this->actingAs($this->staff());
+
+        Livewire::test(RegistrationsRelationManager::class, [
+            'ownerRecord' => $event,
+            'pageClass' => EditEvent::class,
+        ])
+            ->callTableAction('markAttended', $registration)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame(EventRegistration::STATUS_ATTENDED, $registration->fresh()->status);
+    }
+
+    public function test_the_per_event_registration_table_requires_registration_access(): void
+    {
+        $event = Event::factory()->create();
+        $inactiveAdmin = User::factory()->create([
+            'role' => User::ROLE_ADMIN,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($inactiveAdmin);
+
+        $this->assertFalse(
+            RegistrationsRelationManager::canViewForRecord($event, EditEvent::class),
+        );
     }
 
     public function test_registrations_cannot_be_created_by_staff(): void
