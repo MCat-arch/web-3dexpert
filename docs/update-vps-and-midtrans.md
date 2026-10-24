@@ -245,6 +245,10 @@ is_production=true
 
 Jika muncul `UNKNOWN`, berarti nilai key salah format atau masih kosong.
 
+Prefix saja bukan bukti environment. Key bisa diterima sandbox tetapi ditolak
+production. Jika itu terjadi, jangan paksa `MIDTRANS_IS_PRODUCTION=true`; ambil
+key dari dashboard production yang benar.
+
 ### 9.2 Terapkan perubahan
 
 ```bash
@@ -253,6 +257,13 @@ docker compose up -d --force-recreate app worker
 docker compose exec -T app php artisan optimize:clear
 docker compose exec -T app php artisan optimize
 docker compose exec -T app php artisan queue:restart
+```
+
+Cek konfigurasi efektif tanpa menampilkan key:
+
+```bash
+docker compose exec -T app php artisan config:show midtrans \
+  | grep -E 'is_production|api_url|snap_url'
 ```
 
 Pastikan **Payment Notification URL** di dashboard Midtrans production adalah:
