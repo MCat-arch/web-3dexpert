@@ -137,8 +137,8 @@ Dari browser, cek minimal:
 - checkout kursus menampilkan tombol `Lanjutkan`
 - footer punya link `Kegiatan`
 - halaman pembayaran menampilkan QR dan countdown 15 menit
-- setelah pembayaran sandbox, status order berubah di dashboard Midtrans dan
-  pendaftaran/enrollment menjadi aktif
+- setelah pembayaran (sandbox atau production sesuai mode), status order berubah
+  di dashboard Midtrans dan pendaftaran/enrollment menjadi aktif
 
 ## 8. Rollback jika update bermasalah
 
@@ -203,8 +203,16 @@ Aturan penting:
 - Server key: `Mid-server-...` (production) atau `SB-Mid-server-...` (sandbox).
 - Client key: `Mid-client-...` (production) atau `SB-Mid-client-...` (sandbox).
 - `MIDTRANS_IS_PRODUCTION` harus cocok dengan jenis key.
+- `MIDTRANS_MERCHANT_ID` tidak wajib untuk charge QRIS Core API, tetapi isi jika
+  tersedia di dashboard Midtrans.
+- Alur QRIS saat ini hanya memakai `MIDTRANS_SERVER_KEY`; `MIDTRANS_CLIENT_KEY`
+  tidak dipakai pada request charge. Tetap isi client key dengan benar agar
+  konfigurasi tidak menyesatkan dan siap dipakai jika nanti memakai Snap.
 - Jangan menguji QR sandbox dengan aplikasi mobile banking. QR sandbox hanya
   untuk <https://simulator.sandbox.midtrans.com/qris/index>.
+- Jika server key production (`Mid-server-...`) tetapi
+  `MIDTRANS_IS_PRODUCTION=false`, aplikasi akan memanggil endpoint sandbox.
+  Akibatnya charge bisa ditolak dan QR tidak terbentuk. Samakan keduanya.
 
 Cek jumlah baris Midtrans agar tidak ada duplikat:
 
