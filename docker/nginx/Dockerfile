@@ -33,3 +33,4 @@ COPY public /var/www/html/public
 COPY --from=assets /app/public/build /var/www/html/public/build
 COPY --from=filament-assets /app/public/css/filament /var/www/html/public/css/filament
 COPY --from=filament-assets /app/public/js/filament /var/www/html/public/js/filament
+COPY --from=filament-assets /app/public/fonts /var/www/html/public/fonts

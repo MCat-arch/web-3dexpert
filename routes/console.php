@@ -13,3 +13,7 @@ Schedule::job(new ReconcileEventSeatCounts)->daily();
 // window used by checkout; withoutOverlapping prevents two sweeps from racing
 // over the same rows during a slow queue/mail provider.
 Schedule::command('payments:expire')->everyMinute()->withoutOverlapping();
+
+// Fan out/down traffic retention away from peak hours. The dashboard queries
+// site_traffic with a bounded date range, so a daily sweep is enough.
+Schedule::command('traffic:purge')->dailyAt('03:15')->withoutOverlapping();

@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureUserCanManageContent;
 use App\Http\Middleware\HandleLegacyRedirects;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\TrackSiteTraffic;
 use App\Support\AuditLogger;
 use App\Support\Locale;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -61,7 +62,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Applies to every web request. CSRF protection is already part of the
         // 'web' group by default -- legacy had no CSRF token anywhere, so every
         // admin form and every ?hapus= link was forgeable.
-        $middleware->web(append: [SecurityHeaders::class]);
+        //
+        // TrackSiteTraffic records public page views after the response is sent
+        // (terminate) for the superadmin dashboard. It writes one small row and
+        // swallows every error, so it can never break a request.
+        $middleware->web(append: [SecurityHeaders::class, TrackSiteTraffic::class]);
 
         // Midtrans posts server-to-server; it cannot carry a Laravel CSRF
         // token. The notification controller authenticates with Midtrans'

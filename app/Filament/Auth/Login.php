@@ -6,6 +6,7 @@ use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\ValidationException;
 use SensitiveParameter;
 
 class Login extends BaseLogin
@@ -42,5 +43,19 @@ class Login extends BaseLogin
             $column => $login,
             'password' => $data['password'],
         ];
+    }
+
+    /**
+     * Filament attaches "these credentials do not match" to `data.email`, but
+     * this panel's field is `data.login` (email OR username). The default key
+     * matches no field in our form, so the validation error is stored in the
+     * component state and never rendered: the form simply stops, with no
+     * feedback at all. Attach the message to the field that exists.
+     */
+    protected function throwFailureValidationException(): never
+    {
+        throw ValidationException::withMessages([
+            'data.login' => __('filament-panels::auth/pages/login.messages.failed'),
+        ]);
     }
 }

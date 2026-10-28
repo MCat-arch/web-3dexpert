@@ -36,8 +36,13 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->favicon(asset('favicon.ico'))
-            ->brandLogo(asset('images/logo.png'))
+            // Closures, not strings: the panel object is built while providers
+            // register, which is before AppServiceProvider::boot() forces the
+            // https scheme. Calling asset() there baked http:// URLs into the
+            // logo and favicon on every proxied HTTPS request (mixed content).
+            // Deferring to render time keeps the generated URLs on https.
+            ->favicon(fn (): string => asset('favicon.ico'))
+            ->brandLogo(fn (): string => asset('images/logo.png'))
             ->brandLogoHeight('2.25rem')
             // Pinned explicitly rather than inheriting auth.defaults.guard.
             // The point of D1 is that staff and public auth cannot touch; a
