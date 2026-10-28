@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
         $this->call(LegacyPortfolioContentSeeder::class);
         $this->seedJobs();
         $this->call(CourseSeeder::class);
+        $this->call(CustomerSeeder::class);
 
         $this->command->warn('No admin user was created. Run: php artisan app:create-admin');
     }
