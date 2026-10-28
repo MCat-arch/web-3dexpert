@@ -15,7 +15,10 @@ class LatestRegistrations extends TableWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->can(User::AREA_REGISTRATIONS) ?? false;
+        // The superadmin dashboard is the summary grid plus the traffic chart;
+        // this table would only repeat one of its numbers.
+        return (auth()->user()?->can(User::AREA_REGISTRATIONS) ?? false)
+            && ! (auth()->user()?->isSuperadmin() ?? false);
     }
 
     protected function getTableQuery(): Builder

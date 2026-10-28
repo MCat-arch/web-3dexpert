@@ -109,7 +109,7 @@ Alpine.data('carousel', () => ({
     init() {
         this.slides = Array.from(this.$el.querySelectorAll('[data-slide]'));
         this.dots = Array.from(this.$el.querySelectorAll('[data-dot]'));
-        this.interval = intAttr(this.$el, 'interval', 4000);
+        this.interval = intAttr(this.$el, 'interval', 3000);
 
         if (this.slides.length === 0) {
             return;

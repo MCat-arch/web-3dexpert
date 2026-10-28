@@ -15,7 +15,9 @@ class LatestApplications extends TableWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->can(User::AREA_HIRING) ?? false;
+        // Superadmin sees the summary grid only; see SuperadminOverview.
+        return (auth()->user()?->can(User::AREA_HIRING) ?? false)
+            && ! (auth()->user()?->isSuperadmin() ?? false);
     }
 
     protected function getTableQuery(): Builder

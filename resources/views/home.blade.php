@@ -45,7 +45,7 @@
     {{-- ========== 2. HERO ========== --}}
     @if ($heroSlides->isNotEmpty())
         <section id="hero-banner"
-                 x-data="carousel" data-interval="4000"
+                 x-data="carousel" data-interval="3000"
                  class="hero-section"
                  aria-roledescription="carousel" aria-label="{{ __('home.hero') }}">
             @foreach ($heroSlides as $i => $slide)

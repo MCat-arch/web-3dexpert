@@ -25,9 +25,13 @@ class StatsOverview extends StatsOverviewWidget
      */
     protected static bool $isLazy = false;
 
+    /**
+     * The superadmin gets SuperadminOverview instead: same data plus traffic,
+     * customers and totals, in one grid. Other roles keep these cards.
+     */
     public static function canView(): bool
     {
-        return auth()->check();
+        return auth()->check() && ! (auth()->user()?->isSuperadmin() ?? false);
     }
 
     protected function getStats(): array

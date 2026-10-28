@@ -16,7 +16,7 @@ use Throwable;
  */
 class TrafficChart extends ChartWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 2;
 
     protected ?string $heading = 'Traffic 30 hari';
 
