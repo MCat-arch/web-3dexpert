@@ -2426,17 +2426,16 @@ body.has-event-dialog {
 
 .event-dialog {
     position: fixed;
-    inset: 0 auto 0 0;
-    width: min(560px, 100vw);
-    max-width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-height: none;
-    margin: 0;
+    inset: 0;
+    width: min(560px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+    height: auto;
+    max-height: 90dvh;
+    margin: auto;
     padding: 0;
     overflow: hidden;
     border: 0;
-    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    border-radius: var(--radius-lg);
     background: var(--card);
     color: var(--text);
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
@@ -2448,17 +2447,19 @@ body.has-event-dialog {
 }
 
 .event-dialog-inner {
-    height: 100%;
-    max-height: none;
-    padding: clamp(20px, 4vw, 28px);
+    height: auto;
+    max-height: 90dvh;
+    /* No bottom padding: the sticky action bar sits flush against the panel
+       edge, so nothing shows through the strip underneath it. */
+    padding: clamp(20px, 4vw, 28px) clamp(20px, 4vw, 28px) 0;
     overflow-y: auto;
     overscroll-behavior: contain;
 }
 
 @media (max-width: 640px) {
     .event-dialog {
-        width: 100vw;
-        border-radius: 0;
+        width: calc(100vw - 24px);
+        max-width: calc(100vw - 24px);
     }
 }
 
@@ -2559,9 +2560,20 @@ body.has-event-dialog {
 }
 
 .event-dialog-actions {
+    /* The dialog is now centered, so a long form scrolls inside it. Keep the
+       cancel/submit pair pinned to the bottom edge instead of hiding it below
+       the fold. */
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    margin-top: 20px;
+    margin-inline: calc(-1 * clamp(20px, 4vw, 28px));
+    padding: 14px clamp(20px, 4vw, 28px) 14px;
+    border-top: 1px solid var(--line-light);
+    background: var(--card);
 }
 
 .event-noscript-form {
@@ -3001,7 +3013,10 @@ body.has-event-dialog {
 }
 
 .pm-bank-card {
-    display: flex;
+    /* Hidden until the customer actually picks the bank route: the account
+       number is the next step, not part of the comparison. `is-bank-active`
+       is set server-side for the initial state and kept in sync by JS. */
+    display: none;
     flex-direction: column;
     gap: 6px;
     margin-top: 8px;
@@ -3009,6 +3024,10 @@ body.has-event-dialog {
     border: 1px dashed var(--line-light);
     border-radius: 8px;
     background: #ffffff;
+}
+
+.pm-picker.is-bank-active .pm-bank-card {
+    display: flex;
 }
 
 .pm-bank-row {

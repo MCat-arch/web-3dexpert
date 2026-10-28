@@ -517,6 +517,30 @@ Alpine.data('eventRegister', () => ({
 }));
 
 /* ------------------------------------------------------------------ */
+/* Payment method picker                                               */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The bank card (bank name, account number, holder) is noise while someone
+ * is still comparing methods, so it only appears once bank transfer is the
+ * active choice. The server renders `is-bank-active` for a preselected
+ * method; this keeps it in sync after that.
+ */
+Alpine.data('paymentMethodPicker', () => ({
+    init() {
+        const bank = this.$el.querySelector('input[value="bank_transfer"]');
+
+        if (!bank) {
+            return;
+        }
+
+        const sync = () => this.$el.classList.toggle('is-bank-active', bank.checked);
+
+        this.$el.addEventListener('change', sync);
+        sync();
+    },
+}));
+
 /* Payment countdown                                                   */
 /* ------------------------------------------------------------------ */
 

@@ -335,7 +335,7 @@
                                         <p class="event-form-note">{{ __('events.form_note') }}</p>
 
                                         @if (! $event->isFree())
-                                            <x-payment-method-picker :selected="old('payment_method', 'qris')" />
+                                            <x-payment-method-picker :selected="old('payment_method', $registration?->payment?->payment_type ?? 'qris')" />
                                         @endif
 
                                         <div class="event-dialog-actions">

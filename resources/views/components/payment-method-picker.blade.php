@@ -10,7 +10,7 @@
      * are incomplete the manual option is disabled rather than letting the
      * customer pick a method with nothing to transfer to.
      */
-    $selected = old('payment_method') === 'bank_transfer' ? 'bank_transfer' : 'qris';
+    $selected = old('payment_method', $selected) === 'bank_transfer' ? 'bank_transfer' : 'qris';
 
     $bankName = $settings('payment_bank_name');
     $bankAccount = $settings('payment_bank_account');
@@ -18,8 +18,15 @@
     $hasBank = filled($bankName) && filled($bankAccount) && filled($bankHolder);
 @endphp
 
-<fieldset class="pm-picker">
+<fieldset class="pm-picker {{ $selected === 'bank_transfer' ? 'is-bank-active' : '' }}"
+          x-data="paymentMethodPicker">
     <legend class="pm-picker-legend">{{ __('payments.choose_method') }}</legend>
+
+    {{-- Without JavaScript the reveal never runs, so keep the account number
+         visible instead of hiding the only way to pay. --}}
+    <noscript>
+        <style>.pm-bank-card { display: flex; }</style>
+    </noscript>
 
     <label class="pm-option {{ $selected === 'qris' ? 'is-selected' : '' }}">
         <input type="radio" name="payment_method" value="qris"

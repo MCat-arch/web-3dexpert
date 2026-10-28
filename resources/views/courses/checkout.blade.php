@@ -66,7 +66,7 @@
                     </div>
 
                     <div style="margin-top: 24px; padding: 18px; border: 1px solid var(--line-light); border-radius: var(--radius-card); background: #fafafa;">
-                        <x-payment-method-picker :selected="old('payment_method', 'qris')" />
+                        <x-payment-method-picker :selected="old('payment_method', $existingEnrollment?->payment?->payment_type ?? 'qris')" />
                     </div>
                 </div>
 

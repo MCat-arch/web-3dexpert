@@ -235,6 +235,39 @@ class PaymentMethodChoiceTest extends TestCase
             ->assertSee('name="payment_method"', false)
             ->assertSee('value="qris"', false)
             ->assertSee('value="bank_transfer"', false)
+            ->assertSee('1234567890')
+            // The account number is in the markup but hidden by CSS until the
+            // bank route is active; QRIS is the default.
+            ->assertSee('x-data="paymentMethodPicker"', false)
+            ->assertDontSee('is-bank-active');
+    }
+
+    public function test_the_checkout_preselects_the_method_of_an_existing_pending_order(): void
+    {
+        $customer = $this->verifiedCustomer();
+        $course = $this->paidCourse();
+
+        $enrollment = CourseEnrollment::factory()->pending()->create([
+            'course_id' => $course->getKey(),
+            'customer_id' => $customer->getKey(),
+        ]);
+
+        $payment = Payment::factory()->create([
+            'payable_type' => CourseEnrollment::class,
+            'payable_id' => $enrollment->getKey(),
+            'gross_amount' => 150000.00,
+            'status' => Payment::STATUS_PENDING,
+            'payment_type' => Payment::TYPE_BANK_TRANSFER,
+            'expires_at' => now()->addHours(24),
+        ]);
+
+        $enrollment->forceFill(['payment_id' => $payment->getKey()])->save();
+
+        $this->actingAs($customer, 'customer')
+            ->get('/kursus/'.$course->slug.'/checkout')
+            ->assertOk()
+            ->assertSee('is-bank-active', false)
+            ->assertSee('value="bank_transfer"', false)
             ->assertSee('1234567890');
     }
 }
