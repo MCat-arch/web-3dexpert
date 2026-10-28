@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -86,6 +87,25 @@ class ManualPaymentTest extends TestCase
             ->assertSee(__('payments.proof_submit'))
             ->assertSee(__('payments.method_bank_transfer'))
             ->assertDontSee(__('payments.qr_heading'));
+    }
+
+    public function test_manual_mode_switch_forces_bank_transfer_even_with_a_midtrans_key(): void
+    {
+        config()->set('midtrans.server_key', 'SB-Mid-server-stale-key');
+        config()->set('payments.manual_mode', true);
+
+        [, $payment, $customer] = $this->pendingCoursePayment();
+
+        Http::fake();
+
+        $this->actingAs($customer, 'customer')
+            ->get('/pembayaran/'.$payment->order_id)
+            ->assertOk()
+            ->assertSee(__('payments.manual_heading'))
+            ->assertDontSee(__('payments.qr_heading'));
+
+        Http::assertNothingSent();
+        $this->assertTrue($payment->fresh()->isManual());
     }
 
     public function test_customer_upload_is_stored_privately_and_extends_the_window(): void

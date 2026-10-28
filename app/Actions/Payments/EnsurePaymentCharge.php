@@ -27,17 +27,20 @@ class EnsurePaymentCharge
 
         $service = app(MidtransQrisService::class);
 
-        if (! $service->isConfigured()) {
+        if (config('payments.manual_mode') || ! $service->isConfigured()) {
             /*
-             * Gateway belum bisa diakses. Jangan biarkan halaman pembayaran
-             * buntu: alihkan order ini ke transfer bank manual dan beri
-             * jendela validasi yang lebih panjang. Hanya dikonversi sekali
-             * agar expires_at tidak terus diperpanjang setiap kali halaman
-             * dibuka.
+             * Gateway belum bisa diakses (PAYMENT_MANUAL_MODE=true) atau
+             * MIDTRANS_SERVER_KEY masih kosong. Jangan biarkan halaman
+             * pembayaran buntu: alihkan order ini ke transfer bank manual dan
+             * beri jendela validasi yang lebih panjang. Hanya dikonversi
+             * sekali agar expires_at tidak terus diperpanjang setiap kali
+             * halaman dibuka.
              *
              * Kode lama (tetap disimpan sebagai referensi):
              *
-             * return null;
+             * if (! $service->isConfigured()) {
+             *     return null;
+             * }
              */
             $this->markAsManual($payment);
 

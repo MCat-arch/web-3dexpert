@@ -27,4 +27,18 @@ return [
     */
 
     'manual_expiry_hours' => (int) env('PAYMENT_MANUAL_EXPIRY_HOURS', 24),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Force manual transfer
+    |--------------------------------------------------------------------------
+    |
+    | Set PAYMENT_MANUAL_MODE=true while the gateway account is not usable yet.
+    | Without this switch a leftover MIDTRANS_SERVER_KEY would make the payment
+    | page try a real QRIS charge. Remove the flag (or set it to false) to let
+    | new orders go back to QRIS.
+    |
+    */
+
+    'manual_mode' => (bool) env('PAYMENT_MANUAL_MODE', false),
 ];
