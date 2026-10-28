@@ -558,6 +558,23 @@ Keduanya harus menghasilkan `200 OK`. Jika route list tidak menampilkan
 jalankan `php artisan optimize:clear`, lalu recreate container `app` dan
 `nginx`.
 
+### 502 Bad Gateway tepat setelah deploy
+
+Nginx menyimpan alamat IP container `app` saat start. Jika `app` di-recreate
+sendirian (`docker compose up -d --force-recreate app`), `app` mendapat IP baru
+sementara Nginx masih menghubungi IP lama, sehingga semua halaman membalas
+`502 Bad Gateway` walau container `app` berstatus `Up`.
+
+Perbaikannya adalah me-recreate `nginx` juga, bukan menunggu:
+
+```bash
+docker compose up -d --force-recreate app worker nginx
+```
+
+Cek `docker compose logs --tail=20 nginx`: pesan
+`connect() failed (111: Connection refused) while connecting to upstream` dengan
+IP `fastcgi://172.x.x.x:9000` menandakan kasus ini.
+
 Jangan membuat password admin hardcoded di seeder atau repository.
 
 ## 10. Smoke test melalui IP VPS
