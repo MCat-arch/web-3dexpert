@@ -29,6 +29,7 @@ use App\Http\Controllers\Payment\MidtransNotificationController;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Payment\PaymentProofController;
 use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\Project\ProjectAttachmentController;
 use App\Http\Controllers\Project\ProjectLookupController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Middleware\EnsureCustomerIsActive;
@@ -67,6 +68,18 @@ Route::get('media/{path}', [MediaController::class, 'show'])
 Route::get('dokumen-lamaran/{document}', ApplicationDocumentController::class)
     ->middleware(['auth', 'can:viewAny,App\Models\JobApplication'])
     ->name('applications.document');
+
+/*
+ * Tracker attachments (progress files and finished deliverables).
+ *
+ * Not locale-prefixed -- it returns bytes, not language. `signed` is the
+ * authorisation: the link is only minted after a successful code + contact
+ * lookup, and ProjectAttachmentController re-checks trackability on every
+ * request so a hidden or cancelled project stops serving at once.
+ */
+Route::get('lacak-proyek/berkas/{attachment}', ProjectAttachmentController::class)
+    ->middleware('signed')
+    ->name('tracker.attachments.show');
 
 /*
  * One definition, registered once per locale.

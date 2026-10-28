@@ -26,7 +26,7 @@ class CourseCheckoutRequest extends FormRequest
         $isFree = $course && $course->isFree();
 
         return [
-            'payment_method' => $isFree ? 'nullable|string' : 'required|string|in:qris,bca_va,bni_va,mandiri_va,gopay,shopeepay',
+            'payment_method' => $isFree ? 'nullable|string' : 'required|string|in:qris,bank_transfer',
             'student_name' => 'nullable|string|max:150',
             'student_phone' => 'nullable|string|max:25',
         ];

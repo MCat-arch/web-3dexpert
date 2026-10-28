@@ -118,16 +118,32 @@ Alpine.data('carousel', () => ({
         this.dots.forEach((dot, index) => {
             dot.addEventListener('click', () => {
                 this.go(index);
-                this.stop();   // a manual choice should not be yanked away
+
+                /*
+                 * Restart the timer instead of leaving it stopped: the brief
+                 * is a hero that always advances. Without this the first dot
+                 * click would freeze it for the rest of the visit.
+                 */
+                this.stop();
+                this.start();
             });
         });
 
         this.go(0);
 
-        // Pause on hover/focus so a visitor reading the headline keeps it.
-        this.$el.addEventListener('mouseenter', () => this.stop());
-        this.$el.addEventListener('mouseleave', () => this.start());
-        this.$el.addEventListener('focusin', () => this.stop());
+        /*
+         * Pause on hover so a visitor reading the headline keeps it -- but
+         * only on devices that actually hover. On touch screens a tap leaves
+         * a sticky :hover state, which used to stop the slider for good.
+         *
+         * Deliberately no prefers-reduced-motion gate: the client asked for an
+         * always-moving hero (the transition itself is still a short opacity
+         * fade, not a big motion).
+         */
+        if (window.matchMedia('(hover: hover)').matches) {
+            this.$el.addEventListener('mouseenter', () => this.stop());
+            this.$el.addEventListener('mouseleave', () => this.start());
+        }
 
         document.addEventListener('visibilitychange', () => {
             document.hidden ? this.stop() : this.start();
@@ -141,7 +157,7 @@ Alpine.data('carousel', () => ({
     },
 
     start() {
-        if (this.timer || prefersReducedMotion || this.slides.length < 2) {
+        if (this.timer || this.slides.length < 2) {
             return;
         }
 
@@ -518,10 +534,19 @@ Alpine.data('paymentCountdown', () => ({
         const tick = () => {
             const remaining = Math.max(0, target - Date.now());
             const totalSeconds = Math.ceil(remaining / 1000);
-            const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-            const seconds = String(totalSeconds % 60).padStart(2, '0');
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const pad = (value) => String(value).padStart(2, '0');
 
-            output.textContent = `${minutes}:${seconds}`;
+            /*
+             * Manual bank transfers are valid for 24 hours, so a bare
+             * minutes:seconds clock would read "1439:59". Show hours once they
+             * exist; the 15-minute QRIS window keeps the compact form.
+             */
+            output.textContent = hours > 0
+                ? `${hours}:${pad(minutes)}:${pad(seconds)}`
+                : `${pad(minutes)}:${pad(seconds)}`;
 
             if (remaining <= 0 && ! reloading) {
                 reloading = true;

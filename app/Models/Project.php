@@ -25,15 +25,16 @@ class Project extends Model
     /**
      * Statuses the public tracker will NOT disclose.
      *
-     * The brief asked for "only the project that not done yet". Completed is
-     * obviously in that set. Cancelled is here too (decision K10): it is
-     * equally "not in progress", and a cancellation is a conversation to have
-     * with a person rather than something a self-service page should announce.
+     * Cancelled only (K10): a cancellation is a conversation to have with a
+     * person rather than something a self-service page should announce.
      *
-     * Both are hidden by the SAME uniform negative response as a wrong code,
-     * so neither can be distinguished from "no such project".
+     * Completed projects ARE disclosed now: the brief asks for the finished
+     * files and the closing explanation to be visible to the owner. That does
+     * not weaken the lookup -- it still requires the code AND the matching
+     * contact, and a wrong contact gets the same uniform negative as an
+     * unknown code.
      */
-    public const HIDDEN_STATUSES = [self::STATUS_COMPLETED, self::STATUS_CANCELLED];
+    public const HIDDEN_STATUSES = [self::STATUS_CANCELLED];
 
     /**
      * Code alphabet.
@@ -48,13 +49,14 @@ class Project extends Model
 
     protected $fillable = [
         'project_code', 'customer_name', 'customer_phone', 'customer_email',
-        'title', 'current_stage', 'status',
+        'title', 'current_stage', 'progress_percent', 'summary', 'status',
         'started_at', 'estimated_completion_at', 'completed_at', 'is_visible',
     ];
 
     protected function casts(): array
     {
         return [
+            'progress_percent' => 'integer',
             'started_at' => 'date',
             'estimated_completion_at' => 'date',
             'completed_at' => 'date',
@@ -77,6 +79,17 @@ class Project extends Model
 
             if (filled($project->customer_email)) {
                 $project->customer_email = Str::lower(trim($project->customer_email));
+            }
+
+            /*
+             * A finished project is 100% by definition. Deriving it here keeps
+             * the tracker consistent even when staff forget the slider, and
+             * stamps the completion date so the "Hasil Akhir" section always
+             * has a date to show.
+             */
+            if ($project->status === self::STATUS_COMPLETED) {
+                $project->progress_percent = 100;
+                $project->completed_at ??= now();
             }
         });
     }
@@ -110,11 +123,46 @@ class Project extends Model
         return $this->hasMany(ProjectUpdate::class)->orderBy('sort_order')->orderBy('occurred_at');
     }
 
+    /** Every file on the tracker: progress renders and final deliverables. */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ProjectAttachment::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** Project-level progress files (not tied to one stage). */
+    public function progressAttachments(): HasMany
+    {
+        return $this->attachments()
+            ->where('kind', ProjectAttachment::KIND_PROGRESS)
+            ->whereNull('project_update_id');
+    }
+
+    /** The finished files, only rendered when the project is completed. */
+    public function deliverables(): HasMany
+    {
+        return $this->attachments()->where('kind', ProjectAttachment::KIND_DELIVERABLE);
+    }
+
+    /** Progress for the bar. A finished project is always 100%. */
+    public function progressPercent(): int
+    {
+        if ($this->status === self::STATUS_COMPLETED) {
+            return 100;
+        }
+
+        return max(0, min(100, (int) $this->progress_percent));
+    }
+
     /** Projects the public tracker may disclose. */
     public function scopeTrackable(Builder $query): Builder
     {
         return $query->where('is_visible', true)
             ->whereNotIn('status', self::HIDDEN_STATUSES);
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED;
     }
 
     public function isTrackable(): bool

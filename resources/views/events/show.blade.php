@@ -246,7 +246,7 @@
                                 @if ($event->isFree())
                                     {{ __('events.register_note') }}
                                 @else
-                                    {{ __('events.paid_hold_note', ['minutes' => (int) config('payments.expiry_minutes', 15)]) }}
+                                    {{ __('events.paid_hold_note') }}
                                 @endif
                             </p>
 
@@ -291,7 +291,7 @@
                                                 {{ __('events.paid_price', ['price' => number_format((float) $event->price, 0, ',', '.')]) }}
                                             </p>
                                             <p class="event-dialog-payment-note">
-                                                {{ __('events.paid_hold_note', ['minutes' => (int) config('payments.expiry_minutes', 15)]) }}
+                                                {{ __('events.paid_hold_note') }}
                                             </p>
                                         @endif
                                     </div>
@@ -333,6 +333,10 @@
                                         </div>
 
                                         <p class="event-form-note">{{ __('events.form_note') }}</p>
+
+                                        @if (! $event->isFree())
+                                            <x-payment-method-picker :selected="old('payment_method', 'qris')" />
+                                        @endif
 
                                         <div class="event-dialog-actions">
                                             <button type="button" class="btn btn-secondary" data-event-register-close>

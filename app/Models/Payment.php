@@ -14,7 +14,10 @@ class Payment extends Model
 {
     use HasFactory;
 
-    /** Manual bank transfer, used while the gateway is not configured yet. */
+    /** QRIS through Midtrans (the default for paid orders). */
+    public const TYPE_QRIS = 'qris';
+
+    /** Manual bank transfer, chosen at checkout. */
     public const TYPE_BANK_TRANSFER = 'bank_transfer';
 
     /** Private disk holding uploaded transfer receipts. */

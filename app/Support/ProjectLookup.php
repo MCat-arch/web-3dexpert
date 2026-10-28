@@ -19,17 +19,17 @@ use App\Models\Project;
  *
  *   1. the code does not exist
  *   2. the code exists but the phone/email does not match
- *   3. the code and contact match, but the project is completed or cancelled
+ *   3. the code and contact match, but the project is cancelled or hidden
  *
  * That is deliberate, and it is why the status filter lives in the same method
  * rather than in the controller. If case 3 produced a distinguishable
- * response -- "this project is already finished" -- the form would confirm
- * that a code is VALID, which is exactly the signal the second factor exists
- * to withhold. An attacker would no longer need the contact details; a
- * different error message would do.
+ * response -- "this project was cancelled" -- the form would confirm that a
+ * code is VALID, which is exactly the signal the second factor exists to
+ * withhold.
  *
- * So "only projects not yet done" is implemented as a uniform negative, not as
- * a separate message. The caller gets null and renders one response.
+ * Completed projects are returned normally: the owner needs the final files
+ * and the closing explanation. They still require code + contact, so nothing
+ * is disclosed to someone guessing codes.
  * ---------------------------------------------------------------------------
  */
 class ProjectLookup
@@ -57,7 +57,11 @@ class ProjectLookup
         $project = Project::query()
             ->trackable()
             ->where('project_code', $code)
-            ->with('updates')
+            ->with([
+                'updates.attachments',
+                'progressAttachments',
+                'deliverables',
+            ])
             ->first();
 
         if (! $project) {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProjectUpdate extends Model
 {
@@ -34,5 +35,11 @@ class ProjectUpdate extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /** Files shown inside this timeline step. */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ProjectAttachment::class)->orderBy('sort_order')->orderBy('id');
     }
 }

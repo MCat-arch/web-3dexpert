@@ -42,8 +42,11 @@ class EnrollInEvent
      *                                                               only; the customer profile is never updated here. Email is not
      *                                                               accepted because it is always the account email.
      */
-    public function __invoke(Event $event, Customer $customer, ?array $attendee = null): EventRegistration
+    public function __invoke(Event $event, Customer $customer, ?array $attendee = null, string $paymentMethod = Payment::TYPE_QRIS): EventRegistration
     {
+        $paymentMethod = $paymentMethod === Payment::TYPE_BANK_TRANSFER
+            ? Payment::TYPE_BANK_TRANSFER
+            : Payment::TYPE_QRIS;
         // A20: verification gates enrollment. If that is relaxed for free
         // events to take the mail provider off the launch critical path, this
         // is the line that changes.
@@ -63,7 +66,7 @@ class EnrollInEvent
             throw EnrollmentException::alreadyRegistered();
         }
 
-        return DB::transaction(function () use ($event, $customer, $existing, $attendee) {
+        return DB::transaction(function () use ($event, $customer, $existing, $attendee, $paymentMethod) {
             $this->claimSeat($event);
 
             try {
@@ -93,7 +96,7 @@ class EnrollInEvent
                     'confirmed_at' => now(),
                 ])->save();
             } else {
-                $this->createPendingPayment($registration, $event);
+                $this->createPendingPayment($registration, $event, $paymentMethod);
             }
 
             /*
@@ -118,7 +121,7 @@ class EnrollInEvent
         });
     }
 
-    private function createPendingPayment(EventRegistration $registration, Event $event): Payment
+    private function createPendingPayment(EventRegistration $registration, Event $event, string $paymentMethod = Payment::TYPE_QRIS): Payment
     {
         return Payment::create([
             'payable_type' => EventRegistration::class,
@@ -126,8 +129,12 @@ class EnrollInEvent
             'order_id' => Payment::generateOrderId('EVT'),
             'gross_amount' => $event->price,
             'status' => Payment::STATUS_PENDING,
-            'payment_type' => 'qris',
-            'expires_at' => now()->addMinutes((int) config('payments.expiry_minutes', 15)),
+            'payment_type' => $paymentMethod,
+            // Manual transfers live long enough for staff to validate the
+            // receipt; QRIS keeps its short window.
+            'expires_at' => $paymentMethod === Payment::TYPE_BANK_TRANSFER
+                ? now()->addHours(max(1, (int) config('payments.manual_expiry_hours', 24)))
+                : now()->addMinutes((int) config('payments.expiry_minutes', 15)),
         ]);
     }
 

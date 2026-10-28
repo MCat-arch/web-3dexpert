@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Payment;
 use App\Notifications\Courses\CourseEnrollmentActivated;
 use App\Notifications\Courses\CourseRegistrationReceived;
+use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -18,18 +19,21 @@ class StartCourseRegistration
     /**
      * Start registration/checkout for a course.
      *
+     * @param  string  $paymentMethod  'qris' (Midtrans) or 'bank_transfer' (manual).
      * @return array{enrollment: CourseEnrollment, payment: ?Payment}
      */
     public function __invoke(
         Course $course,
         Customer $customer,
-        string $paymentMethod = 'qris',
+        string $paymentMethod = Payment::TYPE_QRIS,
         ?string $studentName = null,
         ?string $studentPhone = null
     ): array {
         if (! $course->is_published) {
             throw new InvalidArgumentException(__('courses.not_published'));
         }
+
+        $paymentMethod = $this->normaliseMethod($paymentMethod);
 
         // Entitlement pre-check: prevent buying a course already owned.
         $existing = CourseEnrollment::query()
@@ -81,6 +85,20 @@ class StartCourseRegistration
                 if ($pending && $pending->isPending()) {
                     $enrollment->save();
 
+                    /*
+                     * Switching method on the same order, instead of leaving
+                     * the customer on the method they first picked: one active
+                     * order per course, and the deadline follows the method.
+                     * A receipt already uploaded pins the order to bank
+                     * transfer -- that proof belongs to a real transfer.
+                     */
+                    if ($pending->payment_type !== $paymentMethod && ! $pending->hasProof()) {
+                        $pending->forceFill([
+                            'payment_type' => $paymentMethod,
+                            'expires_at' => $this->expiryFor($paymentMethod),
+                        ])->save();
+                    }
+
                     return [
                         'enrollment' => $enrollment,
                         'payment' => $pending,
@@ -108,7 +126,7 @@ class StartCourseRegistration
                 'gross_amount' => $course->price,
                 'status' => Payment::STATUS_PENDING,
                 'payment_type' => $paymentMethod,
-                'expires_at' => now()->addMinutes((int) config('payments.expiry_minutes', 15)),
+                'expires_at' => $this->expiryFor($paymentMethod),
             ]);
 
             $enrollment->payment_id = $payment->getKey();
@@ -123,5 +141,29 @@ class StartCourseRegistration
                 'payment' => $payment,
             ];
         });
+    }
+
+    /**
+     * Only the two methods the checkout offers are accepted; anything else is
+     * treated as QRIS so a hand-edited request cannot create a payment type
+     * that no page knows how to render.
+     */
+    private function normaliseMethod(string $paymentMethod): string
+    {
+        return $paymentMethod === Payment::TYPE_BANK_TRANSFER
+            ? Payment::TYPE_BANK_TRANSFER
+            : Payment::TYPE_QRIS;
+    }
+
+    /**
+     * Manual transfers get a validation window in hours, not the QRIS window
+     * in minutes: a customer waiting for staff review needs the order to stay
+     * open past the 15-minute QR expiry.
+     */
+    private function expiryFor(string $paymentMethod): CarbonInterface
+    {
+        return $paymentMethod === Payment::TYPE_BANK_TRANSFER
+            ? now()->addHours(max(1, (int) config('payments.manual_expiry_hours', 24)))
+            : now()->addMinutes((int) config('payments.expiry_minutes', 15));
     }
 }

@@ -66,13 +66,13 @@ return [
     'past' => 'This event has passed',
 
     'enrolled' => 'You are registered. Your ticket code: :code',
-    'payment_required' => 'Registration received. Complete payment within :minutes minutes so your seat is not released.',
+    'payment_required' => 'Registration received. Complete payment before the deadline so your seat is not released.',
     'payment_pending' => 'Awaiting Payment',
     'payment_pending_note' => 'Your seat is held until the payment deadline. Complete it now before time runs out.',
     'continue_payment' => 'Complete Payment',
     'payment_expired' => 'The payment expired and the seat has been released.',
     'register_and_pay' => 'Register & Pay',
-    'paid_hold_note' => 'The seat is held for :minutes minutes while QRIS payment is completed.',
+    'paid_hold_note' => 'The seat is held during payment (QRIS or bank transfer).',
     'cancelled' => 'Registration cancelled.',
 
     'error_full' => 'This event is fully booked.',

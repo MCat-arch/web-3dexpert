@@ -19,7 +19,12 @@ class EnrollmentController extends Controller
     public function store(EnrollRequest $request, Event $event, EnrollInEvent $enroll): RedirectResponse
     {
         try {
-            $registration = $enroll($event, $request->user('customer'), $request->attendee());
+            $registration = $enroll(
+                $event,
+                $request->user('customer'),
+                $request->attendee(),
+                $request->input('payment_method', 'qris'),
+            );
         } catch (EnrollmentException $e) {
             // Expected business outcomes -- full, closed, already registered --
             // are flashed, not raised as faults.

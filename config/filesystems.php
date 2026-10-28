@@ -111,6 +111,23 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Project tracker attachments (progress photos, final deliverables).
+         *
+         * Private: the tracker is public, but the files are customer
+         * deliverables. They are only ever streamed through the signed route
+         * in ProjectAttachmentController, which re-checks that the project is
+         * still trackable.
+         */
+        'attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/project-attachments'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

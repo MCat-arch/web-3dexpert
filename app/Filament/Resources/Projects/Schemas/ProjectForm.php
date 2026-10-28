@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Projects\Schemas;
 use App\Models\Project;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Slider;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -53,14 +55,30 @@ class ProjectForm
                         ->requiredWithout('customer_phone'),
                 ]),
 
-            Section::make('Proyek')
+            Section::make('Progres & hasil akhir')
+                ->columns(2)
+                ->description('Persentase dan penjelasan di bawah ini tampil di halaman Lacak Proyek milik pelanggan.')
+                ->schema([
+                    Slider::make('progress_percent')
+                        ->label('Progres (%)')
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->step(5)
+                        ->default(0)
+                        ->helperText('Status Selesai otomatis menjadi 100%.')
+                        ->columnSpanFull(),
+
+                    Textarea::make('summary')
+                        ->label('Penjelasan hasil akhir')
+                        ->rows(4)
+                        ->helperText('Tampil di bagian "Hasil Akhir" ketika status Selesai. Ringkas: apa yang diserahkan dan catatan pemakaian.')
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Status & tanggal')
                 ->columns(2)
                 ->schema([
                     TextInput::make('title')->label('Judul proyek')->required()->columnSpanFull(),
-
-                    TextInput::make('current_stage')
-                        ->label('Tahap saat ini')
-                        ->helperText('Ditampilkan ke pelanggan, mis. "Gambar Kerja".'),
 
                     Select::make('status')
                         ->label('Status')
@@ -71,14 +89,19 @@ class ProjectForm
                         )
                         ->default(Project::STATUS_IN_PROGRESS)
                         ->required()
-                        // Completed and cancelled both stop the project being
-                        // visible on the tracker -- the brief asked for "only
-                        // the project that not done yet" (K10).
-                        ->helperText('Selesai dan Dibatalkan tidak lagi tampil di pelacakan publik.'),
+                        // Cancelled stays hidden from the tracker; completed is
+                        // shown so the owner can download the final files.
+                        ->helperText('Dibatalkan tidak tampil di pelacakan publik.'),
+
+                    TextInput::make('current_stage')
+                        ->label('Tahap saat ini')
+                        ->helperText('Ditampilkan ke pelanggan, mis. "Gambar Kerja".'),
 
                     DatePicker::make('started_at')->label('Mulai'),
                     DatePicker::make('estimated_completion_at')->label('Perkiraan selesai'),
-                    DatePicker::make('completed_at')->label('Tanggal selesai'),
+                    DatePicker::make('completed_at')
+                        ->label('Tanggal selesai')
+                        ->helperText('Diisi otomatis saat status diubah ke Selesai.'),
 
                     Toggle::make('is_visible')
                         ->label('Tampilkan di pelacakan')

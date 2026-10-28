@@ -6,6 +6,7 @@ use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
+use App\Filament\Resources\Projects\RelationManagers\AttachmentsRelationManager;
 use App\Filament\Resources\Projects\RelationManagers\UpdatesRelationManager;
 use App\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Filament\Resources\Projects\Tables\ProjectsTable;
@@ -54,7 +55,10 @@ class ProjectResource extends AdminResource
 
     public static function getRelations(): array
     {
-        return [UpdatesRelationManager::class];
+        return [
+            UpdatesRelationManager::class,
+            AttachmentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

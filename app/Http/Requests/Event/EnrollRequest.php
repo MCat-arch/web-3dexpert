@@ -44,6 +44,9 @@ class EnrollRequest extends FormRequest
                     }
                 },
             ],
+            // Free events ignore this. Paid events create the order as QRIS or
+            // as manual bank transfer -- the choice replaces the old env flag.
+            'payment_method' => ['nullable', 'string', 'in:qris,bank_transfer'],
         ];
     }
 

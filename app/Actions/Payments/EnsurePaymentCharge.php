@@ -21,6 +21,16 @@ class EnsurePaymentCharge
             return $payment->qrUrl();
         }
 
+        /*
+         * Bank transfer is a finished choice, not a fallback: the customer
+         * picked it at checkout, so there is nothing to charge and no reason
+         * to call Midtrans. Without this guard a manual order opened in QRIS
+         * mode would create a QR the customer never asked for.
+         */
+        if ($payment->isManual()) {
+            return null;
+        }
+
         if ($payment->expires_at !== null && $payment->expires_at->isPast()) {
             return null;
         }

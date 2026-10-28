@@ -66,13 +66,13 @@ return [
     'past' => 'Acara sudah berlalu',
 
     'enrolled' => 'Pendaftaran berhasil. Kode tiket Anda: :code',
-    'payment_required' => 'Pendaftaran diterima. Selesaikan pembayaran dalam :minutes menit agar kursi Anda tidak dilepas.',
+    'payment_required' => 'Pendaftaran diterima. Selesaikan pembayaran sebelum batas waktu agar kursi Anda tidak dilepas.',
     'payment_pending' => 'Menunggu Pembayaran',
     'payment_pending_note' => 'Kursi Anda ditahan sampai batas pembayaran. Selesaikan sekarang sebelum waktu habis.',
     'continue_payment' => 'Selesaikan Pembayaran',
     'payment_expired' => 'Pembayaran kedaluwarsa dan kursi sudah dilepas.',
     'register_and_pay' => 'Daftar & Bayar',
-    'paid_hold_note' => 'Kursi ditahan :minutes menit selama proses pembayaran QRIS.',
+    'paid_hold_note' => 'Kursi ditahan selama proses pembayaran (QRIS atau transfer bank).',
     'cancelled' => 'Pendaftaran dibatalkan.',
 
     'error_full' => 'Kuota acara ini sudah penuh.',

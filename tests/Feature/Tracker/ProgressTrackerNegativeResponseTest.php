@@ -98,28 +98,28 @@ class ProgressTrackerNegativeResponseTest extends TestCase
         );
     }
 
-    public function test_a_completed_project_is_indistinguishable_from_an_unknown_code(): void
+    public function test_a_completed_project_is_indistinguishable_from_an_unknown_code_without_the_contact(): void
     {
-        // The brief said "only the project that not done yet". Implemented as
-        // a uniform negative: saying "already finished" would confirm both the
-        // code AND the contact were correct.
+        // Completed projects ARE shown now, so the owner can download the final
+        // files -- but only after both factors. A wrong contact still gets the
+        // uniform negative, which is what keeps the code from being an oracle.
         $project = Project::factory()->completed()->create([
             'customer_phone' => '081234567890',
         ]);
         $code = $project->project_code;
 
-        $completed = $this->lookup($code, '081234567890');
+        $wrongContact = $this->lookup($code, '080000000000');
 
         $project->forceDelete();
-        $unknownCode = $this->lookup($code, '081234567890');
+        $unknownCode = $this->lookup($code, '080000000000');
 
-        $this->assertSame($unknownCode, $completed);
+        $this->assertSame($unknownCode, $wrongContact);
     }
 
     public function test_a_cancelled_project_is_indistinguishable_from_an_unknown_code(): void
     {
-        // Decision K10: cancelled is hidden like completed. A cancellation is
-        // a conversation for a person, not an announcement from a form.
+        // Decision K10: cancelled stays hidden. A cancellation is a
+        // conversation for a person, not an announcement from a form.
         $project = Project::factory()->cancelled()->create([
             'customer_phone' => '081234567890',
         ]);
@@ -148,7 +148,9 @@ class ProgressTrackerNegativeResponseTest extends TestCase
 
     public function test_no_negative_response_leaks_any_project_detail(): void
     {
-        $project = Project::factory()->completed()->create([
+        // A cancelled project is the strictest case left: it must not leak a
+        // single field even when the code AND contact are correct.
+        $project = Project::factory()->cancelled()->create([
             'customer_name' => 'Budi Santoso',
             'customer_phone' => '081234567890',
             'customer_email' => 'budi@example.test',
