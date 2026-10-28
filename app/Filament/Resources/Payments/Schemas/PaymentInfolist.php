@@ -66,6 +66,41 @@ class PaymentInfolist
                             : null),
                 ]),
 
+            Section::make('Bukti Pembayaran Manual')
+                ->columns(3)
+                ->schema([
+                    TextEntry::make('payment_proof_link')
+                        ->label('Bukti')
+                        ->state(fn (Payment $record) => $record->hasProof()
+                            ? 'Buka bukti pembayaran'
+                            : null)
+                        ->url(
+                            fn (Payment $record) => $record->hasProof()
+                                ? route('admin.payments.proof', ['payment' => $record])
+                                : null,
+                            shouldOpenInNewTab: true,
+                        )
+                        ->placeholder('Belum diunggah'),
+                    TextEntry::make('payment_proof_original_name')
+                        ->label('Nama file')
+                        ->placeholder('-'),
+                    TextEntry::make('payment_proof_uploaded_at')
+                        ->label('Diunggah')
+                        ->dateTime('d M Y H:i')
+                        ->placeholder('-'),
+                    TextEntry::make('payment_proof_note')
+                        ->label('Catatan customer')
+                        ->placeholder('-')
+                        ->columnSpanFull(),
+                    TextEntry::make('validated_at')
+                        ->label('Divalidasi')
+                        ->dateTime('d M Y H:i')
+                        ->placeholder('-'),
+                    TextEntry::make('validator.name')
+                        ->label('Divalidasi oleh')
+                        ->placeholder('-'),
+                ]),
+
             Section::make('Respons Midtrans')
                 ->collapsed()
                 ->schema([

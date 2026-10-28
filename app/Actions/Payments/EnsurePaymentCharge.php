@@ -28,7 +28,20 @@ class EnsurePaymentCharge
         $service = app(MidtransQrisService::class);
 
         if (! $service->isConfigured()) {
-            return null;
+            /*
+             * Gateway belum bisa diakses. Jangan biarkan halaman pembayaran
+             * buntu: alihkan order ini ke transfer bank manual dan beri
+             * jendela validasi yang lebih panjang. Hanya dikonversi sekali
+             * agar expires_at tidak terus diperpanjang setiap kali halaman
+             * dibuka.
+             *
+             * Kode lama (tetap disimpan sebagai referensi):
+             *
+             * return null;
+             */
+            $this->markAsManual($payment);
+
+            return $payment->qrUrl();
         }
 
         try {
@@ -91,5 +104,25 @@ class EnsurePaymentCharge
         ])->save();
 
         return $result['qr_url'];
+    }
+
+    /**
+     * Switch a pending order to manual bank transfer and widen its window.
+     *
+     * Idempotent: once payment_type is bank_transfer the deadline is left
+     * alone, so refreshing the page cannot postpone expiry forever.
+     */
+    private function markAsManual(Payment $payment): void
+    {
+        if ($payment->isManual()) {
+            return;
+        }
+
+        $hours = max(1, (int) config('payments.manual_expiry_hours', 24));
+
+        $payment->forceFill([
+            'payment_type' => Payment::TYPE_BANK_TRANSFER,
+            'expires_at' => now()->addHours($hours),
+        ])->save();
     }
 }

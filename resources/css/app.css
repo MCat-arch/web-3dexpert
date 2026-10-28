@@ -2743,6 +2743,23 @@ body.has-event-dialog {
     margin-top: 12px;
 }
 
+/* Manual bank transfer (gateway not configured yet) */
+.payment-bank {
+    margin-bottom: 18px;
+    padding: 0 16px;
+    border: 1px solid var(--line-light);
+    border-radius: 12px;
+    background: rgba(254, 202, 7, 0.06);
+}
+
+.payment-bank .payment-detail:last-child {
+    border-bottom: 0;
+}
+
+.payment-proof-form {
+    margin-top: 4px;
+}
+
 .payment-countdown {
     display: flex;
     align-items: center;

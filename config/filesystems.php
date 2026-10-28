@@ -95,6 +95,22 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Manual payment proofs (bank transfer receipts).
+         *
+         * Private like 'applications': the file is customer PII (account
+         * names, amounts) and must never be reachable from a public URL. Every
+         * read goes through PaymentProofController after an owner/staff check.
+         */
+        'proofs' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/payment-proofs'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Payment;
 use App\Notifications\Events\RegistrationConfirmed;
+use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
@@ -146,23 +147,32 @@ class PaymentFlowTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_payment_page_without_midtrans_keys_still_records_the_pending_order(): void
+    public function test_payment_page_without_midtrans_keys_switches_to_manual_bank_transfer(): void
     {
         config()->set('midtrans.server_key', null);
+        Settings::flush();
 
         [, , $payment, $customer] = $this->pendingEventPayment();
 
         Http::fake();
 
-        $this->actingAs($customer, 'customer')
-            ->get('/pembayaran/'.$payment->order_id)
-            ->assertOk()
-            ->assertSee(__('payments.qr_unavailable_title'))
-            ->assertSee(__('payments.contact_admin'))
+        $response = $this->actingAs($customer, 'customer')
+            ->get('/pembayaran/'.$payment->order_id);
+
+        $response->assertOk()
+            ->assertSee(__('payments.manual_heading'))
+            ->assertSee(__('payments.bank_missing_title'))
+            ->assertDontSee(__('payments.qr_heading'))
             ->assertDontSee('Simulasi Pembayaran');
 
         Http::assertNothingSent();
-        $this->assertSame(Payment::STATUS_PENDING, $payment->fresh()->status);
+
+        $payment->refresh();
+
+        $this->assertSame(Payment::STATUS_PENDING, $payment->status);
+        $this->assertSame(Payment::TYPE_BANK_TRANSFER, $payment->payment_type);
+        $this->assertTrue($payment->isManual());
+        $this->assertTrue($payment->expires_at->greaterThan(now()->addHours(23)));
     }
 
     public function test_a_signed_webhook_settles_once_and_is_idempotent(): void

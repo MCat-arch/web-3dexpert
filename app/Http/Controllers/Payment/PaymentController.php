@@ -49,6 +49,8 @@ class PaymentController extends Controller
             'qrUrl' => $payment->qrUrl(),
             'chargeError' => $payment->chargeError(),
             'expiryMinutes' => (int) config('payments.expiry_minutes', 15),
+            'expiryHours' => (int) config('payments.manual_expiry_hours', 24),
+            'isManual' => $payment->isManual(),
         ]);
     }
 

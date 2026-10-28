@@ -2,7 +2,7 @@
 
 return [
     'title' => 'Payment',
-    'meta_description' => 'Complete your QRIS payment for a 3D Expert course or event.',
+    'meta_description' => 'Complete your 3D Expert course or event payment via QRIS or bank transfer.',
     'breadcrumb' => 'Payment',
 
     'kind_event' => 'Event Registration',
@@ -14,6 +14,7 @@ return [
     'status' => 'Status',
     'method' => 'Method',
     'method_qris' => 'QRIS',
+    'method_bank_transfer' => 'Bank Transfer',
     'created_at' => 'Created',
     'expires_at' => 'Payment Deadline',
     'reference' => 'Ticket Code',
@@ -30,8 +31,34 @@ return [
     'contact_admin' => 'Contact Admin',
     'retry_charge' => 'Reload Page',
 
+    // Manual bank transfer
+    'manual_heading' => 'Bank Transfer',
+    'manual_instruction' => 'Transfer the exact amount below to our official account, then upload your payment proof.',
+    'bank_name' => 'Bank',
+    'bank_account' => 'Account Number',
+    'bank_holder' => 'Account Holder',
+    'bank_amount' => 'Transfer Amount',
+    'bank_missing_title' => 'Bank account not available yet',
+    'bank_missing_body' => 'The admin has not filled in the bank details yet. Please contact the admin to finish your payment.',
+    'proof_label' => 'Payment Proof',
+    'proof_help' => 'JPG, PNG, or PDF. Maximum 4 MB.',
+    'proof_note_label' => 'Note (optional)',
+    'proof_note_placeholder' => 'Example: transferred from an account under the name ...',
+    'proof_submit' => 'Send Payment Proof',
+    'proof_uploaded_flash' => 'Payment proof uploaded. Waiting for admin validation.',
+    'proof_waiting_title' => 'Proof received',
+    'proof_waiting_body' => 'Your payment is being verified by the admin. Access activates automatically once the payment is validated.',
+    'proof_uploaded_at' => 'Uploaded: :time',
+    'proof_view_mine' => 'View my proof',
+    'proof_not_pending' => 'This payment is no longer awaiting payment, so a proof cannot be uploaded.',
+    'proof_upload_failed' => 'The payment proof could not be stored. Please try again.',
+    'proof_cannot_validate' => 'This payment has no proof to validate yet.',
+    'proof_cannot_reject' => 'This payment has no proof to reject yet.',
+    'proof_reject_reason_required' => 'A rejection reason is required.',
+
     'countdown_label' => 'Complete payment within',
     'countdown_note' => 'Your seat or access is held for :minutes minutes. When the time is up, the order is cancelled automatically.',
+    'countdown_note_manual' => 'Your access is held for :hours hours. Upload your proof before the deadline so the admin can validate the payment.',
     'countdown_expired' => 'The payment window has ended.',
 
     'status_pending' => 'Awaiting Payment',
@@ -61,4 +88,5 @@ return [
     'retry_action' => 'Go Back and Try Again',
     'back_action' => 'Back',
     'secure_note' => 'Payment is processed by Midtrans. 3D Expert does not store your card data or PIN.',
+    'secure_note_manual' => 'Only transfer to the official 3D Expert account shown on this page.',
 ];

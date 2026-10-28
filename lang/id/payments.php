@@ -2,7 +2,7 @@
 
 return [
     'title' => 'Pembayaran',
-    'meta_description' => 'Selesaikan pembayaran QRIS untuk kursus atau acara 3D Expert.',
+    'meta_description' => 'Selesaikan pembayaran kursus atau acara 3D Expert melalui QRIS atau transfer bank.',
     'breadcrumb' => 'Pembayaran',
 
     'kind_event' => 'Pendaftaran Acara',
@@ -14,6 +14,7 @@ return [
     'status' => 'Status',
     'method' => 'Metode',
     'method_qris' => 'QRIS',
+    'method_bank_transfer' => 'Transfer Bank',
     'created_at' => 'Dibuat',
     'expires_at' => 'Batas Pembayaran',
     'reference' => 'Kode Tiket',
@@ -30,8 +31,34 @@ return [
     'contact_admin' => 'Hubungi Admin',
     'retry_charge' => 'Muat Ulang Halaman',
 
+    // Manual bank transfer
+    'manual_heading' => 'Transfer Bank',
+    'manual_instruction' => 'Silakan transfer sesuai nominal di bawah ini ke rekening resmi kami, lalu unggah bukti pembayaran.',
+    'bank_name' => 'Bank',
+    'bank_account' => 'Nomor Rekening',
+    'bank_holder' => 'Atas Nama',
+    'bank_amount' => 'Nominal Transfer',
+    'bank_missing_title' => 'Rekening belum tersedia',
+    'bank_missing_body' => 'Admin belum mengisi data rekening. Silakan hubungi admin untuk menyelesaikan pembayaran.',
+    'proof_label' => 'Bukti Pembayaran',
+    'proof_help' => 'Format JPG, PNG, atau PDF. Maksimal 4 MB.',
+    'proof_note_label' => 'Catatan (opsional)',
+    'proof_note_placeholder' => 'Contoh: transfer dari rekening a.n. ...',
+    'proof_submit' => 'Kirim Bukti Pembayaran',
+    'proof_uploaded_flash' => 'Bukti pembayaran berhasil diunggah. Menunggu validasi admin.',
+    'proof_waiting_title' => 'Bukti sudah diterima',
+    'proof_waiting_body' => 'Pembayaran Anda sedang diverifikasi admin. Akses akan aktif otomatis setelah pembayaran divalidasi.',
+    'proof_uploaded_at' => 'Diunggah: :time',
+    'proof_view_mine' => 'Lihat bukti saya',
+    'proof_not_pending' => 'Pembayaran ini sudah tidak menunggu pembayaran, bukti tidak dapat diunggah.',
+    'proof_upload_failed' => 'Bukti pembayaran gagal disimpan. Silakan coba lagi.',
+    'proof_cannot_validate' => 'Pembayaran ini belum memiliki bukti untuk divalidasi.',
+    'proof_cannot_reject' => 'Pembayaran ini belum memiliki bukti untuk ditolak.',
+    'proof_reject_reason_required' => 'Alasan penolakan wajib diisi.',
+
     'countdown_label' => 'Selesaikan pembayaran dalam',
     'countdown_note' => 'Kursi atau akses Anda ditahan selama :minutes menit. Setelah waktu habis, pesanan dibatalkan otomatis.',
+    'countdown_note_manual' => 'Akses Anda ditahan selama :hours jam. Unggah bukti sebelum waktu habis agar admin dapat memvalidasi pembayaran.',
     'countdown_expired' => 'Waktu pembayaran habis.',
 
     'status_pending' => 'Menunggu Pembayaran',
@@ -61,4 +88,5 @@ return [
     'retry_action' => 'Kembali dan Coba Lagi',
     'back_action' => 'Kembali',
     'secure_note' => 'Pembayaran diproses oleh Midtrans. 3D Expert tidak menyimpan data kartu atau PIN Anda.',
+    'secure_note_manual' => 'Transfer hanya ke rekening resmi 3D Expert yang tertera di halaman ini.',
 ];

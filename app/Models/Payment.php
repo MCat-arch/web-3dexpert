@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -12,6 +13,12 @@ use Illuminate\Support\Str;
 class Payment extends Model
 {
     use HasFactory;
+
+    /** Manual bank transfer, used while the gateway is not configured yet. */
+    public const TYPE_BANK_TRANSFER = 'bank_transfer';
+
+    /** Private disk holding uploaded transfer receipts. */
+    public const PROOF_DISK = 'proofs';
 
     public const STATUS_PENDING = 'pending';
 
@@ -36,6 +43,12 @@ class Payment extends Model
         'raw_response',
         'expires_at',
         'paid_at',
+        'payment_proof_path',
+        'payment_proof_original_name',
+        'payment_proof_note',
+        'payment_proof_uploaded_at',
+        'validated_at',
+        'validated_by',
     ];
 
     protected function casts(): array
@@ -45,12 +58,30 @@ class Payment extends Model
             'raw_response' => 'array',
             'expires_at' => 'datetime',
             'paid_at' => 'datetime',
+            'payment_proof_uploaded_at' => 'datetime',
+            'validated_at' => 'datetime',
         ];
     }
 
     public function payable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /** The staff member who validated a manual bank transfer. */
+    public function validator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    public function isManual(): bool
+    {
+        return $this->payment_type === self::TYPE_BANK_TRANSFER;
+    }
+
+    public function hasProof(): bool
+    {
+        return filled($this->payment_proof_path);
     }
 
     public function isSettled(): bool

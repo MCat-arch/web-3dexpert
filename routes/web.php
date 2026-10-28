@@ -27,6 +27,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Payment\MidtransNotificationController;
 use App\Http\Controllers\Payment\PaymentController;
+use App\Http\Controllers\Payment\PaymentProofController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\Project\ProjectLookupController;
 use App\Http\Controllers\ServiceController;
@@ -117,6 +118,13 @@ $publicRoutes = function (): void {
     Route::middleware(['auth:customer', EnsureCustomerIsActive::class, 'verified.customer'])->group(function () {
         Route::get('pembayaran/{order_id}', [PaymentController::class, 'show'])->name('payments.show');
         Route::post('pembayaran/{order_id}/simulasi', [PaymentController::class, 'simulate'])->name('payments.simulate');
+
+        // Manual bank transfer: the customer uploads a receipt and can
+        // re-open the file they sent. Owner-only, checked in the controller.
+        Route::post('pembayaran/{order_id}/bukti', [PaymentProofController::class, 'store'])
+            ->name('payments.proof.store');
+        Route::get('pembayaran/{order_id}/bukti', [PaymentProofController::class, 'file'])
+            ->name('payments.proof.file');
     });
 
     /*
@@ -257,3 +265,14 @@ Route::post('pembayaran/notifikasi', MidtransNotificationController::class)
 Route::middleware('auth')
     ->get('admin/tugas/{submission}/berkas', [AssignmentDownloadController::class, 'downloadStaff'])
     ->name('admin.assignment-submissions.download');
+
+/*
+ * Payment proof download for staff (manual bank transfer receipts).
+ *
+ * Same pattern as the applicant-document route above: outside the locale
+ * groups because it returns bytes, protected by 'auth', and the controller
+ * re-checks AREA_PAYMENTS before streaming.
+ */
+Route::middleware('auth')
+    ->get('admin/pembayaran/{payment}/bukti', [PaymentProofController::class, 'staff'])
+    ->name('admin.payments.proof');

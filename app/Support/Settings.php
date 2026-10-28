@@ -82,6 +82,18 @@ class Settings
         // iframe treatment produced an empty box.
         'company_maps_url' => ['string',  false, 'company'],
 
+        /*
+         * Manual bank transfer (gateway not available yet).
+         *
+         * Read by payments/show.blade.php and editable in Filament > Site
+         * Settings (group "payments"). Bank name, account number, and the
+         * account holder name are shown to the customer on their own payment
+         * page only -- never on a public page.
+         */
+        'payment_bank_name' => ['string', false, 'payments'],
+        'payment_bank_account' => ['string', false, 'payments'],
+        'payment_bank_holder' => ['string', false, 'payments'],
+
         // SEO defaults
         'seo_title' => ['string',  true,  'seo'],
         'seo_description' => ['text',    true,  'seo'],

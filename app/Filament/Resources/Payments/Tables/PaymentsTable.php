@@ -3,12 +3,15 @@
 namespace App\Filament\Resources\Payments\Tables;
 
 use App\Actions\Payments\RefundPayment;
+use App\Actions\Payments\RejectPaymentProof;
+use App\Actions\Payments\ValidateManualPayment;
 use App\Models\CourseEnrollment;
 use App\Models\EventRegistration;
 use App\Models\Payment;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -16,6 +19,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use InvalidArgumentException;
 
 class PaymentsTable
 {
@@ -78,6 +82,11 @@ class PaymentsTable
                     }),
                 TextColumn::make('payment_type')->label('Metode')->placeholder('-')->toggleable(),
                 TextColumn::make('midtrans_transaction_id')->label('Midtrans ID')->toggleable()->searchable(),
+                TextColumn::make('payment_proof_uploaded_at')
+                    ->label('Bukti diunggah')
+                    ->dateTime('d M Y H:i')
+                    ->placeholder('-')
+                    ->toggleable(),
                 TextColumn::make('paid_at')->label('Dibayar')->dateTime('d M Y H:i')->placeholder('-')->sortable(),
                 TextColumn::make('created_at')->label('Dibuat')->dateTime('d M Y')->sortable(),
             ])
@@ -103,9 +112,84 @@ class PaymentsTable
                             ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('paid_at', '>=', $date))
                             ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('paid_at', '<=', $date));
                     }),
+                Filter::make('proof_uploaded')
+                    ->label('Sudah unggah bukti')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('payment_proof_path')),
             ])
             ->recordActions([
                 ViewAction::make(),
+
+                Action::make('view_proof')
+                    ->label('Lihat bukti')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->visible(fn (Payment $record) => $record->hasProof())
+                    ->url(fn (Payment $record) => route('admin.payments.proof', ['payment' => $record]))
+                    ->openUrlInNewTab(),
+
+                Action::make('validate_manual')
+                    ->label('Validasi')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (Payment $record) => $record->isPending() && $record->hasProof())
+                    ->requiresConfirmation()
+                    ->modalHeading('Validasi pembayaran manual')
+                    ->modalDescription('Pastikan nominal transfer sudah sesuai. Status akan menjadi settlement dan akses kursus/acara langsung diberikan.')
+                    ->action(function (Payment $record) {
+                        try {
+                            app(ValidateManualPayment::class)($record, auth()->user());
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Validasi gagal')
+                                ->body($e->getMessage())
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Pembayaran tervalidasi dan akses diberikan')
+                            ->send();
+                    }),
+
+                Action::make('reject_proof')
+                    ->label('Tolak bukti')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (Payment $record) => $record->isPending() && $record->hasProof())
+                    ->schema([
+                        Textarea::make('reason')
+                            ->label('Alasan penolakan')
+                            ->rows(3)
+                            ->required()
+                            ->maxLength(500),
+                    ])
+                    ->modalHeading('Tolak bukti pembayaran')
+                    ->modalDescription('Pembayaran akan dibatalkan dan kursi/akses yang ditahan akan dilepas. Tindakan ini tidak dapat dibatalkan.')
+                    ->action(function (Payment $record, array $data) {
+                        try {
+                            app(RejectPaymentProof::class)(
+                                $record,
+                                (string) ($data['reason'] ?? ''),
+                                auth()->user(),
+                            );
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Gagal menolak bukti')
+                                ->body($e->getMessage())
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Bukti pembayaran ditolak dan akses dilepas')
+                            ->send();
+                    }),
 
                 Action::make('refund')
                     ->label('Refund')
