@@ -17,9 +17,9 @@ use RuntimeException;
  * deliverables and a closing note. Files are generated for real (PNG + PDF +
  * ZIP) on the private disk, so the download buttons actually work.
  *
- * Idempotent and NON-DESTRUCTIVE: an existing project with the same code is
- * left untouched, and files are only written while it has no attachments. Safe
- * to re-run in production.
+ * Idempotent and NON-DESTRUCTIVE: a real project that happens to share a code
+ * is never overwritten, rows are not duplicated, and only the demo's own
+ * missing files are rewritten. Safe to re-run in production.
  */
 class ProjectSeeder extends Seeder
 {
