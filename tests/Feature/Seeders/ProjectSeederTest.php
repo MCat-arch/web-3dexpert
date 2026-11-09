@@ -83,4 +83,36 @@ class ProjectSeederTest extends TestCase
         $this->assertSame(6, ProjectAttachment::count());
         $this->assertSame($fileCount, count(Storage::disk(ProjectAttachment::DISK)->allFiles()));
     }
+
+    public function test_it_restores_files_lost_from_the_disk(): void
+    {
+        $this->seed(ProjectSeeder::class);
+
+        Storage::disk(ProjectAttachment::DISK)->delete(
+            Storage::disk(ProjectAttachment::DISK)->allFiles(),
+        );
+
+        $this->seed(ProjectSeeder::class);
+
+        // Same rows, files written back: a container recreate used to wipe the
+        // disk while the database kept pointing at the missing paths.
+        $this->assertSame(6, ProjectAttachment::count());
+        $this->assertSame(6, count(Storage::disk(ProjectAttachment::DISK)->allFiles()));
+
+        foreach (ProjectAttachment::all() as $attachment) {
+            Storage::disk(ProjectAttachment::DISK)->assertExists($attachment->path);
+        }
+    }
+
+    public function test_it_recreates_missing_attachment_rows_for_an_existing_demo_project(): void
+    {
+        $this->seed(ProjectSeeder::class);
+
+        ProjectAttachment::query()->delete();
+
+        $this->seed(ProjectSeeder::class);
+
+        $this->assertSame(6, ProjectAttachment::count());
+        $this->assertSame(6, count(Storage::disk(ProjectAttachment::DISK)->allFiles()));
+    }
 }

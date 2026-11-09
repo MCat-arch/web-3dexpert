@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectAttachment;
 use App\Models\ProjectUpdate;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -35,137 +36,141 @@ class ProjectSeeder extends Seeder
 
     private function seedInProgress(): void
     {
-        if (Project::withTrashed()->where('project_code', self::IN_PROGRESS_CODE)->exists()) {
-            $this->command?->info('Demo "in progress": sudah ada, dilewati.');
+        $project = Project::withTrashed()->where('project_code', self::IN_PROGRESS_CODE)->first();
 
-            return;
+        if (! $project) {
+            $project = Project::create([
+                'project_code' => self::IN_PROGRESS_CODE,
+                'customer_name' => 'Budi Santoso',
+                'customer_phone' => '081234567890',
+                'customer_email' => 'budi.santoso@example.test',
+                'title' => 'Desain Interior Rumah Tinggal Bapak Budi',
+                'current_stage' => 'Gambar Kerja',
+                'progress_percent' => 55,
+                'status' => Project::STATUS_IN_PROGRESS,
+                'started_at' => now()->subWeeks(3),
+                'estimated_completion_at' => now()->addWeeks(3),
+                'is_visible' => true,
+            ]);
+
+            $this->update($project, 1, 'Survei & Pengukuran', ProjectUpdate::STATUS_DONE, now()->subWeeks(3), 'Pengukuran lokasi selesai. Denah eksisting sudah disetujui.');
+            $this->update($project, 2, 'Konsep Desain', ProjectUpdate::STATUS_DONE, now()->subWeeks(2), 'Moodboard dan konsep warna disetujui via WhatsApp.');
+            $this->update($project, 3, 'Gambar Kerja', ProjectUpdate::STATUS_IN_PROGRESS, now()->subDays(4), 'Sedang menyusun gambar kerja MEP dan detail furniture.');
+            $this->update($project, 4, 'Render Final & Serah Terima', ProjectUpdate::STATUS_PENDING, now()->addWeeks(2), 'Menunggu persetujuan gambar kerja.');
+
+            $this->command?->info('Demo "in progress" dibuat: '.self::IN_PROGRESS_CODE);
         }
 
-        $project = Project::create([
-            'project_code' => self::IN_PROGRESS_CODE,
-            'customer_name' => 'Budi Santoso',
-            'customer_phone' => '081234567890',
-            'customer_email' => 'budi.santoso@example.test',
-            'title' => 'Desain Interior Rumah Tinggal Bapak Budi',
-            'current_stage' => 'Gambar Kerja',
-            'progress_percent' => 55,
-            'status' => Project::STATUS_IN_PROGRESS,
-            'started_at' => now()->subWeeks(3),
-            'estimated_completion_at' => now()->addWeeks(3),
-            'is_visible' => true,
-        ]);
+        $updates = $project->updates()->get()->keyBy('sort_order');
 
-        $survey = $this->update($project, 1, 'Survei & Pengukuran', ProjectUpdate::STATUS_DONE, now()->subWeeks(3), 'Pengukuran lokasi selesai. Denah eksisting sudah disetujui.');
-        $concept = $this->update($project, 2, 'Konsep Desain', ProjectUpdate::STATUS_DONE, now()->subWeeks(2), 'Moodboard dan konsep warna disetujui via WhatsApp.');
-        $working = $this->update($project, 3, 'Gambar Kerja', ProjectUpdate::STATUS_IN_PROGRESS, now()->subDays(4), 'Sedang menyusun gambar kerja MEP dan detail furniture.');
-        $this->update($project, 4, 'Render Final & Serah Terima', ProjectUpdate::STATUS_PENDING, now()->addWeeks(2), 'Menunggu persetujuan gambar kerja.');
-
-        $this->attach(
-            $project,
-            $working,
-            'Denah & tampak (PDF)',
-            ProjectAttachment::KIND_PROGRESS,
-            'denah-tampak-rev2.pdf',
-            $this->pdf('Denah & Tampak - Revisi 2', [
+        /*
+         * Files are checked separately from rows: a container recreate used to
+         * wipe the (then unmounted) disk while the rows survived in MySQL, so
+         * "project exists" must not mean "nothing to restore".
+         */
+        $changed = $this->ensureAttachments($project, [
+            [3, 'Denah & tampak (PDF)', ProjectAttachment::KIND_PROGRESS, 'denah-tampak-rev2.pdf', fn () => $this->pdf('Denah & Tampak - Revisi 2', [
                 'Proyek: Desain Interior Rumah Tinggal Bapak Budi',
                 'Tahap: Gambar Kerja',
                 'Lantai 1 : ruang tamu, dapur, kamar utama',
                 'Lantai 2 : 2 kamar anak, ruang kerja',
                 'Skala gambar 1:100, satuan milimeter',
-            ]),
-            1,
-        );
+            ]), 1],
+            [2, 'Render konsep ruang tamu', ProjectAttachment::KIND_PROGRESS, 'render-konsep-ruang-tamu.png', fn () => $this->png(960, 540, [196, 158, 96]), 2],
+            [null, 'Foto progres di lokasi', ProjectAttachment::KIND_PROGRESS, 'progres-lokasi-minggu-3.png', fn () => $this->png(960, 540, [88, 104, 120]), 3],
+        ], $updates);
 
-        $this->attach(
-            $project,
-            $concept,
-            'Render konsep ruang tamu',
-            ProjectAttachment::KIND_PROGRESS,
-            'render-konsep-ruang-tamu.png',
-            $this->png(960, 540, [196, 158, 96]),
-            2,
-        );
-
-        $this->attach(
-            $project,
-            null,
-            'Foto progres di lokasi',
-            ProjectAttachment::KIND_PROGRESS,
-            'progres-lokasi-minggu-3.png',
-            $this->png(960, 540, [88, 104, 120]),
-            3,
-        );
-
-        $this->command?->info('Demo "in progress" dibuat: '.self::IN_PROGRESS_CODE);
+        if (! $project->wasRecentlyCreated) {
+            $this->command?->info($changed > 0
+                ? 'Demo "in progress": file yang hilang dipulihkan.'
+                : 'Demo "in progress": sudah ada, dilewati.');
+        }
     }
 
     private function seedCompleted(): void
     {
-        if (Project::withTrashed()->where('project_code', self::COMPLETED_CODE)->exists()) {
-            $this->command?->info('Demo "completed": sudah ada, dilewati.');
+        $project = Project::withTrashed()->where('project_code', self::COMPLETED_CODE)->first();
 
-            return;
+        if (! $project) {
+            $project = Project::create([
+                'project_code' => self::COMPLETED_CODE,
+                'customer_name' => 'Sari Wulandari',
+                'customer_phone' => '081298765432',
+                'customer_email' => 'sari.wulandari@example.test',
+                'title' => 'Desain Fasad & Landscape Villa Ibu Sari',
+                'current_stage' => 'Serah terima',
+                'status' => Project::STATUS_COMPLETED,
+                'started_at' => now()->subMonths(2),
+                'estimated_completion_at' => now()->subWeek(),
+                'completed_at' => now()->subDays(5),
+                'summary' => 'Seluruh gambar kerja, render final, dan file 3D sudah diserahkan. '
+                    .'Fasad menggunakan kombinasi batu alam dan kusen kayu, taman depan ditata '
+                    .'dengan tanaman tropis rendah perawatan. File master dapat dipakai langsung '
+                    .'oleh kontraktor; hubungi admin bila perlu format tambahan.',
+                'is_visible' => true,
+            ]);
+
+            $this->update($project, 1, 'Survei & Konsep', ProjectUpdate::STATUS_DONE, now()->subMonths(2), 'Konsep fasad dan layout taman disetujui.');
+            $this->update($project, 2, 'Gambar Kerja', ProjectUpdate::STATUS_DONE, now()->subWeeks(4), 'Gambar kerja fasad, potongan, dan detail taman selesai.');
+            $this->update($project, 3, 'Render Final', ProjectUpdate::STATUS_DONE, now()->subWeeks(2), 'Enam render final (siang & malam) disetujui.');
+            $this->update($project, 4, 'Serah Terima', ProjectUpdate::STATUS_DONE, now()->subDays(5), 'Semua berkas diserahkan melalui halaman ini.');
+
+            $this->command?->info('Demo "completed" dibuat: '.self::COMPLETED_CODE);
         }
 
-        $project = Project::create([
-            'project_code' => self::COMPLETED_CODE,
-            'customer_name' => 'Sari Wulandari',
-            'customer_phone' => '081298765432',
-            'customer_email' => 'sari.wulandari@example.test',
-            'title' => 'Desain Fasad & Landscape Villa Ibu Sari',
-            'current_stage' => 'Serah terima',
-            'status' => Project::STATUS_COMPLETED,
-            'started_at' => now()->subMonths(2),
-            'estimated_completion_at' => now()->subWeek(),
-            'completed_at' => now()->subDays(5),
-            'summary' => 'Seluruh gambar kerja, render final, dan file 3D sudah diserahkan. '
-                .'Fasad menggunakan kombinasi batu alam dan kusen kayu, taman depan ditata '
-                .'dengan tanaman tropis rendah perawatan. File master dapat dipakai langsung '
-                .'oleh kontraktor; hubungi admin bila perlu format tambahan.',
-            'is_visible' => true,
-        ]);
-
-        $this->update($project, 1, 'Survei & Konsep', ProjectUpdate::STATUS_DONE, now()->subMonths(2), 'Konsep fasad dan layout taman disetujui.');
-        $this->update($project, 2, 'Gambar Kerja', ProjectUpdate::STATUS_DONE, now()->subWeeks(4), 'Gambar kerja fasad, potongan, dan detail taman selesai.');
-        $this->update($project, 3, 'Render Final', ProjectUpdate::STATUS_DONE, now()->subWeeks(2), 'Enam render final (siang & malam) disetujui.');
-        $this->update($project, 4, 'Serah Terima', ProjectUpdate::STATUS_DONE, now()->subDays(5), 'Semua berkas diserahkan melalui halaman ini.');
-
-        $this->attach(
-            $project,
-            null,
-            'Paket gambar kerja lengkap (ZIP)',
-            ProjectAttachment::KIND_DELIVERABLE,
-            'gambar-kerja-villa-sari.zip',
-            $this->zip('gambar-kerja-villa-sari/README.txt', "Paket gambar kerja Villa Ibu Sari\n- fasad.pdf\n- potongan.pdf\n- detail-taman.pdf\n"),
-            1,
-        );
-
-        $this->attach(
-            $project,
-            null,
-            'Render final fasad (PDF)',
-            ProjectAttachment::KIND_DELIVERABLE,
-            'render-final-fasad.pdf',
-            $this->pdf('Render Final - Fasad Villa Ibu Sari', [
+        $changed = $this->ensureAttachments($project, [
+            [null, 'Paket gambar kerja lengkap (ZIP)', ProjectAttachment::KIND_DELIVERABLE, 'gambar-kerja-villa-sari.zip', fn () => $this->zip('gambar-kerja-villa-sari/README.txt', "Paket gambar kerja Villa Ibu Sari\n- fasad.pdf\n- potongan.pdf\n- detail-taman.pdf\n"), 1],
+            [null, 'Render final fasad (PDF)', ProjectAttachment::KIND_DELIVERABLE, 'render-final-fasad.pdf', fn () => $this->pdf('Render Final - Fasad Villa Ibu Sari', [
                 'Sudut pandang: depan, samping kanan, taman belakang',
                 'Material: batu alam andesit, kusen kayu merbau, kaca low-e',
                 'Pencahayaan: skenario siang dan malam',
                 'Resolusi master 4K, tersedia atas permintaan',
-            ]),
-            2,
-        );
+            ]), 2],
+            [null, 'Foto hasil akhir di lokasi', ProjectAttachment::KIND_DELIVERABLE, 'foto-hasil-akhir.png', fn () => $this->png(960, 540, [72, 120, 96]), 3],
+        ]);
 
-        $this->attach(
-            $project,
-            null,
-            'Foto hasil akhir di lokasi',
-            ProjectAttachment::KIND_DELIVERABLE,
-            'foto-hasil-akhir.png',
-            $this->png(960, 540, [72, 120, 96]),
-            3,
-        );
+        if (! $project->wasRecentlyCreated) {
+            $this->command?->info($changed > 0
+                ? 'Demo "completed": file yang hilang dipulihkan.'
+                : 'Demo "completed": sudah ada, dilewati.');
+        }
+    }
 
-        $this->command?->info('Demo "completed" dibuat: '.self::COMPLETED_CODE);
+    /**
+     * Creates any missing demo attachment row and rewrites any missing file at
+     * its recorded path. Returns how many rows/files it had to touch.
+     *
+     * @param  array<int, array{0: int|null, 1: string, 2: string, 3: string, 4: \Closure(): string, 5: int}>  $specs
+     * @param  Collection<int, ProjectUpdate>|null  $updates
+     */
+    private function ensureAttachments(Project $project, array $specs, $updates = null): int
+    {
+        $changed = 0;
+
+        foreach ($specs as [$updateOrder, $title, $kind, $fileName, $contents, $sortOrder]) {
+            $update = $updateOrder === null ? null : $updates?->get($updateOrder);
+
+            $attachment = $project->attachments()
+                ->where('original_name', $fileName)
+                ->first();
+
+            if (! $attachment) {
+                $this->attach($project, $update, $title, $kind, $fileName, $contents(), $sortOrder);
+                $changed++;
+
+                continue;
+            }
+
+            if (! Storage::disk(ProjectAttachment::DISK)->exists($attachment->path)) {
+                Storage::disk(ProjectAttachment::DISK)->put($attachment->path, $contents());
+
+                // Refresh mime_type/size_kb from the bytes just written.
+                $attachment->save();
+                $changed++;
+            }
+        }
+
+        return $changed;
     }
 
     private function update(Project $project, int $order, string $stage, string $status, $occurredAt, string $note): ProjectUpdate
