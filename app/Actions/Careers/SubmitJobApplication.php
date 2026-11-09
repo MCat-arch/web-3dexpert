@@ -186,7 +186,9 @@ class SubmitJobApplication
             'disk' => 'applications',
             'path' => $path,
             'original_filename' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType(),
+            // From the bytes, not the browser's claim: view() uses this to
+            // decide whether the file may be rendered inline.
+            'mime_type' => $file->getMimeType(),
             'size_bytes' => $file->getSize(),
             'checksum' => hash_file('sha256', Storage::disk('applications')->path($path)),
         ]);
