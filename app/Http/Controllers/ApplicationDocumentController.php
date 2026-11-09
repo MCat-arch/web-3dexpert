@@ -38,10 +38,12 @@ class ApplicationDocumentController extends Controller
 
         abort_unless($document->exists(), 404);
 
-        // Who downloaded whose CV, and when. Applicant documents are the
-        // densest PII in the application, so access is auditable.
+        // Who opened whose CV, and when. Applicant documents are the densest
+        // PII in the application, so access is auditable.
         app(AuditLogger::class)->documentDownloaded($document);
 
-        return $document->download();
+        // Inline, so clicking the link in the staff panel shows the PDF
+        // instead of forcing a download. see JobApplicationDocument::view().
+        return $document->view();
     }
 }

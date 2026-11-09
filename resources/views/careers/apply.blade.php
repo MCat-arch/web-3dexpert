@@ -55,31 +55,29 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="portfolio_url" class="form-label">
-                        {{ __('careers.portfolio_url') }}
+                    <label for="cv" class="form-label">
+                        {{ __('careers.cv') }}<span style="color: var(--gold-hover);" aria-hidden="true">*</span>
                     </label>
-                    <input id="portfolio_url" name="portfolio_url" type="url" inputmode="url"
-                        class="form-input" value="{{ old('portfolio_url') }}"
-                        placeholder="https://">
-                    <p class="form-help">{{ __('careers.portfolio_url_hint') }}</p>
-                    @error('portfolio_url')
+                    <input id="cv" name="cv" type="file" required accept="application/pdf"
+                        class="form-input" style="padding: 8px;">
+                    <p class="form-help">
+                        {{ __('careers.cv_hint', ['mb' => \App\Http\Requests\Careers\JobApplicationRequest::MAX_CV_KB / 1024]) }}
+                    </p>
+                    @error('cv')
                         <p class="form-error">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div class="form-group">
-                    <label for="documents" class="form-label">
-                        {{ __('careers.documents') }}<span style="color: var(--gold-hover);" aria-hidden="true">*</span>
+                    <label for="portfolio" class="form-label">
+                        {{ __('careers.portfolio') }}<span style="color: var(--gold-hover);" aria-hidden="true">*</span>
                     </label>
-                    <input id="documents" name="documents[]" type="file" multiple required accept="application/pdf"
+                    <input id="portfolio" name="portfolio" type="file" required accept="application/pdf"
                         class="form-input" style="padding: 8px;">
                     <p class="form-help">
-                        {{ __('careers.documents_hint', ['mb' => \App\Http\Requests\Careers\JobApplicationRequest::MAX_FILE_KB / 1024]) }}
+                        {{ __('careers.portfolio_hint', ['mb' => \App\Http\Requests\Careers\JobApplicationRequest::MAX_PORTFOLIO_KB / 1024]) }}
                     </p>
-                    @error('documents')
-                        <p class="form-error">{{ $message }}</p>
-                    @enderror
-                    @error('documents.*')
+                    @error('portfolio')
                         <p class="form-error">{{ $message }}</p>
                     @enderror
                 </div>

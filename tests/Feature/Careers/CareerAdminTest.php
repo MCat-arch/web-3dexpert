@@ -81,6 +81,36 @@ class CareerAdminTest extends TestCase
             ->assertSee($application->applicant_name);
     }
 
+    public function test_the_document_section_links_to_inline_views_with_type_labels(): void
+    {
+        $application = $this->application();
+
+        JobApplicationDocument::factory()->for($application, 'application')->create([
+            'type' => JobApplicationDocument::TYPE_PORTFOLIO,
+            'original_filename' => 'portofolio-budi.pdf',
+        ]);
+
+        $this->actingAs($this->staff(), 'web')
+            ->get(JobApplicationResource::getUrl('view', ['record' => $application]))
+            ->assertOk()
+            ->assertSee('Lihat')
+            ->assertSee('target="_blank"', false)
+            ->assertSee('Portofolio')
+            ->assertSee('portofolio-budi.pdf');
+    }
+
+    public function test_a_legacy_portfolio_link_is_still_shown_for_old_applications(): void
+    {
+        $application = $this->application();
+        $application->forceFill(['portfolio_url' => 'https://www.behance.net/budi'])->save();
+
+        $this->actingAs($this->staff(), 'web')
+            ->get(JobApplicationResource::getUrl('view', ['record' => $application]))
+            ->assertOk()
+            ->assertSee('https://www.behance.net/budi')
+            ->assertSee('Link portofolio (lamaran lama)');
+    }
+
     public function test_applications_cannot_be_created_by_staff(): void
     {
         // They come from the public flow, which snapshots identity and writes

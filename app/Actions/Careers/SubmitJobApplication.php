@@ -41,14 +41,15 @@ class SubmitJobApplication
     private array $written = [];
 
     /**
-     * @param  array<int, UploadedFile>  $documents
+     * Both files are required by JobApplicationRequest: a CV (max 10 MB) and
+     * a portfolio (max 30 MB), each sent as its own field.
      */
     public function __invoke(
         JobVacancy $vacancy,
         Customer $customer,
-        array $documents,
+        UploadedFile $cv,
+        UploadedFile $portfolio,
         ?string $coverLetter = null,
-        ?string $portfolioUrl = null,
     ): JobApplication {
         if (! $customer->canEnroll()) {
             throw JobApplicationException::notVerified();
@@ -69,16 +70,15 @@ class SubmitJobApplication
         $this->written = [];
 
         try {
-            $application = DB::transaction(function () use ($vacancy, $customer, $documents, $coverLetter, $portfolioUrl, $existing) {
-                $application = $this->record($vacancy, $customer, $coverLetter, $portfolioUrl, $existing);
+            $application = DB::transaction(function () use ($vacancy, $customer, $cv, $portfolio, $coverLetter, $existing) {
+                $application = $this->record($vacancy, $customer, $coverLetter, $existing);
 
                 // A reapply replaces the previous attempt's documents rather
                 // than accumulating both sets.
                 $this->discardPreviousDocuments($application);
 
-                foreach ($documents as $index => $file) {
-                    $this->store($application, $file, $index);
-                }
+                $this->store($application, $cv, JobApplicationDocument::TYPE_CV);
+                $this->store($application, $portfolio, JobApplicationDocument::TYPE_PORTFOLIO);
 
                 return $application;
             });
@@ -111,7 +111,6 @@ class SubmitJobApplication
         JobVacancy $vacancy,
         Customer $customer,
         ?string $coverLetter,
-        ?string $portfolioUrl,
         ?JobApplication $existing,
     ): JobApplication {
         $attributes = [
@@ -128,7 +127,11 @@ class SubmitJobApplication
             'applicant_phone' => $customer->phone,
 
             'cover_letter' => $coverLetter,
-            'portfolio_url' => $portfolioUrl,
+
+            // The portfolio is a file now. Cleared rather than kept so a
+            // reapplied row never shows a stale link from the previous
+            // attempt; only legacy applications still carry one for display.
+            'portfolio_url' => null,
             'status' => JobApplication::STATUS_SUBMITTED,
             'status_changed_at' => now(),
             'submitted_at' => now(),
@@ -158,7 +161,7 @@ class SubmitJobApplication
         }
     }
 
-    private function store(JobApplication $application, UploadedFile $file, int $index): void
+    private function store(JobApplication $application, UploadedFile $file, string $type): void
     {
         /*
          * The on-disk name is GENERATED, never the uploaded one.
@@ -177,9 +180,9 @@ class SubmitJobApplication
 
         JobApplicationDocument::create([
             'job_application_id' => $application->getKey(),
-            // First file is the CV; the rest are supporting documents. A
-            // per-file type picker is more UI than this flow needs.
-            'type' => $index === 0 ? JobApplicationDocument::TYPE_CV : JobApplicationDocument::TYPE_OTHER,
+            // The form has exactly two required files, each with its own
+            // meaning, so the type comes from the field rather than position.
+            'type' => $type,
             'disk' => 'applications',
             'path' => $path,
             'original_filename' => $file->getClientOriginalName(),

@@ -959,8 +959,8 @@ server {
     listen [::]:80;
     server_name 3dexpert.pro www.3dexpert.pro;
 
-    # Upload lamaran: 5 berkas x 5 MB ditambah overhead form.
-    client_max_body_size 30m;
+    # Upload lamaran: CV 10 MB + portofolio 30 MB ditambah overhead form.
+    client_max_body_size 64m;
 
     location / {
         proxy_pass http://127.0.0.1:8080;

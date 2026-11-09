@@ -37,12 +37,18 @@ class JobApplicationTest extends TestCase
         return UploadedFile::fake()->create($name, 150, 'application/pdf');
     }
 
+    private function portfolio(string $name = 'portfolio.pdf'): UploadedFile
+    {
+        return UploadedFile::fake()->create($name, 250, 'application/pdf');
+    }
+
     private function apply(Customer $customer, JobVacancy $vacancy, array $payload = [])
     {
         auth('customer')->login($customer);
 
         return $this->post('/karir/'.$vacancy->slug.'/lamar', $payload + [
-            'documents' => [$this->cv()],
+            'cv' => $this->cv(),
+            'portfolio' => $this->portfolio(),
         ]);
     }
 
@@ -103,37 +109,71 @@ class JobApplicationTest extends TestCase
         $this->assertSame(JobApplication::STATUS_SUBMITTED, $application->status);
         $this->assertSame('Budi Santoso', $application->applicant_name);
         $this->assertSame('Saya tertarik.', $application->cover_letter);
-        $this->assertSame(1, $application->documents()->count());
+        $this->assertSame(2, $application->documents()->count());
     }
 
-    public function test_a_portfolio_link_is_saved_with_the_application(): void
+    public function test_a_portfolio_file_is_saved_as_a_portfolio_document(): void
     {
         $vacancy = $this->openVacancy();
         $customer = Customer::factory()->create();
 
         $this->apply($customer, $vacancy, [
-            'cover_letter' => 'Saya tertarik.',
-            'portfolio_url' => 'https://www.behance.net/budi',
+            'portfolio' => $this->portfolio('portofolio-budi.pdf'),
         ])->assertRedirect('/akun/lamaran');
 
-        $this->assertSame(
-            'https://www.behance.net/budi',
-            JobApplication::sole()->portfolio_url,
-        );
+        $portfolio = JobApplicationDocument::where('type', JobApplicationDocument::TYPE_PORTFOLIO)->sole();
+
+        $this->assertSame('portofolio-budi.pdf', $portfolio->original_filename);
+        Storage::disk('applications')->assertExists($portfolio->path);
     }
 
-    public function test_a_non_http_portfolio_link_is_rejected(): void
+    public function test_a_non_pdf_portfolio_is_rejected(): void
     {
         $vacancy = $this->openVacancy();
 
         $this->apply(Customer::factory()->create(), $vacancy, [
-            'portfolio_url' => 'javascript:alert(1)',
-        ])->assertSessionHasErrors('portfolio_url');
+            'portfolio' => UploadedFile::fake()->image('portofolio.jpg'),
+        ])->assertSessionHasErrors('portfolio');
+
+        $this->assertSame(0, JobApplication::count());
+        $this->assertSame(0, JobApplicationDocument::count());
+    }
+
+    public function test_both_files_are_required(): void
+    {
+        $vacancy = $this->openVacancy();
+
+        auth('customer')->login(Customer::factory()->create());
+
+        $this->post('/karir/'.$vacancy->slug.'/lamar', ['cover_letter' => 'Halo'])
+            ->assertSessionHasErrors(['cv', 'portfolio']);
 
         $this->assertSame(0, JobApplication::count());
     }
 
-    public function test_the_portfolio_field_renders_in_both_locales(): void
+    public function test_each_upload_boundary_is_enforced(): void
+    {
+        $vacancy = $this->openVacancy();
+        $customer = Customer::factory()->create();
+
+        // Exactly at the limit is allowed.
+        $this->apply($customer, $vacancy, [
+            'cv' => UploadedFile::fake()->create('cv.pdf', 10240, 'application/pdf'),
+            'portfolio' => UploadedFile::fake()->create('portfolio.pdf', 30720, 'application/pdf'),
+        ])->assertRedirect('/akun/lamaran');
+
+        $this->assertSame(2, JobApplicationDocument::count());
+
+        // One kilobyte over is not.
+        $customer = Customer::factory()->create();
+
+        $this->apply($customer, $vacancy, [
+            'cv' => UploadedFile::fake()->create('cv.pdf', 10241, 'application/pdf'),
+            'portfolio' => UploadedFile::fake()->create('portfolio.pdf', 30721, 'application/pdf'),
+        ])->assertSessionHasErrors(['cv', 'portfolio']);
+    }
+
+    public function test_the_upload_fields_render_in_both_locales(): void
     {
         $vacancy = $this->openVacancy();
         $customer = Customer::factory()->create();
@@ -141,25 +181,29 @@ class JobApplicationTest extends TestCase
         $this->actingAs($customer, 'customer')
             ->get('/karir/'.$vacancy->slug.'/lamar')
             ->assertOk()
-            ->assertSee('name="portfolio_url"', false)
-            ->assertSee(__('careers.portfolio_url'));
+            ->assertSee('name="cv"', false)
+            ->assertSee('name="portfolio"', false)
+            ->assertSee(__('careers.cv'))
+            ->assertSee(__('careers.portfolio'));
 
         $this->actingAs($customer, 'customer')
             ->get('/en/karir/'.$vacancy->slug.'/lamar')
             ->assertOk()
-            ->assertSee(__('careers.portfolio_url', [], 'en'));
+            ->assertSee(__('careers.cv', [], 'en'))
+            ->assertSee(__('careers.portfolio', [], 'en'));
     }
 
-    public function test_the_first_document_is_recorded_as_the_cv(): void
+    public function test_each_file_is_recorded_with_its_document_type(): void
     {
         $this->apply(Customer::factory()->create(), $this->openVacancy(), [
-            'documents' => [$this->cv('resume.pdf'), $this->cv('portfolio.pdf')],
+            'cv' => $this->cv('resume.pdf'),
+            'portfolio' => $this->portfolio('portfolio.pdf'),
         ]);
 
         $types = JobApplicationDocument::orderBy('id')->pluck('type')->all();
 
         $this->assertSame(
-            [JobApplicationDocument::TYPE_CV, JobApplicationDocument::TYPE_OTHER],
+            [JobApplicationDocument::TYPE_CV, JobApplicationDocument::TYPE_PORTFOLIO],
             $types,
         );
     }
@@ -168,7 +212,7 @@ class JobApplicationTest extends TestCase
     {
         $this->apply(Customer::factory()->create(), $this->openVacancy());
 
-        $document = JobApplicationDocument::sole();
+        $document = JobApplicationDocument::where('type', JobApplicationDocument::TYPE_CV)->sole();
 
         Storage::disk('applications')->assertExists($document->path);
         $this->assertSame('applications', $document->disk);
@@ -196,8 +240,10 @@ class JobApplicationTest extends TestCase
     {
         $vacancy = $this->openVacancy();
 
-        $this->post('/karir/'.$vacancy->slug.'/lamar', ['documents' => [$this->cv()]])
-            ->assertRedirect('/masuk');
+        $this->post('/karir/'.$vacancy->slug.'/lamar', [
+            'cv' => $this->cv(),
+            'portfolio' => $this->portfolio(),
+        ])->assertRedirect('/masuk');
 
         $this->assertSame(0, JobApplication::count());
     }
@@ -232,8 +278,10 @@ class JobApplicationTest extends TestCase
         // The form itself 404s, and the POST is refused even if replayed.
         $this->get('/karir/'.$closed->slug.'/lamar')->assertNotFound();
 
-        $this->post('/karir/'.$closed->slug.'/lamar', ['documents' => [$this->cv()]])
-            ->assertSessionHas('error', __('careers.error_closed'));
+        $this->post('/karir/'.$closed->slug.'/lamar', [
+            'cv' => $this->cv(),
+            'portfolio' => $this->portfolio(),
+        ])->assertSessionHas('error', __('careers.error_closed'));
 
         $this->assertSame(0, JobApplication::count());
     }
@@ -263,17 +311,29 @@ class JobApplicationTest extends TestCase
         $vacancy = $this->openVacancy();
         $customer = Customer::factory()->create();
 
-        $this->apply($customer, $vacancy, ['documents' => [$this->cv('old.pdf')]]);
-        $oldPath = JobApplicationDocument::sole()->path;
+        $this->apply($customer, $vacancy, [
+            'cv' => $this->cv('old-cv.pdf'),
+            'portfolio' => $this->portfolio('old-portfolio.pdf'),
+        ]);
+        $oldPaths = JobApplicationDocument::pluck('path')->all();
 
         $this->delete('/lamaran/'.JobApplication::sole()->getKey());
-        $this->apply($customer, $vacancy, ['documents' => [$this->cv('new.pdf')]]);
+        $this->apply($customer, $vacancy, [
+            'cv' => $this->cv('new-cv.pdf'),
+            'portfolio' => $this->portfolio('new-portfolio.pdf'),
+        ]);
 
-        // The old file is removed rather than left behind as an orphan, and
-        // only the new document remains on the record.
-        Storage::disk('applications')->assertMissing($oldPath);
-        $this->assertSame(1, JobApplicationDocument::count());
-        $this->assertSame('new.pdf', JobApplicationDocument::sole()->original_filename);
+        // The old files are removed rather than left behind as orphans, and
+        // only the new pair remains on the record.
+        foreach ($oldPaths as $path) {
+            Storage::disk('applications')->assertMissing($path);
+        }
+
+        $this->assertSame(2, JobApplicationDocument::count());
+        $this->assertEqualsCanonicalizing(
+            ['new-cv.pdf', 'new-portfolio.pdf'],
+            JobApplicationDocument::pluck('original_filename')->all(),
+        );
     }
 
     public function test_internal_notes_never_reach_the_applicant(): void
@@ -366,7 +426,7 @@ class JobApplicationTest extends TestCase
     public function test_the_sweep_never_touches_a_file_a_row_points_at(): void
     {
         $this->apply(Customer::factory()->create(), $this->openVacancy());
-        $path = JobApplicationDocument::sole()->path;
+        $path = JobApplicationDocument::where('type', JobApplicationDocument::TYPE_CV)->sole()->path;
 
         $this->travel(PurgeOrphanedApplicationDocuments::MIN_AGE_HOURS + 1)->hours();
 

@@ -47,15 +47,36 @@ class JobApplicationDocument extends Model
     }
 
     /**
-     * Streams the file as an attachment.
+     * Streams the file inline so staff can read it in the browser.
+     *
+     * Only PDFs are shown inline: every upload passes both an extension and a
+     * content-sniffing check, and this method falls back to an attachment if a
+     * stored MIME type is ever anything else. That keeps an "uploaded file
+     * rendered inline" from becoming a stored-XSS vector if the validation is
+     * ever loosened.
      *
      * No public URL is ever generated for these: the disk is private and
      * outside the document root, so the only way to read one is through
      * ApplicationDocumentController, which authorises first.
-     *
-     * Forced to 'attachment' rather than 'inline' deliberately -- an uploaded
-     * file rendered inline in the browser is a stored-XSS vector if the MIME
-     * check is ever loosened.
+     */
+    public function view(): StreamedResponse
+    {
+        if ($this->mime_type !== 'application/pdf') {
+            return $this->download();
+        }
+
+        return Storage::disk($this->disk)->response(
+            $this->path,
+            $this->original_filename,
+            [
+                'Content-Type' => 'application/pdf',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+        );
+    }
+
+    /**
+     * Streams the file as an attachment (kept for the non-PDF fallback).
      */
     public function download(): StreamedResponse
     {

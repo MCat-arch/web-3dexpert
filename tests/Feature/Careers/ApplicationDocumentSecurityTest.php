@@ -48,12 +48,23 @@ class ApplicationDocumentSecurityTest extends TestCase
         return JobVacancy::factory()->create(['is_published' => true, 'closes_at' => null]);
     }
 
-    /** @param array<int, UploadedFile> $documents */
-    private function apply(Customer $customer, JobVacancy $vacancy, array $documents)
+    private function pdf(string $name = 'cv.pdf'): UploadedFile
     {
+        return UploadedFile::fake()->create($name, 100, 'application/pdf');
+    }
+
+    private function apply(
+        Customer $customer,
+        JobVacancy $vacancy,
+        ?UploadedFile $cv = null,
+        ?UploadedFile $portfolio = null,
+    ) {
         auth('customer')->login($customer);
 
-        return $this->post('/karir/'.$vacancy->slug.'/lamar', ['documents' => $documents]);
+        return $this->post('/karir/'.$vacancy->slug.'/lamar', [
+            'cv' => $cv ?? $this->pdf(),
+            'portfolio' => $portfolio ?? $this->pdf('portfolio.pdf'),
+        ]);
     }
 
     /**
@@ -83,10 +94,27 @@ class ApplicationDocumentSecurityTest extends TestCase
             // mimetypes:application/pdf is what catches it.
             $file = new UploadedFile($tmp, 'cv.pdf', null, null, true);
 
-            $this->apply(Customer::factory()->create(), $this->openVacancy(), [$file])
-                ->assertSessionHasErrors('documents.0');
+            $this->apply(Customer::factory()->create(), $this->openVacancy(), cv: $file)
+                ->assertSessionHasErrors('cv');
 
             $this->assertSame(0, JobApplication::count());
+            $this->assertSame(0, JobApplicationDocument::count());
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    public function test_a_php_file_renamed_to_pdf_is_rejected_as_a_portfolio(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'rce').'.pdf';
+        file_put_contents($tmp, '<?php echo "pwned"; ?>');
+
+        try {
+            $file = new UploadedFile($tmp, 'portfolio.pdf', null, null, true);
+
+            $this->apply(Customer::factory()->create(), $this->openVacancy(), portfolio: $file)
+                ->assertSessionHasErrors('portfolio');
+
             $this->assertSame(0, JobApplicationDocument::count());
         } finally {
             @unlink($tmp);
@@ -113,40 +141,37 @@ class ApplicationDocumentSecurityTest extends TestCase
         // Both checks exist because either alone leaves a hole.
         $file = UploadedFile::fake()->createWithContent('cv.php', '%PDF-1.4 fake');
 
-        $this->apply(Customer::factory()->create(), $this->openVacancy(), [$file])
-            ->assertSessionHasErrors('documents.0');
+        $this->apply(Customer::factory()->create(), $this->openVacancy(), cv: $file)
+            ->assertSessionHasErrors('cv');
 
         $this->assertSame(0, JobApplicationDocument::count());
     }
 
-    public function test_an_image_is_rejected(): void
+    public function test_an_image_is_rejected_as_a_portfolio(): void
     {
         $this->apply(
             Customer::factory()->create(),
             $this->openVacancy(),
-            [UploadedFile::fake()->image('selfie.jpg')],
-        )->assertSessionHasErrors('documents.0');
+            portfolio: UploadedFile::fake()->image('portfolio.jpg'),
+        )->assertSessionHasErrors('portfolio');
     }
 
-    public function test_an_oversized_file_is_rejected(): void
+    public function test_an_oversized_cv_is_rejected(): void
     {
-        $tooBig = UploadedFile::fake()->create('cv.pdf', 6000, 'application/pdf');
+        $tooBig = UploadedFile::fake()->create('cv.pdf', 10241, 'application/pdf');
 
-        $this->apply(Customer::factory()->create(), $this->openVacancy(), [$tooBig])
-            ->assertSessionHasErrors('documents.0');
+        $this->apply(Customer::factory()->create(), $this->openVacancy(), cv: $tooBig)
+            ->assertSessionHasErrors('cv');
 
         $this->assertSame(0, JobApplicationDocument::count());
     }
 
-    public function test_more_than_five_documents_is_rejected(): void
+    public function test_an_oversized_portfolio_is_rejected(): void
     {
-        $files = array_map(
-            fn (int $i) => UploadedFile::fake()->create("doc{$i}.pdf", 100, 'application/pdf'),
-            range(1, 6),
-        );
+        $tooBig = UploadedFile::fake()->create('portfolio.pdf', 30721, 'application/pdf');
 
-        $this->apply(Customer::factory()->create(), $this->openVacancy(), $files)
-            ->assertSessionHasErrors('documents');
+        $this->apply(Customer::factory()->create(), $this->openVacancy(), portfolio: $tooBig)
+            ->assertSessionHasErrors('portfolio');
 
         $this->assertSame(0, JobApplicationDocument::count());
     }
@@ -156,7 +181,7 @@ class ApplicationDocumentSecurityTest extends TestCase
         auth('customer')->login(Customer::factory()->create());
 
         $this->post('/karir/'.$this->openVacancy()->slug.'/lamar', ['cover_letter' => 'Hi'])
-            ->assertSessionHasErrors('documents');
+            ->assertSessionHasErrors(['cv', 'portfolio']);
     }
 
     public function test_the_stored_filename_is_generated_not_user_supplied(): void
@@ -164,10 +189,10 @@ class ApplicationDocumentSecurityTest extends TestCase
         $this->apply(
             Customer::factory()->create(),
             $this->openVacancy(),
-            [UploadedFile::fake()->create('../../evil name.pdf', 100, 'application/pdf')],
+            cv: UploadedFile::fake()->create('../../evil name.pdf', 100, 'application/pdf'),
         );
 
-        $document = JobApplicationDocument::sole();
+        $document = JobApplicationDocument::where('type', JobApplicationDocument::TYPE_CV)->sole();
 
         // A user-supplied name on disk is how traversal and extension
         // confusion get in. The original is kept only as a column.
@@ -179,11 +204,7 @@ class ApplicationDocumentSecurityTest extends TestCase
 
     public function test_documents_are_stored_outside_the_public_directory(): void
     {
-        $this->apply(
-            Customer::factory()->create(),
-            $this->openVacancy(),
-            [UploadedFile::fake()->create('cv.pdf', 100, 'application/pdf')],
-        );
+        $this->apply(Customer::factory()->create(), $this->openVacancy());
 
         $root = config('filesystems.disks.applications.root');
 
@@ -196,7 +217,7 @@ class ApplicationDocumentSecurityTest extends TestCase
         $this->assertStringContainsString('private', $root);
     }
 
-    public function test_a_guest_cannot_download_a_document(): void
+    public function test_a_guest_cannot_view_a_document(): void
     {
         $document = JobApplicationDocument::factory()
             ->for(JobApplication::factory()->for($this->openVacancy(), 'vacancy')->create(), 'application')
@@ -205,7 +226,7 @@ class ApplicationDocumentSecurityTest extends TestCase
         $this->get('/dokumen-lamaran/'.$document->getKey())->assertRedirect();
     }
 
-    public function test_a_customer_cannot_download_a_document_even_their_own(): void
+    public function test_a_customer_cannot_view_a_document_even_their_own(): void
     {
         // Deliberate: they already hold the file they uploaded, and every
         // extra party who can fetch a CV is another way for it to leak.
@@ -221,7 +242,7 @@ class ApplicationDocumentSecurityTest extends TestCase
         $this->assertNotSame(200, $response->getStatusCode());
     }
 
-    public function test_another_customer_cannot_download_a_document(): void
+    public function test_another_customer_cannot_view_a_document(): void
     {
         $owner = Customer::factory()->create();
         $attacker = Customer::factory()->create();
@@ -237,32 +258,33 @@ class ApplicationDocumentSecurityTest extends TestCase
         );
     }
 
-    public function test_staff_can_download_and_it_arrives_as_an_attachment(): void
+    public function test_staff_can_view_and_it_arrives_inline(): void
     {
         $this->apply(
             Customer::factory()->create(),
             $this->openVacancy(),
-            [UploadedFile::fake()->create('cv-budi.pdf', 100, 'application/pdf')],
+            cv: UploadedFile::fake()->create('cv-budi.pdf', 100, 'application/pdf'),
         );
 
         auth('customer')->logout();
 
-        $document = JobApplicationDocument::sole();
+        $document = JobApplicationDocument::where('type', JobApplicationDocument::TYPE_CV)->sole();
 
         $response = $this->actingAs($this->staff(), 'web')
             ->get('/dokumen-lamaran/'.$document->getKey())
             ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
 
-        // Forced attachment: a file rendered inline is a stored-XSS vector if
-        // the MIME check is ever loosened.
+        // Inline, so clicking the link in the staff panel shows the PDF in
+        // the browser instead of downloading it.
         $disposition = (string) $response->headers->get('Content-Disposition');
 
-        $this->assertStringStartsWith('attachment', $disposition);
+        $this->assertStringStartsWith('inline', $disposition);
         $this->assertStringContainsString('cv-budi.pdf', $disposition);
     }
 
-    public function test_an_editor_cannot_download_and_a_deactivated_staff_member_cannot(): void
+    public function test_an_editor_cannot_view_and_a_deactivated_staff_member_cannot(): void
     {
         $document = JobApplicationDocument::factory()
             ->for(JobApplication::factory()->for($this->openVacancy(), 'vacancy')->create(), 'application')

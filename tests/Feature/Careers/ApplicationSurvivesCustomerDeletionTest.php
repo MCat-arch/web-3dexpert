@@ -51,7 +51,8 @@ class ApplicationSurvivesCustomerDeletionTest extends TestCase
 
         $this->post('/karir/'.$vacancy->slug.'/lamar', [
             'cover_letter' => 'Saya tertarik dengan posisi ini.',
-            'documents' => [UploadedFile::fake()->create('cv.pdf', 200, 'application/pdf')],
+            'cv' => UploadedFile::fake()->create('cv.pdf', 200, 'application/pdf'),
+            'portfolio' => UploadedFile::fake()->create('portfolio.pdf', 300, 'application/pdf'),
         ])->assertRedirect();
 
         auth('customer')->logout();
@@ -119,7 +120,9 @@ class ApplicationSurvivesCustomerDeletionTest extends TestCase
         $customer = Customer::factory()->create();
         $application = $this->submitApplication($customer);
 
-        $document = $application->documents()->sole();
+        $document = $application->documents()
+            ->where('type', JobApplicationDocument::TYPE_CV)
+            ->sole();
         $path = $document->path;
 
         $customer->forceDelete();
