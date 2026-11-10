@@ -111,6 +111,20 @@ class CareerAdminTest extends TestCase
             ->assertSee('Link portofolio (lamaran lama)');
     }
 
+    public function test_a_multi_line_introduction_keeps_its_line_breaks_in_the_staff_panel(): void
+    {
+        $application = $this->application();
+        $application->forceFill([
+            'cover_letter' => "Kelebihan: teliti dan komunikatif.\nKekurangan: perfeksionis.",
+        ])->save();
+
+        $this->actingAs($this->staff(), 'web')
+            ->get(JobApplicationResource::getUrl('view', ['record' => $application]))
+            ->assertOk()
+            ->assertSee('Kelebihan: teliti dan komunikatif.<br', false)
+            ->assertSee('Kekurangan: perfeksionis.', false);
+    }
+
     public function test_applications_cannot_be_created_by_staff(): void
     {
         // They come from the public flow, which snapshots identity and writes

@@ -27,8 +27,8 @@ return [
     'ask_question_cta' => 'Tanya via WhatsApp',
 
     'form_title' => 'Lamar: :position',
-    'cover_letter' => 'Surat lamaran',
-    'cover_letter_hint' => 'Opsional. Ceritakan singkat mengapa Anda cocok untuk posisi ini.',
+    'cover_letter' => 'Pengenalan diri',
+    'cover_letter_hint' => 'Opsional. Ceritakan kelebihan dan kekurangan diri Anda.',
     'cv' => 'CV',
     'cv_hint' => 'Wajib. Satu file PDF, maksimal :mb MB.',
     'portfolio' => 'Portofolio',

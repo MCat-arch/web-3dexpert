@@ -43,11 +43,19 @@ class JobApplicationInfolist
                     TextEntry::make('vacancy.location')->label('Lokasi'),
                 ]),
 
-            Section::make('Surat lamaran')
+            Section::make('Pengenalan diri')
                 ->schema([
                     TextEntry::make('cover_letter')
                         ->hiddenLabel()
-                        ->placeholder('Tidak ada surat lamaran.')
+                        ->placeholder('Tidak ada pengenalan diri.')
+                        // Newlines typed in the textarea are real line breaks;
+                        // without nl2br the browser collapses them into one
+                        // paragraph in the staff panel. escape first, then
+                        // convert, so the HTML can never be user-supplied.
+                        ->formatStateUsing(fn (?string $state) => filled($state)
+                            ? nl2br(e($state))
+                            : $state)
+                        ->html()
                         ->columnSpanFull(),
 
                     // Legacy rows only: the portfolio used to be a link. New

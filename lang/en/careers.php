@@ -27,8 +27,8 @@ return [
     'ask_question_cta' => 'Ask via WhatsApp',
 
     'form_title' => 'Apply: :position',
-    'cover_letter' => 'Cover letter',
-    'cover_letter_hint' => 'Optional. Briefly tell us why you are a good fit.',
+    'cover_letter' => 'Self introduction',
+    'cover_letter_hint' => 'Optional. Tell us about your strengths and weaknesses.',
     'cv' => 'CV',
     'cv_hint' => 'Required. One PDF file, max :mb MB.',
     'portfolio' => 'Portfolio',
